@@ -1,3 +1,6 @@
 node_modules
 extracted/**
 !extracted/put-extracted-file-here
+
+dist
+out
