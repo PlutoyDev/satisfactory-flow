@@ -1,4 +1,4 @@
-import { readFile, writeFile, mkdir, stat, rmdir } from 'fs/promises';
+import { readFile, writeFile, mkdir, stat, rm } from 'fs/promises';
 import path from 'path';
 import { parseProductionMachine } from './buildableParser.js';
 import { parseItem } from './itemParser.js';
@@ -6,6 +6,7 @@ import { parseRecipe } from './recipeParser.js';
 import { ParsedOutput } from './types.js';
 import { parsePowerGenerator } from './generatorParser.js';
 import { argv } from 'process';
+import sharp from 'sharp';
 
 const cwd = process.cwd();
 // In case I forget to run the script from the correct directory
@@ -17,8 +18,8 @@ await stat(extractedDirPath).catch(() => {
   process.exit(1);
 });
 
-const outputDirPath = path.join(projectRoot, 'output', 'parsedDocs');
-await rmdir(outputDirPath, { recursive: true })
+const outputDirPath = path.join(projectRoot, 'out');
+await rm(outputDirPath, { recursive: true })
   .catch(() => {})
   .then(() => mkdir(outputDirPath, { recursive: true }));
 
@@ -136,7 +137,7 @@ for (const item of Object.values(results.items)) {
   }
 
   if (productOf.length === 0 && ingredientOf.length === 0) {
-    console.error(`Item ${item.key} has no recipes that use / produce it`);
+    console.warn(`Warning: Item ${item.key} has no recipes that use / produce it`);
   }
 }
 
@@ -158,6 +159,30 @@ for (const recipe of Object.values(results.recipes)) {
     }
   }
 }
+
+// Handle image conversion of items
+await mkdir(path.join(outputDirPath, 'icons'), { recursive: true });
+const promises: Promise<any>[] = [];
+for (const item of Object.values(results.items)) {
+  if (item.iconPath) {
+    const subpath = item.iconPath.substring(28).split('.')[0];
+    const originalPath = path.join(extractedDirPath, `${subpath}.png`);
+    const pr = stat(originalPath)
+      .then(async () => {
+        const newName = subpath.split('/').pop()?.replace('IconDesc_', '').split('_').slice(0, -1).join('_');
+        const newPath = path.join(outputDirPath, 'icons', `${newName}.webp`);
+        // Use sharp to convert to webp
+        await sharp(originalPath).resize({ width: 64, height: 64 }).webp({ force: true, effort: 6 }).toFile(newPath);
+        item.iconPath = newPath.substring(outputDirPath.length + 1);
+      })
+      .catch(() => {
+        console.log("File doesn't exist", originalPath);
+        item.iconPath = null;
+      });
+    promises.push(pr);
+  }
+}
+await Promise.allSettled(promises);
 
 const outputPath = path.join(outputDirPath, 'parsedDocs.json');
 await writeFile(outputPath, JSON.stringify(results));
