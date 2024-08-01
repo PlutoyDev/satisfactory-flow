@@ -1,0 +1,12 @@
+{
+  "name": "satisfactory-flow",
+  "version": "0.0.1",
+  "description": "A tool to help you plan your factory in Satisfactory using a node-based graph editor.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Plutoy",
+  "license": "MIT"
+}
