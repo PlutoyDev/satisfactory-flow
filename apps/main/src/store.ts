@@ -2,6 +2,9 @@
 import { delEdges, delNodes, FlowData, getEdges, getFlows, getNodes, openFlowDb, setEdges, setNodes } from './db';
 import { atom } from 'jotai';
 import { Node, Edge, NodeChange, EdgeChange } from '@xyflow/react';
+import { atomWithLocation } from 'jotai-location';
+
+export const locationAtom = atomWithLocation();
 
 const _flowsAtom = atom<FlowData[]>([]);
 _flowsAtom.onMount = set => void getFlows().then(set);
@@ -194,14 +197,15 @@ export const selectedFlowAtom = atom(
         }
 
         // Set URL to /{source}/{id}
-        const url = `/${update.source}/${update.id}`;
-        window.history.pushState(null, '', url);
+        set(locationAtom, { pathname: `/${update.source}/${update.id}` });
       } catch (error) {
         console.error('Error switching flow:', error);
         set(switchFlowError, 'Error switching flow');
       }
     } else {
-      window.history.pushState(null, '', '/');
+      set(_nodesAtom, new Map());
+      set(_edgesAtom, new Map());
+      set(locationAtom, { pathname: '/' });
     }
     set(isSwitchingFlow, false);
   },
