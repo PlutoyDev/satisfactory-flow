@@ -9,10 +9,7 @@ export const locationAtom = atomWithLocation();
 
 const _flowsAtom = atom<FlowData[]>([]);
 _flowsAtom.onMount = set => void getFlows().then(set);
-export const flowsAtom = atom(get => [
-  ...get(_flowsAtom),
-  ...Array.from(examples.values()).map(({ id, name, description }) => ({ id, name, description })),
-]);
+export const flowsAtom = atom(get => get(_flowsAtom));
 
 const flowSource = ['db', 'example'] as const;
 type FlowSource = (typeof flowSource)[number];
