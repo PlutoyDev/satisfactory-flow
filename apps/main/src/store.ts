@@ -22,7 +22,58 @@ export const nodesAtom = atom(
     // Reimplement of applyNodeChanges to work with Map
     const nodes = get(_nodesAtom);
     for (const change of changes) {
-      // TODO: Apply changes to the map and save the changes
+      // TODO: Save the changes to DB
+      switch (change.type) {
+        case 'add':
+          nodes.set(change.item.id, change.item);
+          break;
+        case 'remove':
+          nodes.delete(change.id);
+          break;
+        case 'replace':
+          nodes.set(change.id, change.item);
+          break;
+        case 'select': {
+          const node = nodes.get(change.id);
+          if (node) {
+            node.selected = change.selected;
+          }
+          break;
+        }
+        case 'position': {
+          const node = nodes.get(change.id);
+          if (node) {
+            if (typeof change.position !== 'undefined') {
+              node.position = change.position;
+            }
+
+            if (typeof change.dragging !== 'undefined') {
+              node.dragging = change.dragging;
+            }
+          }
+          break;
+        }
+        case 'dimensions': {
+          const node = nodes.get(change.id);
+          if (node) {
+            if (typeof change.dimensions !== 'undefined') {
+              node.measured ??= {};
+              node.measured.width = change.dimensions.width;
+              node.measured.height = change.dimensions.height;
+
+              if (change.setAttributes) {
+                node.width = change.dimensions.width;
+                node.height = change.dimensions.height;
+              }
+            }
+
+            if (typeof change.resizing === 'boolean') {
+              node.resizing = change.resizing;
+            }
+          }
+          break;
+        }
+      }
     }
     // TODO: Test if there is a need to make a copy of the map
     set(_nodesAtom, nodes);
@@ -35,7 +86,25 @@ export const edgesAtom = atom(
     // Reimplement of applyEdgeChanges to work with Map
     const edges = get(_edgesAtom);
     for (const change of changes) {
-      // TODO: Apply changes to the map and save the changes
+      // TODO: Save the changes to DB
+      switch (change.type) {
+        case 'add':
+          edges.set(change.item.id, change.item);
+          break;
+        case 'remove':
+          edges.delete(change.id);
+          break;
+        case 'replace':
+          edges.set(change.id, change.item);
+          break;
+        case 'select': {
+          const edge = edges.get(change.id);
+          if (edge) {
+            edge.selected = change.selected;
+          }
+          break;
+        }
+      }
     }
     // TODO: Test if there is a need to make a copy of the map
     set(_edgesAtom, edges);
