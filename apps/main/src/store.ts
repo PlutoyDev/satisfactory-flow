@@ -205,10 +205,6 @@ export const selectedFlowAtom = atom(
           set(_nodesAtom, new Map(nodes.map(node => [node.id, node])));
           set(_edgesAtom, new Map(edges.map(edge => [edge.id, edge])));
         } else if (update.source === 'example') {
-          // TODO: Load example flow
-          set(_nodesAtom, new Map());
-          set(_edgesAtom, new Map());
-        } else if (update.source === 'example') {
           const data = await examples.get(update.flowId)?.getData();
           if (data) {
             const { nodes, edges } = data.default;
