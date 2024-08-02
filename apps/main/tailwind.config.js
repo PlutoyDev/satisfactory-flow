@@ -10,9 +10,10 @@ export default {
     themes: [
       {
         black: {
-          'base-100': '#11111b',
-          'base-200': '#1e1e2e',
-          'base-300': '#181825',
+          // Actually blue-ish black :D
+          'base-100': '#000010',
+          'base-200': '#101020',
+          'base-300': '#202030',
           'base-content': '#cdd6f4',
           'accent': '#fab387',
           'accent-content': '#11111b',
