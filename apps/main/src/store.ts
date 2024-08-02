@@ -1,5 +1,5 @@
 // Application Store using Jotai
-import { delEdges, delNodes, FlowData, getFlows, openFlowDb, setEdges, setNodes } from './db';
+import { delEdges, delNodes, FlowData, getEdges, getFlows, getNodes, openFlowDb, setEdges, setNodes } from './db';
 import { atom } from 'jotai';
 import { Node, Edge, NodeChange, EdgeChange } from '@xyflow/react';
 
@@ -163,21 +163,46 @@ export const edgesAtom = atom(
   },
 );
 
+export const isSwitchingFlow = atom(false);
+export const switchFlowError = atom<string | null>(null);
 export const selectedFlowAtom = atom(
   get => get(_selectedFlowAtom),
-  (get, set, update: SelectedFlow | null) => {
+  async (get, set, update: SelectedFlow | null) => {
+    set(isSwitchingFlow, true);
     const prev = get(_selectedFlowAtom);
     if (prev) {
-      // TODO - Ensure changes are saved before switching flows
+      if (_debouncedSaveTimeout) {
+        clearTimeout(_debouncedSaveTimeout!);
+        _debouncedSaveTimeout = null;
+        set(_saveChangesAtom, true); // "Call" the write-only atom to save changes
+      }
     }
     set(_selectedFlowAtom, update);
-    // TODO - Load flow from db
     if (update) {
-      // Set URL to /{source}/{id}
-      const url = `/${update.source}/${update.id}`;
-      window.history.pushState(null, '', url);
+      try {
+        if (update.source === 'db') {
+          const flowDb = await openFlowDb(update!.id);
+          const nodes = await getNodes(flowDb);
+          const edges = await getEdges(flowDb);
+          flowDb.close();
+          set(_nodesAtom, new Map(nodes.map(node => [node.id, node])));
+          set(_edgesAtom, new Map(edges.map(edge => [edge.id, edge])));
+        } else if (update.source === 'example') {
+          // TODO: Load example flow
+          set(_nodesAtom, new Map());
+          set(_edgesAtom, new Map());
+        }
+
+        // Set URL to /{source}/{id}
+        const url = `/${update.source}/${update.id}`;
+        window.history.pushState(null, '', url);
+      } catch (error) {
+        console.error('Error switching flow:', error);
+        set(switchFlowError, 'Error switching flow');
+      }
     } else {
       window.history.pushState(null, '', '/');
     }
+    set(isSwitchingFlow, false);
   },
 );
