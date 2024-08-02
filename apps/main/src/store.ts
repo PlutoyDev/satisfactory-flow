@@ -10,12 +10,21 @@ const _flowsAtom = atom<FlowData[]>([]);
 _flowsAtom.onMount = set => void getFlows().then(set);
 export const flowsAtom = atom(get => get(_flowsAtom)); // Export the read-only atom
 
+const flowSource = ['db', 'example'] as const;
+type FlowSource = (typeof flowSource)[number];
 interface SelectedFlow {
-  id: string;
-  source: 'db' | 'example';
+  flowId: string;
+  source: FlowSource;
 }
 
 const _selectedFlowAtom = atom<SelectedFlow | null>(null);
+_selectedFlowAtom.onMount = set => {
+  const [flows, source, flowId] = location.pathname.split('/').slice(1);
+  if (flows === 'flows' && flowSource.includes(source as FlowSource) && flowId) {
+    set({ flowId, source: source as FlowSource });
+  }
+};
+
 const _nodesAtom = atom<Map<string, Node>>(new Map());
 const _edgesAtom = atom<Map<string, Edge>>(new Map());
 
@@ -33,7 +42,7 @@ const _saveChangesAtom = atom(null, (get, set, force?: true) => {
     try {
       const ids = Array.from(_debouncedSaveIds);
       _debouncedSaveIds.clear();
-      const db = await openFlowDb(get(_selectedFlowAtom)!.id);
+      const db = await openFlowDb(get(_selectedFlowAtom)!.flowId);
       const nodes = get(_nodesAtom);
       const edges = get(_edgesAtom);
 
@@ -184,7 +193,7 @@ export const selectedFlowAtom = atom(
     if (update) {
       try {
         if (update.source === 'db') {
-          const flowDb = await openFlowDb(update!.id);
+          const flowDb = await openFlowDb(update!.flowId);
           const nodes = await getNodes(flowDb);
           const edges = await getEdges(flowDb);
           flowDb.close();
@@ -197,7 +206,7 @@ export const selectedFlowAtom = atom(
         }
 
         // Set URL to /{source}/{id}
-        set(locationAtom, { pathname: `/${update.source}/${update.id}` });
+        set(locationAtom, { pathname: `/flow/${update.source}/${update.flowId}` });
       } catch (error) {
         console.error('Error switching flow:', error);
         set(switchFlowError, 'Error switching flow');
