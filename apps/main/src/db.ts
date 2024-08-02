@@ -23,7 +23,7 @@ import { filter, map, mapToObj, pick, pipe } from 'remeda';
 export interface FlowData {
   id: string;
   name: string;
-  description: string;
+  description?: string;
   updated: Date;
   created: Date;
 }
