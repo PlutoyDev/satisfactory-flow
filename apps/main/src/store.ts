@@ -13,6 +13,34 @@ interface SelectedFlow {
 }
 
 const _selectedFlowAtom = atom<SelectedFlow | null>(null);
+const _nodesAtom = atom<Map<string, Node>>(new Map());
+const _edgesAtom = atom<Map<string, Edge>>(new Map());
+
+export const nodesAtom = atom(
+  get => Array.from(get(_nodesAtom).values()),
+  (get, set, changes: NodeChange<Node>[]) => {
+    // Reimplement of applyNodeChanges to work with Map
+    const nodes = get(_nodesAtom);
+    for (const change of changes) {
+      // TODO: Apply changes to the map and save the changes
+    }
+    // TODO: Test if there is a need to make a copy of the map
+    set(_nodesAtom, nodes);
+  },
+);
+
+export const edgesAtom = atom(
+  get => Array.from(get(_edgesAtom).values()),
+  (get, set, changes: EdgeChange<Edge>[]) => {
+    // Reimplement of applyEdgeChanges to work with Map
+    const edges = get(_edgesAtom);
+    for (const change of changes) {
+      // TODO: Apply changes to the map and save the changes
+    }
+    // TODO: Test if there is a need to make a copy of the map
+    set(_edgesAtom, edges);
+  },
+);
 
 export const selectedFlowAtom = atom(
   get => get(_selectedFlowAtom),
