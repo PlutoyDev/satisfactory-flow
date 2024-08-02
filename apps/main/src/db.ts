@@ -20,7 +20,7 @@ import type { Node, Edge } from '@xyflow/react';
 import { openDB, DBSchema } from 'idb';
 import { filter, map, mapToObj, pick, pipe } from 'remeda';
 
-interface FlowData {
+export interface FlowData {
   id: string;
   name: string;
   description: string;
@@ -28,7 +28,7 @@ interface FlowData {
   created: Date;
 }
 
-interface Settings {
+export interface Settings {
   lastOpenedFlowId?: string;
 }
 
