@@ -18,7 +18,7 @@ How data is stored:
 
 import type { Node, Edge } from '@xyflow/react';
 import { openDB, DBSchema } from 'idb';
-import { filter, map, mapToObj, pipe } from 'remeda';
+import { filter, map, mapToObj, pick, pipe } from 'remeda';
 
 interface FlowData {
   id: string;
@@ -165,6 +165,12 @@ export function getNodes(flowDbOrId: FlowDb | string) {
 }
 
 export function setNode(flowDbOrId: FlowDb | string, node: StoredNode) {
+  if (Object.keys(node).length !== 4) {
+    if ([node.id, node.type, node.data, node.position].some(v => v === undefined)) {
+      throw new Error('Invalid node');
+    }
+    node = pick(node, ['id', 'type', 'data', 'position']);
+  }
   return resolveFlowDbOrId(flowDbOrId, flowDb => flowDb.put('nodes', node));
 }
 
@@ -173,6 +179,12 @@ export function getEdges(flowDbOrId: FlowDb | string) {
 }
 
 export function setEdge(flowDbOrId: FlowDb | string, edge: StoredEdge) {
+  if (Object.keys(edge).length !== 7) {
+    if ([edge.id, edge.type, edge.data, edge.source, edge.target, edge.sourceHandle, edge.targetHandle].some(v => v === undefined)) {
+      throw new Error('Invalid edge');
+    }
+    edge = pick(edge, ['id', 'type', 'data', 'source', 'target', 'sourceHandle', 'targetHandle']);
+  }
   return resolveFlowDbOrId(flowDbOrId, flowDb => flowDb.put('edges', edge));
 }
 
