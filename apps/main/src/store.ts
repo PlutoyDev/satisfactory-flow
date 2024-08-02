@@ -16,13 +16,63 @@ const _selectedFlowAtom = atom<SelectedFlow | null>(null);
 const _nodesAtom = atom<Map<string, Node>>(new Map());
 const _edgesAtom = atom<Map<string, Edge>>(new Map());
 
+const _isSavePendingAtom = atom(false);
+const _debouncedSaveIds = new Set<string>();
+let _debouncedSaveTimeout: ReturnType<typeof setTimeout> | null = null;
+
+// Abuse atoms write-only atoms to act as function that can access other atoms
+const _saveChangesAtom = atom(null, (get, set, force?: true) => {
+  if (_debouncedSaveTimeout && !force) {
+    return; // Already saving, skip this call
+  }
+  set(_isSavePendingAtom, true);
+  _debouncedSaveTimeout = setTimeout(async () => {
+    try {
+      const ids = Array.from(_debouncedSaveIds);
+      _debouncedSaveIds.clear();
+      const db = await openFlowDb(get(_selectedFlowAtom)!.id);
+      const nodes = get(_nodesAtom);
+      const edges = get(_edgesAtom);
+
+      const updatedNodes: Node[] = [];
+      const updatedEdges: Edge[] = [];
+      const deletedNodes: string[] = [];
+      const deletedEdges: string[] = [];
+      for (const id of ids) {
+        const [type, itemId] = id.split('-') as ['node' | 'edge', string];
+        if (type === 'node') {
+          const node = nodes.get(itemId);
+          if (node) updatedNodes.push(node);
+          else deletedNodes.push(itemId);
+        } else if (type === 'edge') {
+          const edge = edges.get(itemId);
+          if (edge) updatedEdges.push(edge);
+          else deletedEdges.push(itemId);
+        }
+      }
+
+      await Promise.all([
+        setNodes(db, updatedNodes),
+        delNodes(db, deletedNodes),
+        setEdges(db, updatedEdges),
+        delEdges(db, deletedEdges),
+      ]).finally(() => db.close());
+
+      set(_isSavePendingAtom, false);
+      _debouncedSaveTimeout = null;
+    } catch (error) {
+      console.error('Error saving changes:', error);
+    }
+  }, 30000);
+});
+
 export const nodesAtom = atom(
   get => Array.from(get(_nodesAtom).values()),
   (get, set, changes: NodeChange<Node>[]) => {
     // Reimplement of applyNodeChanges to work with Map
     const nodes = get(_nodesAtom);
     for (const change of changes) {
-      // TODO: Save the changes to DB
+      _debouncedSaveIds.add('node-' + ('id' in change ? change.id : change.item.id));
       switch (change.type) {
         case 'add':
           nodes.set(change.item.id, change.item);
@@ -77,6 +127,7 @@ export const nodesAtom = atom(
     }
     // TODO: Test if there is a need to make a copy of the map
     set(_nodesAtom, nodes);
+    set(_saveChangesAtom); // "Call" the write-only atom to save changes
   },
 );
 
@@ -86,7 +137,7 @@ export const edgesAtom = atom(
     // Reimplement of applyEdgeChanges to work with Map
     const edges = get(_edgesAtom);
     for (const change of changes) {
-      // TODO: Save the changes to DB
+      _debouncedSaveIds.add('edge-' + ('id' in change ? change.id : change.item.id));
       switch (change.type) {
         case 'add':
           edges.set(change.item.id, change.item);
@@ -108,6 +159,7 @@ export const edgesAtom = atom(
     }
     // TODO: Test if there is a need to make a copy of the map
     set(_edgesAtom, edges);
+    set(_saveChangesAtom); // "Call" the write-only atom to save changes
   },
 );
 
