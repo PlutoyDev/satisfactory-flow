@@ -18,7 +18,7 @@ How data is stored:
 
 import type { Node, Edge } from '@xyflow/react';
 import { openDB, DBSchema } from 'idb';
-import { filter, mapToObj, pipe } from 'remeda';
+import { filter, map, mapToObj, pipe } from 'remeda';
 
 interface FlowData {
   id: string;
@@ -109,4 +109,93 @@ interface FlowDbSchema extends DBSchema {
       };
     }[keyof FlowProperties];
   };
+}
+
+export async function scanForFlowDbNames() {
+  const dbs = await indexedDB.databases();
+  return pipe(
+    dbs,
+    filter(db => db.name?.startsWith('flow-') ?? false),
+    map(db => db.name!),
+  );
+}
+
+export async function openFlowDb(flowId: string, throwIfNotExists = true) {
+  const dbName = `flow-${flowId}`;
+  if (throwIfNotExists) {
+    const dbNames = await scanForFlowDbNames();
+    if (!dbNames.includes(dbName)) {
+      throw new Error(`Flow with id ${flowId} does not exist`);
+    }
+  }
+
+  return openDB<FlowDbSchema>(dbName, 1, {
+    upgrade(db, oldVersion) {
+      switch (oldVersion) {
+        case 0:
+          db.createObjectStore('nodes', { keyPath: 'id' });
+          db.createObjectStore('edges', { keyPath: 'id' });
+          db.createObjectStore('properties', { keyPath: 'key' });
+          break;
+        default:
+          console.error('Unknown version:', oldVersion);
+      }
+    },
+  });
+}
+
+type FlowDb = Awaited<ReturnType<typeof openFlowDb>>;
+
+async function resolveFlowDbOrId<RT>(flowDbOrId: FlowDb | string, cb: (flowDb: FlowDb) => RT): Promise<RT> {
+  // If flowDbOrId is a string, open the database and close it after the callback
+  // If flowDbOrId is a FlowDb, use it directly and do not close it after the callback
+  const toClose = typeof flowDbOrId === 'string';
+  const flowDb = toClose ? await openFlowDb(flowDbOrId) : flowDbOrId;
+  try {
+    return cb(flowDb);
+  } finally {
+    if (toClose) {
+      flowDb.close();
+    }
+  }
+}
+
+export function getNodes(flowDbOrId: FlowDb | string) {
+  return resolveFlowDbOrId(flowDbOrId, flowDb => flowDb.getAll('nodes'));
+}
+
+export function setNode(flowDbOrId: FlowDb | string, node: StoredNode) {
+  return resolveFlowDbOrId(flowDbOrId, flowDb => flowDb.put('nodes', node));
+}
+
+export function getEdges(flowDbOrId: FlowDb | string) {
+  return resolveFlowDbOrId(flowDbOrId, flowDb => flowDb.getAll('edges'));
+}
+
+export function setEdge(flowDbOrId: FlowDb | string, edge: StoredEdge) {
+  return resolveFlowDbOrId(flowDbOrId, flowDb => flowDb.put('edges', edge));
+}
+
+export async function getProperties(flowDbOrId: FlowDb | string) {
+  return resolveFlowDbOrId(flowDbOrId, flowDb => {
+    return flowDb.getAll('properties');
+  });
+}
+
+export async function setProperty<K extends keyof FlowProperties>(flowDbOrId: FlowDb | string, key: K, value: FlowProperties[K]) {
+  return resolveFlowDbOrId(flowDbOrId, flowDb => {
+    return flowDb.put('properties', { key, value });
+  });
+}
+
+export async function setProperties(flowDbOrId: FlowDb | string, properties: FlowProperties) {
+  return resolveFlowDbOrId(flowDbOrId, flowDb => {
+    const tx = flowDb.transaction('properties', 'readwrite');
+    const promises: Promise<any>[] = [];
+    for (const k in properties) {
+      const key = k as keyof FlowProperties;
+      promises.push(tx.store.put({ key, value: properties[key] }));
+    }
+    return Promise.all([...promises, tx.done]);
+  });
 }
