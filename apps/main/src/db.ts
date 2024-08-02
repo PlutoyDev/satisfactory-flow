@@ -164,28 +164,51 @@ export function getNodes(flowDbOrId: FlowDb | string) {
   return resolveFlowDbOrId(flowDbOrId, flowDb => flowDb.getAll('nodes'));
 }
 
-export function setNode(flowDbOrId: FlowDb | string, node: StoredNode) {
-  if (Object.keys(node).length !== 4) {
-    if ([node.id, node.type, node.data, node.position].some(v => v === undefined)) {
-      throw new Error('Invalid node');
-    }
-    node = pick(node, ['id', 'type', 'data', 'position']);
-  }
-  return resolveFlowDbOrId(flowDbOrId, flowDb => flowDb.put('nodes', node));
+export function setNodes(flowDbOrId: FlowDb | string, nodes: (StoredNode | Node)[]) {
+  return resolveFlowDbOrId(flowDbOrId, flowDb => {
+    const tx = flowDb.transaction('nodes', 'readwrite');
+    // const promises = nodes.map(node => tx.store.put(pick(node, ['id', 'type', 'data', 'position'])));
+    return Promise.all(
+      pipe(
+        nodes,
+        filter(node => !!node && ['id', 'type', 'data', 'position'].every(k => k in node)),
+        map(node => tx.store.put(node) as Promise<any>),
+      ).concat(tx.done),
+    );
+  });
+}
+
+export function delNodes(flowDbOrId: FlowDb | string, ids: string[]) {
+  return resolveFlowDbOrId(flowDbOrId, flowDb => {
+    const tx = flowDb.transaction('nodes', 'readwrite');
+    const promises = ids.map(id => tx.store.delete(id));
+    return Promise.all([...promises, tx.done]);
+  });
 }
 
 export function getEdges(flowDbOrId: FlowDb | string) {
   return resolveFlowDbOrId(flowDbOrId, flowDb => flowDb.getAll('edges'));
 }
 
-export function setEdge(flowDbOrId: FlowDb | string, edge: StoredEdge) {
-  if (Object.keys(edge).length !== 7) {
-    if ([edge.id, edge.type, edge.data, edge.source, edge.target, edge.sourceHandle, edge.targetHandle].some(v => v === undefined)) {
-      throw new Error('Invalid edge');
-    }
-    edge = pick(edge, ['id', 'type', 'data', 'source', 'target', 'sourceHandle', 'targetHandle']);
-  }
-  return resolveFlowDbOrId(flowDbOrId, flowDb => flowDb.put('edges', edge));
+export function setEdges(flowDbOrId: FlowDb | string, edges: StoredEdge[]) {
+  return resolveFlowDbOrId(flowDbOrId, flowDb => {
+    const tx = flowDb.transaction('edges', 'readwrite');
+    return Promise.all(
+      pipe(
+        edges,
+        filter(edge => !!edge && ['id', 'type', 'data', 'source', 'target', 'sourceHandle', 'targetHandle'].every(k => k in edge)),
+        map(edge => tx.store.put(edge) as Promise<any>),
+      ).concat(tx.done),
+    );
+  });
+}
+
+export function delEdges(flowDbOrId: FlowDb | string, ids: string[]) {
+  return resolveFlowDbOrId(flowDbOrId, flowDb => {
+    const tx = flowDb.transaction('edges', 'readwrite');
+    const promises = ids.map(id => tx.store.delete(id));
+    return Promise.all([...promises, tx.done]);
+  });
 }
 
 export async function getProperties(flowDbOrId: FlowDb | string) {
