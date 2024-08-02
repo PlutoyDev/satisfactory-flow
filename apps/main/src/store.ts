@@ -3,12 +3,16 @@ import { delEdges, delNodes, FlowData, getEdges, getFlows, getNodes, openFlowDb,
 import { atom } from 'jotai';
 import { Node, Edge, NodeChange, EdgeChange } from '@xyflow/react';
 import { atomWithLocation } from 'jotai-location';
+import examples from './examples';
 
 export const locationAtom = atomWithLocation();
 
 const _flowsAtom = atom<FlowData[]>([]);
 _flowsAtom.onMount = set => void getFlows().then(set);
-export const flowsAtom = atom(get => get(_flowsAtom)); // Export the read-only atom
+export const flowsAtom = atom(get => [
+  ...get(_flowsAtom),
+  ...Array.from(examples.values()).map(({ id, name, description }) => ({ id, name, description })),
+]);
 
 const flowSource = ['db', 'example'] as const;
 type FlowSource = (typeof flowSource)[number];
@@ -34,15 +38,19 @@ let _debouncedSaveTimeout: ReturnType<typeof setTimeout> | null = null;
 
 // Abuse atoms write-only atoms to act as function that can access other atoms
 const _saveChangesAtom = atom(null, (get, set, force?: true) => {
+  const selFlow = get(_selectedFlowAtom);
+  if (selFlow?.source !== 'db') {
+    _debouncedSaveIds.clear();
+  }
   if (_debouncedSaveTimeout && !force) {
-    return; // Already saving, skip this call
+    return;
   }
   set(_isSavePendingAtom, true);
   _debouncedSaveTimeout = setTimeout(async () => {
     try {
       const ids = Array.from(_debouncedSaveIds);
       _debouncedSaveIds.clear();
-      const db = await openFlowDb(get(_selectedFlowAtom)!.flowId);
+      const db = await openFlowDb(selFlow!.flowId);
       const nodes = get(_nodesAtom);
       const edges = get(_edgesAtom);
 
@@ -203,10 +211,17 @@ export const selectedFlowAtom = atom(
           // TODO: Load example flow
           set(_nodesAtom, new Map());
           set(_edgesAtom, new Map());
+        } else if (update.source === 'example') {
+          const data = await examples.get(update.flowId)?.getData();
+          if (data) {
+            const { nodes, edges } = data.default;
+            set(_nodesAtom, new Map(nodes.map(node => [node.id, node])));
+            set(_edgesAtom, new Map(edges.map(edge => [edge.id, edge])));
+          }
         }
 
         // Set URL to /{source}/{id}
-        set(locationAtom, { pathname: `/flow/${update.source}/${update.flowId}` });
+        set(locationAtom, { pathname: `/flows/${update.source}/${update.flowId}` });
       } catch (error) {
         console.error('Error switching flow:', error);
         set(switchFlowError, 'Error switching flow');
