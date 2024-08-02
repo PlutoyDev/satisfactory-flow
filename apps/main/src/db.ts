@@ -18,6 +18,7 @@ How data is stored:
 
 import type { Node, Edge } from '@xyflow/react';
 import { openDB, DBSchema } from 'idb';
+import { filter, mapToObj, pipe } from 'remeda';
 
 interface FlowData {
   id: string;
@@ -28,7 +29,7 @@ interface FlowData {
 }
 
 interface Settings {
-  lastOpenedFlowId: string;
+  lastOpenedFlowId?: string;
 }
 
 interface MainDbSchema extends DBSchema {
@@ -39,10 +40,46 @@ interface MainDbSchema extends DBSchema {
   settings: {
     key: keyof Settings;
     value: {
-      key: keyof Settings;
-      value: Settings[keyof Settings];
-    };
+      [Key in keyof Settings]: {
+        key: Key;
+        value: Settings[Key];
+      };
+    }[keyof Settings];
   };
+}
+
+export const mainDb = await openDB<MainDbSchema>('main', 1, {
+  upgrade(db, oldVersion) {
+    switch (oldVersion) {
+      case 0:
+        db.createObjectStore('flows', { keyPath: 'id' });
+        db.createObjectStore('settings', { keyPath: 'key' });
+        break;
+      default:
+        console.error('Unknown version:', oldVersion);
+    }
+  },
+});
+
+export function getFlows() {
+  return mainDb.getAll('flows');
+}
+
+export function setFlow(flow: FlowData) {
+  return mainDb.put('flows', flow);
+}
+
+export async function getSettings() {
+  const settingsKv = await mainDb.getAll('settings');
+  return pipe(
+    settingsKv,
+    filter(kv => !!kv && kv.value !== undefined),
+    mapToObj(kv => [kv!.key, kv!.value!]),
+  );
+}
+
+export async function setSetting<K extends keyof Settings>(key: K, value: Settings[K]) {
+  return mainDb.put('settings', { key, value });
 }
 
 export type StoredNode = Pick<Node, 'id' | 'type' | 'data' | 'position'>;
