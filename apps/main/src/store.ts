@@ -23,8 +23,26 @@ interface SelectedFlow {
 
 const _selectedFlowAtom = atom<SelectedFlow | null>(null);
 
-const _nodesAtom = atom<Map<string, Node>>(new Map());
-const _edgesAtom = atom<Map<string, Edge>>(new Map());
+const _nodesMapAtom = atom<Map<string, Node>>(new Map());
+const _edgesMapAtom = atom<Map<string, Edge>>(new Map());
+const _nodesArrayAtom = atom<Node[]>([]); // Used for rendering
+const _edgesArrayAtom = atom<Edge[]>([]); // Used for rendering
+
+const _nodesAtom = atom(
+  get => get(_nodesMapAtom),
+  (_get, set, nodes: Map<string, Node>) => {
+    set(_nodesMapAtom, nodes);
+    set(_nodesArrayAtom, Array.from(nodes.values()));
+  },
+);
+
+const _edgesAtom = atom(
+  get => get(_edgesMapAtom),
+  (_get, set, edges: Map<string, Edge>) => {
+    set(_edgesMapAtom, edges);
+    set(_edgesArrayAtom, Array.from(edges.values()));
+  },
+);
 
 const _isSavePendingAtom = atom(false);
 const _debouncedSaveIds = new Set<string>();
@@ -35,6 +53,7 @@ const _saveChangesAtom = atom(null, (get, set, force?: true) => {
   const selFlow = get(_selectedFlowAtom);
   if (selFlow?.source !== 'db') {
     _debouncedSaveIds.clear();
+    return;
   }
   if (_debouncedSaveTimeout && !force) {
     return;
@@ -81,10 +100,10 @@ const _saveChangesAtom = atom(null, (get, set, force?: true) => {
 });
 
 export const nodesAtom = atom(
-  get => Array.from(get(_nodesAtom).values()),
+  get => get(_nodesArrayAtom),
   (get, set, changes: NodeChange<Node>[]) => {
     // Reimplement of applyNodeChanges to work with Map
-    const nodes = get(_nodesAtom);
+    const nodes = get(_nodesMapAtom);
     for (const change of changes) {
       _debouncedSaveIds.add('node-' + ('id' in change ? change.id : change.item.id));
       switch (change.type) {
@@ -97,56 +116,45 @@ export const nodesAtom = atom(
         case 'replace':
           nodes.set(change.id, change.item);
           break;
-        case 'select': {
+        default: {
           const node = nodes.get(change.id);
-          if (node) {
-            node.selected = change.selected;
+          if (!node) {
+            console.error('Node not found:', change.id);
+            continue;
           }
-          break;
-        }
-        case 'position': {
-          const node = nodes.get(change.id);
-          if (node) {
-            if (typeof change.position !== 'undefined') {
-              node.position = change.position;
-            }
-
-            if (typeof change.dragging !== 'undefined') {
-              node.dragging = change.dragging;
-            }
-          }
-          break;
-        }
-        case 'dimensions': {
-          const node = nodes.get(change.id);
-          if (node) {
-            if (typeof change.dimensions !== 'undefined') {
-              node.measured ??= {};
-              node.measured.width = change.dimensions.width;
-              node.measured.height = change.dimensions.height;
-
-              if (change.setAttributes) {
-                node.width = change.dimensions.width;
-                node.height = change.dimensions.height;
+          switch (change.type) {
+            case 'select':
+              nodes.set(change.id, { ...node, selected: change.selected });
+              break;
+            case 'position':
+              nodes.set(change.id, { ...node, position: change.position ?? node.position, dragging: change.dragging ?? node.dragging });
+              break;
+            case 'dimensions':
+              if (typeof change.dimensions !== 'undefined') {
+                node.measured ??= {};
+                node.measured.width = change.dimensions.width;
+                node.measured.height = change.dimensions.height;
+                if (change.setAttributes) {
+                  node.width = change.dimensions.width;
+                  node.height = change.dimensions.height;
+                }
               }
-            }
-
-            if (typeof change.resizing === 'boolean') {
-              node.resizing = change.resizing;
-            }
+              if (typeof change.resizing === 'boolean') {
+                node.resizing = change.resizing;
+              }
+              nodes.set(change.id, { ...node });
+              break;
           }
-          break;
         }
       }
     }
-    // TODO: Test if there is a need to make a copy of the map
     set(_nodesAtom, nodes);
     set(_saveChangesAtom); // "Call" the write-only atom to save changes
   },
 );
 
 export const edgesAtom = atom(
-  get => Array.from(get(_edgesAtom).values()),
+  get => get(_edgesArrayAtom),
   (get, set, changes: EdgeChange<Edge>[]) => {
     // Reimplement of applyEdgeChanges to work with Map
     const edges = get(_edgesAtom);
@@ -163,15 +171,14 @@ export const edgesAtom = atom(
           edges.set(change.id, change.item);
           break;
         case 'select': {
-          const edge = edges.get(change.id);
-          if (edge) {
-            edge.selected = change.selected;
+          const prevEdge = edges.get(change.id);
+          if (prevEdge) {
+            edges.set(change.id, { ...prevEdge, selected: change.selected });
           }
           break;
         }
       }
     }
-    // TODO: Test if there is a need to make a copy of the map
     set(_edgesAtom, edges);
     set(_saveChangesAtom); // "Call" the write-only atom to save changes
   },

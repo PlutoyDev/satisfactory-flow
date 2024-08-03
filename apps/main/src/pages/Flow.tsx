@@ -1,6 +1,9 @@
 import { useAtom } from 'jotai';
 import { edgesAtom, nodesAtom, selectedFlowAtom, selectedFlowDataAtom } from '../store';
 import { FilePen, Home, Save } from 'lucide-react';
+import { Background, ReactFlow } from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
+import { useEffect } from 'react';
 
 function FlowPage() {
   const [selectedFlow, setSelectedFlow] = useAtom(selectedFlowAtom);
@@ -32,6 +35,18 @@ function FlowPage() {
             <Save size={32} className='stroke-2' />
           </button>
         </div>
+      </div>
+      <div className='fixed bottom-0 left-0 right-0 top-16 h-full'>
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={applyNodeChanges}
+          onEdgesChange={applyEdgeChanges}
+          attributionPosition='bottom-left'
+          colorMode='dark'
+        >
+          <Background />
+        </ReactFlow>
       </div>
       {/* TODO: Body: xyflow (grid 6,6)*/}
       {/* TODO: Top (Left/Right) Panel: Node Selection (Item, Recipe, Logistic)*/}
