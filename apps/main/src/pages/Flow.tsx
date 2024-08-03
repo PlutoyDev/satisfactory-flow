@@ -46,10 +46,10 @@ function FlowPage() {
           defaultEdgeOptions={{ type: 'smoothstep' }}
         >
           <Background />
+          {/* TODO: Top (Left/Right) Panel: Node Selection (Item, Recipe, Logistic)*/}
+          {/* TODO: Bottom (Left/Right) Panel: Node/Edge Property Editor*/}
         </ReactFlow>
       </div>
-      {/* TODO: Top (Left/Right) Panel: Node Selection (Item, Recipe, Logistic)*/}
-      {/* TODO: Bottom (Left/Right) Panel: Node/Edge Property Editor*/}
     </div>
   );
 }
