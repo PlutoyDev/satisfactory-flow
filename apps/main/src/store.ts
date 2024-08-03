@@ -1,6 +1,6 @@
 // Application Store using Jotai
 import { delEdges, delNodes, FlowData, getEdges, getFlows, getNodes, openFlowDb, setEdges, setNodes } from './db';
-import { atom, useAtom } from 'jotai';
+import { atom, getDefaultStore, useAtom } from 'jotai';
 import { Node, Edge, NodeChange, EdgeChange, Connection } from '@xyflow/react';
 import { atomWithLocation } from 'jotai-location';
 import examples from './examples';
@@ -22,6 +22,8 @@ export type NodeEdgesChange = {
 export type ExtNodeChange = NodeChange | NodeEdgesChange;
 
 const generateId = () => nanoid(16);
+
+export const store = getDefaultStore();
 
 export const locationAtom = atomWithLocation();
 
@@ -84,9 +86,8 @@ const _isSavePendingAtom = atom(false);
 const _debouncedSaveIds = new Set<string>();
 let _debouncedSaveTimeout: ReturnType<typeof setTimeout> | null = null;
 
-// Abuse atoms write-only atoms to act as function that can access other atoms
-const _saveChangesAtom = atom(null, (get, set, force?: true) => {
-  const selFlow = get(_selectedFlowAtom);
+async function saveChanges(force?: true) {
+  const selFlow = store.get(_selectedFlowAtom);
   if (selFlow?.source !== 'db') {
     _debouncedSaveIds.clear();
     return;
@@ -94,14 +95,14 @@ const _saveChangesAtom = atom(null, (get, set, force?: true) => {
   if (_debouncedSaveTimeout && !force) {
     return;
   }
-  set(_isSavePendingAtom, true);
+  store.set(_isSavePendingAtom, true);
   _debouncedSaveTimeout = setTimeout(async () => {
     try {
       const ids = Array.from(_debouncedSaveIds);
       _debouncedSaveIds.clear();
       const db = await openFlowDb(selFlow!.flowId);
-      const nodes = get(_nodesAtom);
-      const edges = get(_edgesAtom);
+      const nodes = store.get(_nodesAtom);
+      const edges = store.get(_edgesAtom);
 
       const updatedNodes: Node[] = [];
       const updatedEdges: Edge[] = [];
@@ -127,13 +128,13 @@ const _saveChangesAtom = atom(null, (get, set, force?: true) => {
         delEdges(db, deletedEdges),
       ]).finally(() => db.close());
 
-      set(_isSavePendingAtom, false);
+      store.set(_isSavePendingAtom, false);
       _debouncedSaveTimeout = null;
     } catch (error) {
       console.error('Error saving changes:', error);
     }
   }, 30000);
-});
+}
 
 export const nodesAtom = atom(
   get => get(_nodesArrayAtom),
@@ -195,7 +196,7 @@ export const nodesAtom = atom(
       }
     }
     set(_nodesAtom, nodes);
-    set(_saveChangesAtom); // "Call" the write-only atom to save changes
+    saveChanges();
   },
 );
 
@@ -263,14 +264,13 @@ export const edgesAtom = atom(
     if (nodeChanges.length) {
       set(nodesAtom, nodeChanges);
     } else {
-      set(_saveChangesAtom); // "Call" the write-only atom to save changes
+      saveChanges();
     }
   },
 );
 
-// Write-only atoms to add edges
-export const addEdgeAtom = atom(null, (_get, set, edgeParams: Edge | Connection) => {
-  set(edgesAtom, [
+export function addEdge(edgeParams: Edge | Connection) {
+  store.set(edgesAtom, [
     {
       type: 'add',
       item: {
@@ -282,14 +282,6 @@ export const addEdgeAtom = atom(null, (_get, set, edgeParams: Edge | Connection)
       },
     },
   ]);
-});
-
-export function useMyReactFlow() {
-  const [nodes, applyNodeChanges] = useAtom(nodesAtom);
-  const [edges, applyEdgeChanges] = useAtom(edgesAtom);
-  const [, addEdge] = useAtom(addEdgeAtom);
-
-  return { nodes, edges, applyNodeChanges, applyEdgeChanges, addEdge };
 }
 
 export const isSwitchingFlow = atom(false);
@@ -303,7 +295,7 @@ export const selectedFlowAtom = atom(
       if (_debouncedSaveTimeout) {
         clearTimeout(_debouncedSaveTimeout!);
         _debouncedSaveTimeout = null;
-        set(_saveChangesAtom, true); // "Call" the write-only atom to save changes
+        await saveChanges(true);
       }
     }
     set(_selectedFlowAtom, update);

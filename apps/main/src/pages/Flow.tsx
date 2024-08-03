@@ -1,5 +1,5 @@
 import { useAtom } from 'jotai';
-import { selectedFlowAtom, selectedFlowDataAtom, useMyReactFlow } from '../store';
+import { edgesAtom, nodesAtom, selectedFlowAtom, selectedFlowDataAtom, addEdge } from '../store';
 import { FilePen, Home, Save } from 'lucide-react';
 import { Background, ReactFlow } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
@@ -7,7 +7,8 @@ import '@xyflow/react/dist/style.css';
 function FlowPage() {
   const [selectedFlow, setSelectedFlow] = useAtom(selectedFlowAtom);
   const [selFlowData, setSelFlowData] = useAtom(selectedFlowDataAtom);
-  const { nodes, edges, applyEdgeChanges, applyNodeChanges, addEdge } = useMyReactFlow();
+  const [nodes, applyNodeChanges] = useAtom(nodesAtom);
+  const [edges, applyEdgeChanges] = useAtom(edgesAtom);
 
   if (!selectedFlow) {
     return <div>404 Not Found</div>;
