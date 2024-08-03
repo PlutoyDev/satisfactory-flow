@@ -1,14 +1,33 @@
 // Application Store using Jotai
 import { delEdges, delNodes, FlowData, getEdges, getFlows, getNodes, openFlowDb, setEdges, setNodes } from './db';
 import { atom, useAtom } from 'jotai';
-import { Node, Edge, NodeChange, EdgeChange, addEdge, Connection } from '@xyflow/react';
+import { Node, Edge, NodeChange, EdgeChange, Connection } from '@xyflow/react';
 import { atomWithLocation } from 'jotai-location';
 import examples from './examples';
 import { nanoid } from 'nanoid';
+import type { ParsedOutput } from 'docs-parser'; // Get the types for docs.json
 
 const generateId = () => nanoid(16);
 
 export const locationAtom = atomWithLocation();
+
+// Read only atom to fetch parsedDocs.json and map it to a Map
+export const docsMappedAtom = atom(async () => {
+  try {
+    const res = await fetch('/extracted/parsedDocs.json');
+    const data = (await res.json()) as ParsedOutput;
+    const mapped = {} as {
+      [key in keyof ParsedOutput]: ParsedOutput[key] extends Record<string, infer U> ? Map<string, U> : never;
+    };
+    for (const key in data) {
+      mapped[key as keyof ParsedOutput] = new Map(Object.entries(data[key as keyof ParsedOutput]));
+    }
+    return mapped;
+  } catch (error) {
+    // TODO: Handle error
+    console.error('Error handling parsedDocs.json:', error);
+  }
+});
 
 const _flowsAtom = atom<Map<string, FlowData>>(new Map());
 _flowsAtom.onMount = set =>
