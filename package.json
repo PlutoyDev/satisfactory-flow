@@ -4,7 +4,8 @@
   "description": "A tool to help you plan your factory in Satisfactory using a node-based graph editor.",
   "main": "index.js",
   "scripts": {
-    "parseDocs": "pnpm run --filter docs-parser start"
+    "parseDocs": "pnpm run --filter docs-parser start",
+    "dev": "pnpm run --filter main dev"
   },
   "keywords": [],
   "author": "Plutoy",
