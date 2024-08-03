@@ -203,19 +203,53 @@ export const edgesAtom = atom(
   get => get(_edgesArrayAtom),
   (get, set, changes: EdgeChange<Edge>[]) => {
     // Reimplement of applyEdgeChanges to work with Map
+    const nodeChanges: ExtNodeChange[] = [];
     const edges = get(_edgesAtom);
     for (const change of changes) {
       _debouncedSaveIds.add('edge-' + ('id' in change ? change.id : change.item.id));
       switch (change.type) {
         case 'add':
           edges.set(change.item.id, change.item);
-          break;
-        case 'remove':
-          edges.delete(change.id);
+          nodeChanges.push({
+            type: 'edges',
+            id: change.item.source,
+            handleId: change.item.sourceHandle ?? 'output',
+            edgeId: change.item.id,
+          });
+          nodeChanges.push({
+            type: 'edges',
+            id: change.item.target,
+            handleId: change.item.targetHandle ?? 'input',
+            edgeId: change.item.id,
+          });
           break;
         case 'replace':
-          edges.set(change.id, change.item);
+        case 'remove': {
+          const edge = edges.get(change.id);
+          if (!edge) {
+            break;
+          }
+          nodeChanges.push({ type: 'edges', id: edge.source, handleId: edge.sourceHandle ?? 'output', edgeId: null });
+          nodeChanges.push({ type: 'edges', id: edge.target, handleId: edge.targetHandle ?? 'input', edgeId: null });
+          if (change.type === 'remove') {
+            edges.delete(change.id);
+          } else if (change.type === 'replace') {
+            edges.set(change.item.id, change.item);
+            nodeChanges.push({
+              type: 'edges',
+              id: change.item.source,
+              handleId: change.item.sourceHandle ?? 'output',
+              edgeId: change.item.id,
+            });
+            nodeChanges.push({
+              type: 'edges',
+              id: change.item.target,
+              handleId: change.item.targetHandle ?? 'input',
+              edgeId: change.item.id,
+            });
+          }
           break;
+        }
         case 'select': {
           const prevEdge = edges.get(change.id);
           if (prevEdge) {
@@ -226,7 +260,11 @@ export const edgesAtom = atom(
       }
     }
     set(_edgesAtom, edges);
-    set(_saveChangesAtom); // "Call" the write-only atom to save changes
+    if (nodeChanges.length) {
+      set(nodesAtom, nodeChanges);
+    } else {
+      set(_saveChangesAtom); // "Call" the write-only atom to save changes
+    }
   },
 );
 
