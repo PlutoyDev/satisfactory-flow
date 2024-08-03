@@ -10,7 +10,12 @@ function FlowPage() {
     return <div>404 Not Found</div>;
   }
 
-  return <div>FlowPage</div>;
+  return <div>
+    {/* TODO: HEADER: Home Button, FlowName and Rename button, Save Button */}
+    {/* TODO: Body: xyflow (grid 6,6)*/}
+    {/* TODO: Top (Left/Right) Panel: Node Selection (Item, Recipe, Logistic)*/}
+    {/* TODO: Bottom (Left/Right) Panel: Node/Edge Property Editor*/}
+    </div>;
 }
 
 export default FlowPage;
