@@ -82,6 +82,9 @@ importers:
       daisyui:
         specifier: ^4.12.10
         version: 4.12.10(postcss@8.4.40)
+      docs-parser:
+        specifier: workspace:*
+        version: link:../docsParser
       eslint:
         specifier: ^8.57.0
         version: 8.57.0
