@@ -1,9 +1,12 @@
 // Application Store using Jotai
 import { delEdges, delNodes, FlowData, getEdges, getFlows, getNodes, openFlowDb, setEdges, setNodes } from './db';
-import { atom } from 'jotai';
-import { Node, Edge, NodeChange, EdgeChange } from '@xyflow/react';
+import { atom, useAtom } from 'jotai';
+import { Node, Edge, NodeChange, EdgeChange, addEdge, Connection } from '@xyflow/react';
 import { atomWithLocation } from 'jotai-location';
 import examples from './examples';
+import { nanoid } from 'nanoid';
+
+const generateId = () => nanoid(16);
 
 export const locationAtom = atomWithLocation();
 
@@ -183,6 +186,31 @@ export const edgesAtom = atom(
     set(_saveChangesAtom); // "Call" the write-only atom to save changes
   },
 );
+
+// Write-only atoms to add edges
+export const addEdgeAtom = atom(null, (_get, set, edgeParams: Edge | Connection) => {
+  console.log('addEdgeAtom', edgeParams);
+  set(edgesAtom, [
+    {
+      type: 'add',
+      item: {
+        id: generateId(),
+        source: edgeParams.source,
+        target: edgeParams.target,
+        sourceHandle: edgeParams.sourceHandle ?? undefined,
+        targetHandle: edgeParams.targetHandle ?? undefined,
+      },
+    },
+  ]);
+});
+
+export function useMyReactFlow() {
+  const [nodes, applyNodeChanges] = useAtom(nodesAtom);
+  const [edges, applyEdgeChanges] = useAtom(edgesAtom);
+  const [, addEdge] = useAtom(addEdgeAtom);
+
+  return { nodes, edges, applyNodeChanges, applyEdgeChanges, addEdge };
+}
 
 export const isSwitchingFlow = atom(false);
 export const switchFlowError = atom<string | null>(null);
