@@ -1,8 +1,10 @@
 import { useAtom } from 'jotai';
-import { edgesAtom, nodesAtom, selectedFlowAtom } from '../store';
+import { edgesAtom, nodesAtom, selectedFlowAtom, selectedFlowDataAtom } from '../store';
+import { FilePen, Home, Save } from 'lucide-react';
 
 function FlowPage() {
-  const [selectedFlow] = useAtom(selectedFlowAtom);
+  const [selectedFlow, setSelectedFlow] = useAtom(selectedFlowAtom);
+  const [selFlowData, setSelFlowData] = useAtom(selectedFlowDataAtom);
   const [nodes, applyNodeChanges] = useAtom(nodesAtom);
   const [edges, applyEdgeChanges] = useAtom(edgesAtom);
 
@@ -10,12 +12,32 @@ function FlowPage() {
     return <div>404 Not Found</div>;
   }
 
-  return <div>
-    {/* TODO: HEADER: Home Button, FlowName and Rename button, Save Button */}
-    {/* TODO: Body: xyflow (grid 6,6)*/}
-    {/* TODO: Top (Left/Right) Panel: Node Selection (Item, Recipe, Logistic)*/}
-    {/* TODO: Bottom (Left/Right) Panel: Node/Edge Property Editor*/}
-    </div>;
+  return (
+    <div>
+      <div className='bg-base-300 navbar w-full'>
+        <div className='navbar-start'>
+          <a href='/' className='btn btn-ghost' onClick={e => (e.preventDefault(), setSelectedFlow(null))}>
+            <Home size={32} className='stroke-2' />
+          </a>
+        </div>
+        <div className='navbar-center'>
+          <h2 className='text-xl font-semibold'>{selFlowData?.name}</h2>
+          <button className='btn btn-ghost btn-xs mr-2' disabled={selectedFlow.source !== 'db'}>
+            {/* TODO: Implment edit flow name button */}
+            <FilePen size={24} />
+          </button>
+        </div>
+        <div className='navbar-end'>
+          <button className='btn btn-ghost'>
+            <Save size={32} className='stroke-2' />
+          </button>
+        </div>
+      </div>
+      {/* TODO: Body: xyflow (grid 6,6)*/}
+      {/* TODO: Top (Left/Right) Panel: Node Selection (Item, Recipe, Logistic)*/}
+      {/* TODO: Bottom (Left/Right) Panel: Node/Edge Property Editor*/}
+    </div>
+  );
 }
 
 export default FlowPage;

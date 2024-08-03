@@ -7,9 +7,12 @@ import examples from './examples';
 
 export const locationAtom = atomWithLocation();
 
-const _flowsAtom = atom<FlowData[]>([]);
-_flowsAtom.onMount = set => void getFlows().then(set);
-export const flowsAtom = atom(get => get(_flowsAtom));
+const _flowsAtom = atom<Map<string, FlowData>>(new Map());
+_flowsAtom.onMount = set =>
+  void getFlows()
+    .then(flows => new Map(flows.map(flow => [flow.id, flow])))
+    .then(set);
+export const flowsAtom = atom(get => Array.from(get(_flowsAtom).values()));
 
 const flowSource = ['db', 'example'] as const;
 type FlowSource = (typeof flowSource)[number];
@@ -219,6 +222,34 @@ export const selectedFlowAtom = atom(
       set(locationAtom, { pathname: '/' });
     }
     set(isSwitchingFlow, false);
+  },
+);
+
+export const selectedFlowDataAtom = atom(
+  get => {
+    const selectedFlow = get(selectedFlowAtom);
+    if (selectedFlow) {
+      if (selectedFlow.source === 'db') {
+        return get(_flowsAtom).get(selectedFlow.flowId) as Pick<FlowData, 'name' | 'description'> | undefined;
+      } else if (selectedFlow.source === 'example') {
+        return examples.get(selectedFlow.flowId) as Pick<FlowData, 'name' | 'description'> | undefined;
+      }
+    } else {
+      return null;
+    }
+  },
+  (get, set, update: Pick<FlowData, 'name' | 'description'>) => {
+    const selectedFlow = get(selectedFlowAtom);
+    if (selectedFlow && selectedFlow.source === 'db') {
+      const flow = get(_flowsAtom).get(selectedFlow.flowId);
+      if (flow) {
+        flow.name = update.name;
+        flow.description = update.description;
+        set(_flowsAtom, new Map(get(_flowsAtom).entries()));
+      }
+    } else {
+      console.error('Cannot update example flow data');
+    }
   },
 );
 
