@@ -6,7 +6,9 @@ function FlowPage() {
   const [nodes, applyNodeChanges] = useAtom(nodesAtom);
   const [edges, applyEdgeChanges] = useAtom(edgesAtom);
 
-  console.log(nodes, edges);
+  if (!selectedFlow) {
+    return <div>404 Not Found</div>;
+  }
 
   return <div>FlowPage</div>;
 }
