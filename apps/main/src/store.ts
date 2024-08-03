@@ -7,6 +7,20 @@ import examples from './examples';
 import { nanoid } from 'nanoid';
 import type { ParsedOutput } from 'docs-parser'; // Get the types for docs.json
 
+export interface ExtNode<NodeData extends Record<string, unknown> = Record<string, unknown>, NodeType extends string = string>
+  extends Node<NodeData, NodeType> {
+  edges?: Map<string, string>; // Map of handleId to edgeId
+}
+
+export type NodeEdgesChange = {
+  type: 'edges';
+  id: string;
+  handleId: string;
+  edgeId: string | null; // null to remove edge
+};
+
+export type ExtNodeChange = NodeChange | NodeEdgesChange;
+
 const generateId = () => nanoid(16);
 
 export const locationAtom = atomWithLocation();
@@ -45,14 +59,14 @@ interface SelectedFlow {
 
 const _selectedFlowAtom = atom<SelectedFlow | null>(null);
 
-const _nodesMapAtom = atom<Map<string, Node>>(new Map());
+const _nodesMapAtom = atom<Map<string, ExtNode>>(new Map());
 const _edgesMapAtom = atom<Map<string, Edge>>(new Map());
 const _nodesArrayAtom = atom<Node[]>([]); // Used for rendering
 const _edgesArrayAtom = atom<Edge[]>([]); // Used for rendering
 
 const _nodesAtom = atom(
   get => get(_nodesMapAtom),
-  (_get, set, nodes: Map<string, Node>) => {
+  (_get, set, nodes: Map<string, ExtNode>) => {
     set(_nodesMapAtom, nodes);
     set(_nodesArrayAtom, Array.from(nodes.values()));
   },
@@ -123,7 +137,7 @@ const _saveChangesAtom = atom(null, (get, set, force?: true) => {
 
 export const nodesAtom = atom(
   get => get(_nodesArrayAtom),
-  (get, set, changes: NodeChange<Node>[]) => {
+  (get, set, changes: ExtNodeChange[]) => {
     // Reimplement of applyNodeChanges to work with Map
     const nodes = get(_nodesMapAtom);
     for (const change of changes) {
@@ -165,6 +179,16 @@ export const nodesAtom = atom(
                 node.resizing = change.resizing;
               }
               nodes.set(change.id, { ...node });
+              break;
+            case 'edges':
+              const extNode = node;
+              if (change.edgeId) {
+                extNode.edges ??= new Map();
+                extNode.edges.set(change.handleId, change.edgeId);
+              } else {
+                extNode.edges?.delete(change.handleId);
+              }
+              nodes.set(change.id, extNode);
               break;
           }
         }
@@ -248,22 +272,39 @@ export const selectedFlowAtom = atom(
     set(_selectedFlowAtom, update);
     if (update) {
       try {
+        let nodes: ExtNode[] = [];
+        let edges: Edge[] = [];
         if (update.source === 'db') {
           const flowDb = await openFlowDb(update!.flowId);
-          const nodes = await getNodes(flowDb);
-          const edges = await getEdges(flowDb);
+          nodes = await getNodes(flowDb);
+          edges = await getEdges(flowDb);
           flowDb.close();
-          set(_nodesAtom, new Map(nodes.map(node => [node.id, node])));
-          set(_edgesAtom, new Map(edges.map(edge => [edge.id, edge])));
         } else if (update.source === 'example') {
           const data = await examples.get(update.flowId)?.getData();
           if (data) {
-            const { nodes, edges } = data.default;
-            set(_nodesAtom, new Map(nodes.map(node => [node.id, node])));
-            set(_edgesAtom, new Map(edges.map(edge => [edge.id, edge])));
+            nodes = data.default.nodes;
+            edges = data.default.edges;
           }
         }
 
+        const nodesMap = new Map(nodes.map(node => [node.id, node]));
+        const edgesMap = new Map(
+          edges.map(edge => {
+            const sourceNode = nodesMap.get(edge.source);
+            if (sourceNode) {
+              sourceNode.edges ??= new Map();
+              sourceNode.edges.set(edge.sourceHandle ?? 'output', edge.id);
+            }
+            const targetNode = nodesMap.get(edge.target);
+            if (targetNode) {
+              targetNode.edges ??= new Map();
+              targetNode.edges.set(edge.targetHandle ?? 'input', edge.id);
+            }
+            return [edge.id, edge];
+          }),
+        );
+        set(_nodesAtom, nodesMap);
+        set(_edgesAtom, edgesMap);
         // Set URL to /{source}/{id}
         set(locationAtom, { pathname: `/flows/${update.source}/${update.flowId}` });
       } catch (error) {
