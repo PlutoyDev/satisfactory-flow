@@ -270,7 +270,6 @@ export const edgesAtom = atom(
 
 // Write-only atoms to add edges
 export const addEdgeAtom = atom(null, (_get, set, edgeParams: Edge | Connection) => {
-  console.log('addEdgeAtom', edgeParams);
   set(edgesAtom, [
     {
       type: 'add',
