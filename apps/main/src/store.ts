@@ -19,12 +19,6 @@ interface SelectedFlow {
 }
 
 const _selectedFlowAtom = atom<SelectedFlow | null>(null);
-_selectedFlowAtom.onMount = set => {
-  const [flows, source, flowId] = location.pathname.split('/').slice(1);
-  if (flows === 'flows' && flowSource.includes(source as FlowSource) && flowId) {
-    set({ flowId, source: source as FlowSource });
-  }
-};
 
 const _nodesAtom = atom<Map<string, Node>>(new Map());
 const _edgesAtom = atom<Map<string, Edge>>(new Map());
@@ -227,3 +221,10 @@ export const selectedFlowAtom = atom(
     set(isSwitchingFlow, false);
   },
 );
+
+selectedFlowAtom.onMount = set => {
+  const [flows, source, flowId] = location.pathname.split('/').slice(1);
+  if (flows === 'flows' && flowSource.includes(source as FlowSource) && flowId) {
+    set({ flowId, source: source as FlowSource });
+  }
+};
