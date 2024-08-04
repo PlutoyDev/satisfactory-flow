@@ -25,7 +25,7 @@ export default function ItemComboBox({ name = 'itemKey' }: ItemComboBoxProps) {
       <summary className='btn btn-sm btn-block'>
         {item ? (
           <>
-            {item.iconPath && <img src={item.iconPath} alt={item.displayName} className='mr-2 h-6 w-6' />}
+            {item.iconPath && <img src={'/extracted/' + item.iconPath} alt={item.displayName} className='mr-2 h-6 w-6' />}
             <span>{item.displayName}</span>
           </>
         ) : (
@@ -51,7 +51,7 @@ export default function ItemComboBox({ name = 'itemKey' }: ItemComboBoxProps) {
                   setValue(key);
                 }}
               >
-                {iconPath && <img src={iconPath} alt={displayName} className='mr-2 h-6 w-6' />}
+                {iconPath && <img src={'/extracted/' + iconPath} alt={displayName} className='mr-2 h-6 w-6' />}
                 <span>{displayName}</span>
               </button>
             </li>

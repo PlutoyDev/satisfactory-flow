@@ -1,10 +1,11 @@
-import { FactoryNodeWrapper } from './BaseNode';
+import { FactoryNodeEditorWrapper, FactoryNodeWrapper } from './BaseNode';
 import { FactoryItemNodeData } from '../../engines/data';
 import { docsMappedAtom } from '../../lib/store';
 import { NodeProps, Node } from '@xyflow/react';
 import { useAtom } from 'jotai';
 import { useMemo } from 'react';
 import { computeFactoryItemNode } from '../../engines/compute';
+import ItemComboBox from '../form/ItemComboBox';
 
 const defaultBgColor = '#89dceb';
 const defaultSize = 60;
@@ -33,7 +34,7 @@ export function ItemNode(props: NodeProps<Node<FactoryItemNodeData>>) {
 
   return (
     <FactoryNodeWrapper {...props} defBgColor={defaultBgColor} factoryInterfaces={res.interfaces} counterRotate='images' size={defaultSize}>
-      {item.iconPath && <img src={item.iconPath} alt={item.displayName} />}
+      {item.iconPath && <img src={'/extracted/' + item.iconPath} alt={item.displayName} />}
       <p>{(speedThou / 1000).toPrecision(3).replace('.000', '')} items/s</p>
     </FactoryNodeWrapper>
   );
