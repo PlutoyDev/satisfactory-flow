@@ -15,10 +15,10 @@ Satisfactory machines are split into 4 categories:
 "Interfaces", refering to input/output are represented as a combination of 
 - direction (left, top, right, bottom)
 - itemForm (solid, fluid)
-- type (input, output)
+- type (in, out)
 - index (0, 1, 2, 3)
 
-Interfaces are represented as a lowercase string joined by a hyphen, e.g. "left-solid-input-0". 
+Interfaces are represented as a lowercase string joined by a hyphen, e.g. "left-solid-in-0". 
 They also correspond as the handleId of the node.
 
 Each "machine" will have a compute function that will take node and edge data and return:
@@ -31,3 +31,35 @@ Due to floating point precision, all computations will be done in integers by mu
 Any variable that is "mimicking" a float will be suffixed with "Thou" (short for thousandth) ie clockSpeedThou, itemRateThou, etc.
 FYI: the "Thou" suffix is pronounced "th-ow" (like "thousandth" but without the "sandth"), and it came from thousandth of an inch (thou) in engineering. (I'm just bad at naming things)
 */
+
+export const FACTORY_INTERFACE_DIR = ['left', 'top', 'right', 'bottom'] as const;
+export type FactoryInterfaceDir = (typeof FACTORY_INTERFACE_DIR)[number];
+export const FACTORY_INTERFACE_ITEM_FORM = ['solid', 'fluid'] as const;
+export type FactoryItemForm = (typeof FACTORY_INTERFACE_ITEM_FORM)[number];
+export const FACTORY_INTERFACE_TYPE = ['in', 'out'] as const;
+export type FactoryInterfaceType = (typeof FACTORY_INTERFACE_TYPE)[number];
+export const FACTORY_INTERFACE_INDEX = [0, 1, 2, 3] as const;
+export type FactoryInterfaceIndex = (typeof FACTORY_INTERFACE_INDEX)[number];
+
+export function splitInterfaceId(id: string, validate = false) {
+  const parts = id.split('-');
+  if (validate && parts.length !== 4) {
+    throw new Error('Invalid Interface ID');
+  }
+  const [dir, form, type, index] = parts as [FactoryInterfaceDir, FactoryItemForm, FactoryInterfaceType, FactoryInterfaceIndex];
+  if (validate) {
+    if (!FACTORY_INTERFACE_DIR.includes(dir)) {
+      throw new Error('Invalid Interface Direction');
+    }
+    if (!FACTORY_INTERFACE_ITEM_FORM.includes(form)) {
+      throw new Error('Invalid Interface Item Form');
+    }
+    if (!FACTORY_INTERFACE_TYPE.includes(type)) {
+      throw new Error('Invalid Interface Type');
+    }
+    if (!FACTORY_INTERFACE_INDEX.includes(index)) {
+      throw new Error('Invalid Interface Index');
+    }
+  }
+  return { dir, form, type, index };
+}
