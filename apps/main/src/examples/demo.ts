@@ -1,4 +1,5 @@
 import { Edge, Node } from '@xyflow/react';
+import { FactoryItemNodeData } from '../engines/data';
 
 export default {
   nodes: [
@@ -12,6 +13,12 @@ export default {
       id: '2',
       position: { x: 100, y: 100 },
       data: { label: 'World' },
+    },
+    {
+      id: '237890235890235890',
+      position: { x: 200, y: 200 },
+      data: {} satisfies FactoryItemNodeData,
+      type: 'item',
     },
   ],
   edges: [

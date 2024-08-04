@@ -45,6 +45,7 @@ function FlowPage() {
           attributionPosition='bottom-left'
           colorMode='dark'
           defaultEdgeOptions={{ type: 'smoothstep' }}
+          nodeTypes={customNodes}
         >
           <Background />
           {/* TODO: Top (Left/Right) Panel: Node Selection (Item, Recipe, Logistic)*/}
