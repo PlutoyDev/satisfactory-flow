@@ -49,8 +49,10 @@ function FlowPage() {
             colorMode='dark'
             defaultEdgeOptions={{ type: 'smoothstep' }}
             nodeTypes={customNodes}
+            snapToGrid={true}
+            snapGrid={[6, 6]}
           >
-            <Background />
+            <Background gap={36} />
             {/* TODO: Top (Left/Right) Panel: Node Selection (Item, Recipe, Logistic)*/}
             {/* TODO: Bottom (Left/Right) Panel: Node/Edge Property Editor*/}
           </ReactFlow>
