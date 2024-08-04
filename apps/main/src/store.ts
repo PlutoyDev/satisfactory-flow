@@ -32,9 +32,7 @@ export const docsMappedAtom = atom(async () => {
   try {
     const res = await fetch('/extracted/parsedDocs.json');
     const data = (await res.json()) as ParsedOutput;
-    const mapped = {} as {
-      [key in keyof ParsedOutput]: ParsedOutput[key] extends Record<string, infer U> ? Map<string, U> : never;
-    };
+    const mapped = {} as { [key in keyof ParsedOutput]: ParsedOutput[key] extends Record<string, infer U> ? Map<string, U> : never };
     for (const key in data) {
       mapped[key as keyof ParsedOutput] = new Map(Object.entries(data[key as keyof ParsedOutput]));
     }
@@ -42,6 +40,7 @@ export const docsMappedAtom = atom(async () => {
   } catch (error) {
     // TODO: Handle error
     console.error('Error handling parsedDocs.json:', error);
+    throw error;
   }
 });
 
