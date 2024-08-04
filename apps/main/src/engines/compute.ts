@@ -32,6 +32,9 @@ Any variable that is "mimicking" a float will be suffixed with "Thou" (short for
 FYI: the "Thou" suffix is pronounced "th-ow" (like "thousandth" but without the "sandth"), and it came from thousandth of an inch (thou) in engineering. (I'm just bad at naming things)
 */
 
+import type { Item } from 'docs-parser';
+import { FactoryItemNodeData } from './data';
+
 export const FACTORY_INTERFACE_DIR = ['left', 'top', 'right', 'bottom'] as const;
 export type FactoryInterfaceDir = (typeof FACTORY_INTERFACE_DIR)[number];
 export const FACTORY_INTERFACE_ITEM_FORM = ['solid', 'fluid'] as const;
@@ -62,4 +65,46 @@ export function splitInterfaceId(id: string, validate = false) {
     }
   }
   return { dir, form, type, index };
+}
+
+// Compute for machines
+export interface ItemSpeed {
+  itemKey: string;
+  speedThou: number;
+}
+
+export interface ComputeResult {
+  interfaces: string[];
+  itemSpeed: Record<string, ItemSpeed>;
+}
+
+export function computeFactoryItemNode(
+  data: FactoryItemNodeData,
+  itemGetterOrItem: ((key: string) => Item | undefined) | Item,
+): null | ComputeResult {
+  const { itemKey, speedThou = 0, interfaceKind = 'both' } = data;
+
+  if (!itemKey) return null;
+  const item = typeof itemGetterOrItem === 'function' ? itemGetterOrItem(itemKey) : itemGetterOrItem;
+  if (!item) {
+    console.error(`Item ${itemKey} not found`);
+    return null;
+  }
+
+  const itemForm = item.form === 'solid' ? 'solid' : 'fluid';
+  const ret: ComputeResult = { interfaces: [], itemSpeed: {} };
+
+  if (interfaceKind === 'both' || interfaceKind === 'in') {
+    const intId = `left-${itemForm}-in-0`;
+    ret.interfaces.push(intId);
+    ret.itemSpeed[intId] = { itemKey, speedThou: speedThou };
+  }
+
+  if (interfaceKind === 'both' || interfaceKind === 'out') {
+    const intId = `right-${itemForm}-out-0`;
+    ret.interfaces.push(intId);
+    ret.itemSpeed[intId] = { itemKey, speedThou: speedThou };
+  }
+
+  return ret;
 }
