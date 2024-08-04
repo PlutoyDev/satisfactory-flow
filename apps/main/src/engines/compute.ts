@@ -24,4 +24,10 @@ They also correspond as the handleId of the node.
 Each "machine" will have a compute function that will take node and edge data and return:
 - interfaces (`${direction}-${itemForm}-${type}-${index}`)
 - itemRate (items per minute)
+
+---
+
+Due to floating point precision, all computations will be done in integers by multiplying floats by 1000 and then dividing by 1000 at the end.
+Any variable that is "mimicking" a float will be suffixed with "Thou" (short for thousandth) ie clockSpeedThou, itemRateThou, etc.
+FYI: the "Thou" suffix is pronounced "th-ow" (like "thousandth" but without the "sandth"), and it came from thousandth of an inch (thou) in engineering. (I'm just bad at naming things)
 */
