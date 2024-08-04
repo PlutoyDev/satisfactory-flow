@@ -3,6 +3,8 @@ import { edgesAtom, nodesAtom, selectedFlowAtom, selectedFlowDataAtom, addEdge }
 import { FilePen, Home, Save } from 'lucide-react';
 import { Background, ReactFlow } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { customNodes } from '../components/rf';
+import { Suspense } from 'react';
 
 function FlowPage() {
   const [selectedFlow, setSelectedFlow] = useAtom(selectedFlowAtom);
@@ -36,21 +38,23 @@ function FlowPage() {
         </div>
       </div>
       <div className='fixed bottom-0 left-0 right-0 top-16 h-full'>
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onConnect={addEdge}
-          onNodesChange={applyNodeChanges}
-          onEdgesChange={applyEdgeChanges}
-          attributionPosition='bottom-left'
-          colorMode='dark'
-          defaultEdgeOptions={{ type: 'smoothstep' }}
-          nodeTypes={customNodes}
-        >
-          <Background />
-          {/* TODO: Top (Left/Right) Panel: Node Selection (Item, Recipe, Logistic)*/}
-          {/* TODO: Bottom (Left/Right) Panel: Node/Edge Property Editor*/}
-        </ReactFlow>
+        <Suspense fallback={<div>Loading...</div>}>
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onConnect={addEdge}
+            onNodesChange={applyNodeChanges}
+            onEdgesChange={applyEdgeChanges}
+            attributionPosition='bottom-left'
+            colorMode='dark'
+            defaultEdgeOptions={{ type: 'smoothstep' }}
+            nodeTypes={customNodes}
+          >
+            <Background />
+            {/* TODO: Top (Left/Right) Panel: Node Selection (Item, Recipe, Logistic)*/}
+            {/* TODO: Bottom (Left/Right) Panel: Node/Edge Property Editor*/}
+          </ReactFlow>
+        </Suspense>
       </div>
     </div>
   );

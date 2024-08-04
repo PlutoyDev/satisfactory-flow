@@ -35,7 +35,7 @@ export function FactoryNodeWrapper(props: FactoryNodeWrapperProps) {
   useEffect(() => {
     // Update the node internals when the handle changes
     updateNodeInternals(id);
-  }, [id, updateNodeInternals, rotation, size, factoryInterfaces]);
+  }, [id, updateNodeInternals, rotation, size, factoryInterfaces.join(',')]);
 
   useEffect(() => {
     // Handle counter rotation
@@ -54,7 +54,7 @@ export function FactoryNodeWrapper(props: FactoryNodeWrapperProps) {
 
   return (
     <div
-      className='rounded-md p-1 text-base outline-offset-2 transition-transform'
+      className='text-base-100 rounded-md p-1 outline-offset-2 transition-transform'
       style={{
         width: swapWidthHeight ? height : width,
         height: swapWidthHeight ? width : height,
@@ -64,7 +64,7 @@ export function FactoryNodeWrapper(props: FactoryNodeWrapperProps) {
       }}
     >
       {children && (
-        <div ref={childrenRef} className='size-full transition-transform will-change-transform *:size-full'>
+        <div ref={childrenRef} className='flex size-full items-center justify-center transition-transform'>
           {children}
         </div>
       )}
