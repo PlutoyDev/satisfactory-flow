@@ -27,19 +27,19 @@ Generators Node Data extends Base Node Data:
 */
 
 export interface FactoryBaseNodeData extends Record<string, any> {
-  rotation: number;
-  bgColor: string;
+  rotation?: number;
+  bgColor?: string;
 }
 
 export interface FactoryItemNodeData extends FactoryBaseNodeData {
-  itemKey: string;
-  speedThou: number;
-  interface: 'both' | 'in' | 'out';
+  itemKey?: string;
+  speedThou?: number;
+  interfaceKind?: 'both' | 'in' | 'out';
 }
 
 export interface FactoryRecipeNodeData extends FactoryBaseNodeData {
-  recipeKey: string;
-  clockSpeedThou: number;
+  recipeKey?: string;
+  clockSpeedThou?: number;
 }
 
 export const LOGISTIC_DIR = ['left', 'right', 'center'] as const;
@@ -52,14 +52,14 @@ export const LOGISTIC_PIPE_JUNC_INT = ['in', 'out'] as const;
 export type LogisticPipeJuncInt = (typeof LOGISTIC_PIPE_JUNC_INT)[number];
 
 export interface FactoryLogisticNodeData extends FactoryBaseNodeData {
-  type: LogisticType;
+  type?: LogisticType;
   smartProRules?: Partial<Record<LogisticDir, LogisticSmartProRules>>;
   pipeJuncInt?: Partial<Record<LogisticDir, LogisticPipeJuncInt>>;
 }
 
 export interface FactoryGeneratorNodeData extends FactoryBaseNodeData {
-  generatorKey: string;
-  clockSpeedThou: number;
+  generatorKey?: string;
+  clockSpeedThou?: number;
 }
 
 export type FactoryNodeData = FactoryItemNodeData | FactoryRecipeNodeData | FactoryLogisticNodeData | FactoryGeneratorNodeData;
