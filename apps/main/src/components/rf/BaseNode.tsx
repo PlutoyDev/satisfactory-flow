@@ -133,6 +133,7 @@ export function useEditorField<T>(name: string) {
 
 export interface FactoryNodeEditorChildProps {
   setValue: (name: string, value: any) => void;
+  currentValue: any;
 }
 
 export interface FactoryNodeEditorWrapperProps {
@@ -178,7 +179,19 @@ export function FactoryNodeEditorWrapper({ children: Child }: FactoryNodeEditorW
 
   const getValue = useCallback(
     (name: string) => {
-      return 'node' in selNode! ? selNode.node.data[name] : undefined;
+      if (!selNode || 'edge' in selNode) {
+        return undefined;
+      }
+
+      const path = name.split('.');
+      let current: any = selNode?.node?.data;
+      for (let i = 0; i < path.length; i++) {
+        if (!(path[i] in current)) {
+          return undefined;
+        }
+        current = current[path[i]];
+      }
+      return current;
     },
     [selNode],
   );
@@ -189,7 +202,7 @@ export function FactoryNodeEditorWrapper({ children: Child }: FactoryNodeEditorW
 
   return (
     <EditorFormContext.Provider value={{ getValue, createSetValue }}>
-      <Child setValue={setValue} />
+      <Child setValue={setValue} currentValue={selNode.node.data} />
     </EditorFormContext.Provider>
   );
 }
