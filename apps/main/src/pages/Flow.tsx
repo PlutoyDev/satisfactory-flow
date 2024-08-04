@@ -1,10 +1,10 @@
 import { useAtom } from 'jotai';
 import { edgesAtom, nodesAtom, selectedFlowAtom, selectedFlowDataAtom } from '../lib/store';
-import { addEdge, onSelectionChange } from '../lib/rfListeners';
+import { addEdge, onSelectionChange, selectedNodeOrEdge } from '../lib/rfListeners';
 import { FilePen, Home, Save } from 'lucide-react';
-import { Background, ReactFlow } from '@xyflow/react';
+import { Background, Panel, ReactFlow } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { customNodes } from '../components/rf';
+import { customNodeEditors, customNodes } from '../components/rf';
 import { Suspense } from 'react';
 
 function FlowPage() {
@@ -38,7 +38,7 @@ function FlowPage() {
           </button>
         </div>
       </div>
-      <div className='fixed bottom-0 left-0 right-0 top-16 h-full'>
+      <div className='fixed bottom-0 left-0 right-0 top-16'>
         <Suspense fallback={<div>Loading...</div>}>
           <ReactFlow
             nodes={nodes}
@@ -57,10 +57,39 @@ function FlowPage() {
             <Background gap={36} />
             {/* TODO: Top (Left/Right) Panel: Node Selection (Item, Recipe, Logistic)*/}
             {/* TODO: Bottom (Left/Right) Panel: Node/Edge Property Editor*/}
+            <PropertyEditor />
           </ReactFlow>
         </Suspense>
       </div>
     </div>
+  );
+}
+
+function PropertyEditor() {
+  const [selNodeOrEdge] = useAtom(selectedNodeOrEdge);
+  if (!selNodeOrEdge) {
+    return null;
+  }
+
+  const Editor =
+    'node' in selNodeOrEdge ? (
+      selNodeOrEdge.node.type && selNodeOrEdge.node.type in customNodeEditors ? (
+        customNodeEditors[selNodeOrEdge.node.type as keyof typeof customNodeEditors]
+      ) : (
+        <p>Unknown node type</p>
+      )
+    ) : 'edge' in selNodeOrEdge ? null : (
+      <p>Unknown selection</p>
+    );
+
+  return (
+    <Panel position='bottom-right'>
+      <div className='bg-base-300 rounded-box w-96 px-3 py-1'>
+        <h2 className='text-lg font-semibold'>Properties</h2>
+        <div className='divider m-0 mb-2 h-1' />
+        {Editor && (typeof Editor === 'function' ? <Editor /> : Editor)}
+      </div>
+    </Panel>
   );
 }
 

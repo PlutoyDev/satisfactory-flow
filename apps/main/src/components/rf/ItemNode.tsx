@@ -38,3 +38,7 @@ export function ItemNode(props: NodeProps<Node<FactoryItemNodeData>>) {
     </FactoryNodeWrapper>
   );
 }
+
+export function ItemNodeEditor() {
+  return <div>ItemNodeEditor</div>;
+}
