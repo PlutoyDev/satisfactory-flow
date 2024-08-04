@@ -1,9 +1,9 @@
 // Application Store using Jotai
 import { delEdges, delNodes, FlowData, getEdges, getFlows, getNodes, openFlowDb, setEdges, setNodes } from './db';
-import { atom, getDefaultStore, useAtom } from 'jotai';
-import { Node, Edge, NodeChange, EdgeChange, Connection } from '@xyflow/react';
+import { atom, getDefaultStore } from 'jotai';
+import { Node, Edge, NodeChange, EdgeChange } from '@xyflow/react';
 import { atomWithLocation } from 'jotai-location';
-import examples from './examples';
+import examples from '../examples';
 import { nanoid } from 'nanoid';
 import type { ParsedOutput } from 'docs-parser'; // Get the types for docs.json
 
@@ -21,7 +21,7 @@ export type NodeEdgesChange = {
 
 export type ExtNodeChange = NodeChange | NodeEdgesChange;
 
-const generateId = () => nanoid(16);
+export const generateId = () => nanoid(16);
 
 export const store = getDefaultStore();
 
@@ -267,21 +267,6 @@ export const edgesAtom = atom(
     }
   },
 );
-
-export function addEdge(edgeParams: Edge | Connection) {
-  store.set(edgesAtom, [
-    {
-      type: 'add',
-      item: {
-        id: generateId(),
-        source: edgeParams.source,
-        target: edgeParams.target,
-        sourceHandle: edgeParams.sourceHandle ?? undefined,
-        targetHandle: edgeParams.targetHandle ?? undefined,
-      },
-    },
-  ]);
-}
 
 export const isSwitchingFlow = atom(false);
 export const switchFlowError = atom<string | null>(null);

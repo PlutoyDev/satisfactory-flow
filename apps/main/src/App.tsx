@@ -1,5 +1,5 @@
 import { useAtom } from 'jotai';
-import { locationAtom } from './store';
+import { locationAtom } from './lib/store';
 import HomePage from './pages/Home';
 import FlowPage from './pages/Flow';
 

@@ -1,5 +1,5 @@
 import { useAtom } from 'jotai';
-import { flowsAtom, selectedFlowAtom } from '../store';
+import { flowsAtom, selectedFlowAtom } from '../lib/store';
 import examples from '../examples';
 
 function NavigateToFlowButton({ flowName, flowId, source }: { flowName: string; flowId: string; source: 'db' | 'example' }) {

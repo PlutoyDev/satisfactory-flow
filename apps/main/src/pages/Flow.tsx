@@ -1,5 +1,6 @@
 import { useAtom } from 'jotai';
-import { edgesAtom, nodesAtom, selectedFlowAtom, selectedFlowDataAtom, addEdge } from '../store';
+import { edgesAtom, nodesAtom, selectedFlowAtom, selectedFlowDataAtom } from '../lib/store';
+import { addEdge, onSelectionChange } from '../lib/rfListeners';
 import { FilePen, Home, Save } from 'lucide-react';
 import { Background, ReactFlow } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
@@ -51,6 +52,7 @@ function FlowPage() {
             nodeTypes={customNodes}
             snapToGrid={true}
             snapGrid={[6, 6]}
+            onSelectionChange={onSelectionChange}
           >
             <Background gap={36} />
             {/* TODO: Top (Left/Right) Panel: Node Selection (Item, Recipe, Logistic)*/}

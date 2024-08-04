@@ -1,6 +1,6 @@
 import { FactoryNodeWrapper } from './BaseNode';
 import { FactoryItemNodeData } from '../../engines/data';
-import { docsMappedAtom } from '../../store';
+import { docsMappedAtom } from '../../lib/store';
 import { NodeProps, Node } from '@xyflow/react';
 import { useAtom } from 'jotai';
 import { useMemo } from 'react';

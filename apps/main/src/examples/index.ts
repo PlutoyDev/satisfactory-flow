@@ -1,4 +1,4 @@
-import type { FlowData } from '../db';
+import type { FlowData } from '../lib/db';
 import type { Edge, Node } from '@xyflow/react';
 
 interface ExampleFlowData extends Omit<FlowData, 'created' | 'updated'> {
