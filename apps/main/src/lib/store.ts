@@ -65,7 +65,7 @@ const _edgesMapAtom = atom<Map<string, Edge>>(new Map());
 const _nodesArrayAtom = atom<Node[]>([]); // Used for rendering
 const _edgesArrayAtom = atom<Edge[]>([]); // Used for rendering
 
-const _nodesAtom = atom(
+export const nodesMapAtom = atom(
   get => get(_nodesMapAtom),
   (_get, set, nodes: Map<string, ExtNode>) => {
     set(_nodesMapAtom, nodes);
@@ -73,7 +73,7 @@ const _nodesAtom = atom(
   },
 );
 
-const _edgesAtom = atom(
+export const edgesMapAtom = atom(
   get => get(_edgesMapAtom),
   (_get, set, edges: Map<string, Edge>) => {
     set(_edgesMapAtom, edges);
@@ -100,8 +100,8 @@ async function saveChanges(force?: true) {
       const ids = Array.from(_debouncedSaveIds);
       _debouncedSaveIds.clear();
       const db = await openFlowDb(selFlow!.flowId);
-      const nodes = store.get(_nodesAtom);
-      const edges = store.get(_edgesAtom);
+      const nodes = store.get(nodesMapAtom);
+      const edges = store.get(edgesMapAtom);
 
       const updatedNodes: Node[] = [];
       const updatedEdges: Edge[] = [];
@@ -194,7 +194,7 @@ export const nodesAtom = atom(
         }
       }
     }
-    set(_nodesAtom, nodes);
+    set(nodesMapAtom, nodes);
     saveChanges();
   },
 );
@@ -204,7 +204,7 @@ export const edgesAtom = atom(
   (get, set, changes: EdgeChange<Edge>[]) => {
     // Reimplement of applyEdgeChanges to work with Map
     const nodeChanges: ExtNodeChange[] = [];
-    const edges = get(_edgesAtom);
+    const edges = get(edgesMapAtom);
     for (const change of changes) {
       _debouncedSaveIds.add('edge-' + ('id' in change ? change.id : change.item.id));
       switch (change.type) {
@@ -259,7 +259,7 @@ export const edgesAtom = atom(
         }
       }
     }
-    set(_edgesAtom, edges);
+    set(edgesMapAtom, edges);
     if (nodeChanges.length) {
       set(nodesAtom, nodeChanges);
     } else {
@@ -316,8 +316,8 @@ export const selectedFlowAtom = atom(
             return [edge.id, edge];
           }),
         );
-        set(_nodesAtom, nodesMap);
-        set(_edgesAtom, edgesMap);
+        set(nodesMapAtom, nodesMap);
+        set(edgesMapAtom, edgesMap);
         // Set URL to /{source}/{id}
         set(locationAtom, { pathname: `/flows/${update.source}/${update.flowId}` });
       } catch (error) {
@@ -325,8 +325,8 @@ export const selectedFlowAtom = atom(
         set(switchFlowError, 'Error switching flow');
       }
     } else {
-      set(_nodesAtom, new Map());
-      set(_edgesAtom, new Map());
+      set(nodesMapAtom, new Map());
+      set(edgesMapAtom, new Map());
       set(locationAtom, { pathname: '/' });
     }
     set(isSwitchingFlow, false);
