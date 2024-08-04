@@ -76,9 +76,11 @@ function PropertyEditor() {
       selNodeOrEdge.node.type && selNodeOrEdge.node.type in customNodeEditors ? (
         customNodeEditors[selNodeOrEdge.node.type as keyof typeof customNodeEditors]
       ) : (
-        <p>Unknown node type</p>
+        <p>Unknown node type: {selNodeOrEdge.node.type}</p>
       )
-    ) : 'edge' in selNodeOrEdge ? null : (
+    ) : 'edge' in selNodeOrEdge ? (
+      <p>TODO: Edge Editor</p>
+    ) : (
       <p>Unknown selection</p>
     );
 
