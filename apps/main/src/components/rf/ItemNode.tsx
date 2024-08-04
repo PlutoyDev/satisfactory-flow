@@ -40,5 +40,13 @@ export function ItemNode(props: NodeProps<Node<FactoryItemNodeData>>) {
 }
 
 export function ItemNodeEditor() {
-  return <div>ItemNodeEditor</div>;
+  return (
+    <FactoryNodeEditorWrapper>
+      {({}) => (
+        <>
+          <ItemComboBox />
+        </>
+      )}
+    </FactoryNodeEditorWrapper>
+  );
 }

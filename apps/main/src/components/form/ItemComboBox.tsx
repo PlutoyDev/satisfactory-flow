@@ -2,6 +2,7 @@ import Fuse from 'fuse.js';
 import { docsMappedAtom } from '../../lib/store';
 import { atom, useAtom } from 'jotai';
 import { useMemo, useRef, useState } from 'react';
+import { useEditorField } from '../rf/BaseNode';
 
 const itemFuseAtom = atom(async get => new Fuse([...(await get(docsMappedAtom)).items.values()], { keys: ['displayName'] }));
 
@@ -10,12 +11,12 @@ interface ItemComboBoxProps {
 }
 
 export default function ItemComboBox({ name = 'itemKey' }: ItemComboBoxProps) {
-  const { setValue, currentValue } = useField<string | undefined>(name);
+  const { setValue, currentValue } = useEditorField<string | undefined>(name);
   const dropdownRef = useRef<HTMLDetailsElement>(null);
   const [itemFuse] = useAtom(itemFuseAtom);
   const [docsMapped] = useAtom(docsMappedAtom);
   const [search, setSearch] = useState('');
-  const filteredItems = useMemo(() => (search ? itemFuse.search(search).map(({ item }) => item) : []), [itemFuse, search]);
+  const filteredItems = useMemo(() => (search ? itemFuse.search(search).map(({ item }) => item) : Array.from(docsMapped.items.values())), [itemFuse, search]);
 
   const item = currentValue ? docsMapped.items.get(currentValue) : undefined;
 

@@ -1,7 +1,9 @@
 import { Handle, NodeProps, Position, Node, useUpdateNodeInternals } from '@xyflow/react';
-import { ReactNode, useEffect, useMemo, useRef } from 'react';
+import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useRef } from 'react';
 import { FactoryBaseNodeData } from '../../engines/data';
 import { FACTORY_INTERFACE_DIR, FactoryInterfaceDir, splitInterfaceId } from '../../engines/compute';
+import { selectedNodeOrEdge } from '../../lib/rfListeners';
+import { useAtom } from 'jotai';
 
 /* 
   Wrapper for custom node that providies rendering of:
@@ -112,3 +114,82 @@ export function FactoryNodeWrapper(props: FactoryNodeWrapperProps) {
   Flow of data update (for other fields):
     onChange -> updateNode (stored directly in node) -> propogateAndCompute (update other nodes/edges)
 */
+interface EditorFormContextValue {
+  getValue: (name: string) => any;
+  createSetValue: (name: string) => (value: any) => void;
+}
+
+const EditorFormContext = createContext<EditorFormContextValue | null>(null);
+
+export function useEditorField<T>(name: string) {
+  const ctx = useContext(EditorFormContext);
+  if (!ctx) {
+    throw new Error('useEditorField must be used inside FactoryNodeEditorWrapper');
+  }
+  const currentValue = ctx.getValue(name) as T;
+  const setValue = ctx.createSetValue(name) as (value: T) => void;
+  return { currentValue, setValue };
+}
+
+export interface FactoryNodeEditorChildProps {
+  setValue: (name: string, value: any) => void;
+}
+
+export interface FactoryNodeEditorWrapperProps {
+  children: (p: FactoryNodeEditorChildProps) => ReactNode;
+}
+
+export function FactoryNodeEditorWrapper({ children: Child }: FactoryNodeEditorWrapperProps) {
+  const [selNode, setSelNodeProp] = useAtom(selectedNodeOrEdge);
+
+  const setValue = useCallback(
+    (name: string, value: any) => {
+      // Write value to data of node
+      // name can be nested
+      const path = name.split('.');
+      setSelNodeProp({
+        node: prev => {
+          const next = { ...prev };
+          let current: any = next.data;
+          for (let i = 0; i < path.length - 1; i++) {
+            if (!(path[i] in current)) {
+              if (/\d+/.test(path[i + 1])) {
+                current[path[i]] = [];
+              } else {
+                current[path[i]] = {};
+              }
+            }
+            current = current[path[i]];
+          }
+          current[path[path.length - 1]] = value;
+          return next;
+        },
+      });
+    },
+    [selNode, setSelNodeProp],
+  );
+
+  const createSetValue = useCallback(
+    (name: string) => {
+      return (value: any) => setValue(name, value);
+    },
+    [setValue],
+  );
+
+  const getValue = useCallback(
+    (name: string) => {
+      return 'node' in selNode! ? selNode.node.data[name] : undefined;
+    },
+    [selNode],
+  );
+
+  if (!selNode || 'edge' in selNode) {
+    return <p>No node selected</p>;
+  }
+
+  return (
+    <EditorFormContext.Provider value={{ getValue, createSetValue }}>
+      <Child setValue={setValue} />
+    </EditorFormContext.Provider>
+  );
+}
