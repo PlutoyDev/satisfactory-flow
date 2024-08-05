@@ -25,7 +25,15 @@ export default function ItemComboBox({ name = 'itemKey' }: ItemComboBoxProps) {
   const item = currentValue ? docsMapped.items.get(currentValue) : undefined;
 
   return (
-    <details ref={dropdownRef} className='dropdown dropdown-end dropdown-top group w-full'>
+    <details
+      ref={dropdownRef}
+      className='dropdown dropdown-end dropdown-top group w-full'
+      onBlur={e => {
+        if (!dropdownRef.current?.contains(e.relatedTarget as Node)) {
+          dropdownRef.current?.removeAttribute('open');
+        }
+      }}
+    >
       <summary className='btn btn-block btn-sm'>
         {item ? (
           <>
@@ -54,6 +62,7 @@ export default function ItemComboBox({ name = 'itemKey' }: ItemComboBoxProps) {
               onClick={e => {
                 e.preventDefault();
                 setValue(key);
+                dropdownRef.current?.removeAttribute('open');
               }}
             >
               {iconPath && <img src={'/extracted/' + iconPath} alt={displayName} className='mr-2 h-6 w-6' />}
