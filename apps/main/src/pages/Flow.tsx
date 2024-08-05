@@ -94,7 +94,7 @@ function NodeSelectionPanel() {
   return (
     <Panel position='top-right'>
       <div
-        className='bg-base-300 rounded-box w-40 px-3 py-1'
+        className='bg-base-300 rounded-box w-40 select-none px-3 py-1'
         onDrop={e => {
           e.preventDefault();
           e.stopPropagation();
