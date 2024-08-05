@@ -8,7 +8,6 @@ import { computeFactoryItemNode } from '../../engines/compute';
 import ItemComboBox from '../form/ItemComboBox';
 import NumberInput from '../form/NumberInput';
 
-const defaultBgColor = '#89dceb';
 const defaultSize = 90;
 
 export function ItemNode(props: NodeProps<Node<FactoryItemNodeData>>) {
@@ -20,21 +19,21 @@ export function ItemNode(props: NodeProps<Node<FactoryItemNodeData>>) {
 
   if (!itemKey) {
     return (
-      <FactoryNodeWrapper {...props} defBgColor={defaultBgColor} factoryInterfaces={[]} counterRotate='whole' size={defaultSize}>
+      <FactoryNodeWrapper {...props} factoryInterfaces={[]} counterRotate='whole' size={defaultSize}>
         <p>Unset</p>
       </FactoryNodeWrapper>
     );
   }
   if (!item || !res) {
     return (
-      <FactoryNodeWrapper {...props} defBgColor={defaultBgColor} factoryInterfaces={[]} counterRotate='whole' size={defaultSize}>
+      <FactoryNodeWrapper {...props} factoryInterfaces={[]} counterRotate='whole' size={defaultSize}>
         <p>Item not found</p>
       </FactoryNodeWrapper>
     );
   }
 
   return (
-    <FactoryNodeWrapper {...props} defBgColor={defaultBgColor} factoryInterfaces={res.interfaces} counterRotate='whole' size={defaultSize}>
+    <FactoryNodeWrapper {...props} factoryInterfaces={res.interfaces} counterRotate='whole' size={defaultSize}>
       {item.iconPath && <img src={'/extracted/' + item.iconPath} alt={item.displayName} className='h-6 w-6' />}
       <p className='whitespace-pre-wrap text-center'>
         {(speedThou / 1000)
@@ -49,7 +48,7 @@ export function ItemNode(props: NodeProps<Node<FactoryItemNodeData>>) {
 
 export function ItemNodeEditor() {
   return (
-    <FactoryNodeEditorWrapper defBgColor={defaultBgColor}>
+    <FactoryNodeEditorWrapper>
       {({}) => (
         <>
           <div className='flex w-full items-center justify-between'>

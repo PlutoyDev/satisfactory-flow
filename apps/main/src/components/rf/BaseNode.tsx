@@ -7,6 +7,15 @@ import { useAtom } from 'jotai';
 import { RotateCcw, RotateCw } from 'lucide-react';
 import debounce from 'debounce';
 
+export const FACTORY_NODE_TYPES = ['item', 'recipe', 'logistic'] as const;
+export type FactoryNodeType = (typeof FACTORY_NODE_TYPES)[number];
+
+export const FACTORY_NODE_DEFAULT_COLORS = {
+  item: '#76BABF',
+  recipe: '#F6AD55',
+  logistic: '#71DA8F',
+} as const satisfies Record<FactoryNodeType, string>;
+
 /* 
   Wrapper for custom node that providies rendering of:
   - inputs / outputs (and its type)
@@ -17,15 +26,14 @@ import debounce from 'debounce';
 
 interface FactoryNodeWrapperProps extends NodeProps<Node<FactoryBaseNodeData>> {
   children?: ReactNode;
-  defBgColor: string;
   factoryInterfaces: string[]; // Refer to engine/compute.ts for more info
   counterRotate?: 'whole' | 'individual' | 'images';
   size: number | [number, number];
 }
 
 export function FactoryNodeWrapper(props: FactoryNodeWrapperProps) {
-  const { children, defBgColor, factoryInterfaces, counterRotate, size, id, data, selected } = props;
-  const { rotation = 0, bgColor = defBgColor } = data;
+  const { children, factoryInterfaces, counterRotate, size, id, data, selected, type } = props;
+  const { rotation = 0, bgColor = FACTORY_NODE_DEFAULT_COLORS[type as FactoryNodeType] } = data;
   const childrenRef = useRef<HTMLDivElement>(null);
   const updateNodeInternals = useUpdateNodeInternals();
   const handleDirCount = useMemo(() => {
@@ -143,10 +151,9 @@ export interface FactoryNodeEditorChildProps {
 
 export interface FactoryNodeEditorWrapperProps {
   children: (p: FactoryNodeEditorChildProps) => ReactNode;
-  defBgColor: string;
 }
 
-export function FactoryNodeEditorWrapper({ children, defBgColor }: FactoryNodeEditorWrapperProps) {
+export function FactoryNodeEditorWrapper({ children }: FactoryNodeEditorWrapperProps) {
   const [selNode, setSelNodeProp] = useAtom(selectedNodeOrEdge);
 
   const setValue = useCallback(
@@ -215,6 +222,8 @@ export function FactoryNodeEditorWrapper({ children, defBgColor }: FactoryNodeEd
   if (!selNode || 'edge' in selNode) {
     return <p>No node selected</p>;
   }
+
+  const defBgColor = FACTORY_NODE_DEFAULT_COLORS[selNode.node.type as FactoryNodeType];
 
   return (
     <EditorFormContext.Provider value={{ getValue, createSetValue }}>
