@@ -7,9 +7,11 @@ interface NumberInputProps {
   defaultValue: number;
   step?: number;
   unit: '%' | '/ min';
+  minValue?: number;
+  maxValue?: number;
 }
 
-export default function NumberInput({ name, defaultValue, step, unit }: NumberInputProps) {
+export default function NumberInput({ name, defaultValue, step, unit, minValue = 0, maxValue = Infinity }: NumberInputProps) {
   const { setValue, currentValue } = useEditorField<number | undefined>(name, true);
   const [localValue, setLocalValue] = useState<number>(() => {
     if (currentValue === undefined) {
@@ -44,9 +46,9 @@ export default function NumberInput({ name, defaultValue, step, unit }: NumberIn
           className='btn btn-sm btn-ghost join-item'
           onMouseDown={e => {
             e.preventDefault();
-            setLocalValue(localValue - step);
+            setLocalValue(Math.max(localValue - step, minValue));
             const interval = setInterval(() => {
-              setLocalValue(localValue => localValue - step);
+              setLocalValue(localValue => Math.max(localValue - step, minValue));
             }, 100);
             const stop = () => clearInterval(interval);
             window.addEventListener('mouseup', stop);
@@ -64,7 +66,7 @@ export default function NumberInput({ name, defaultValue, step, unit }: NumberIn
           value={isNaN(localValue) ? '' : localValue.toString().replace(/(?<=\.)(\d{3}).*$/, '$1')}
           onChange={e => {
             const parsedFloat = parseFloat(e.target.value);
-            setLocalValue(isNaN(parsedFloat) ? NaN : parsedFloat);
+            setLocalValue(isNaN(parsedFloat) ? NaN : Math.min(Math.max(parsedFloat, minValue), maxValue));
           }}
         />
         {unit}
@@ -74,9 +76,9 @@ export default function NumberInput({ name, defaultValue, step, unit }: NumberIn
           className='btn btn-sm btn-ghost join-item'
           onMouseDown={e => {
             e.preventDefault();
-            setLocalValue(localValue + step);
+            setLocalValue(Math.min(localValue + step, maxValue));
             const interval = setInterval(() => {
-              setLocalValue(localValue => localValue + step);
+              setLocalValue(localValue => Math.min(localValue + step, maxValue));
             }, 100);
             const stop = () => clearInterval(interval);
             window.addEventListener('mouseup', stop);
