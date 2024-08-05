@@ -168,7 +168,11 @@ export function FactoryNodeEditorWrapper({ children: Child, defBgColor }: Factor
             }
             current = current[path[i]];
           }
-          current[path[path.length - 1]] = value;
+          if (value === undefined) {
+            delete current[path[path.length - 1]];
+          } else {
+            current[path[path.length - 1]] = value;
+          }
           return next;
         },
       });
@@ -218,13 +222,16 @@ export function FactoryNodeEditorWrapper({ children: Child, defBgColor }: Factor
         <Child setValue={setValue} currentValue={selNode.node.data} />
         {/* Color */}
         <div className='flex w-full items-center justify-between'>
-          <p className='label-text mr-4 text-lg'>Color: </p>
+          <p className='label-text mr-4 flex-1 text-lg'>Color: </p>
           <input
             type='color'
-            className='input input-sm input-bordered'
+            className='input input-sm input-ghost'
             value={(selNode.node.data.bgColor as string) ?? defBgColor}
             onChange={e => debouncedSetValue('bgColor', e.target.value)}
           />
+          <button className='btn btn-sm btn-ghost' onClick={() => setValue('bgColor', undefined)}>
+            Reset
+          </button>
         </div>
         {/* Rotation */}
         <div className='flex w-full items-center justify-between'>
