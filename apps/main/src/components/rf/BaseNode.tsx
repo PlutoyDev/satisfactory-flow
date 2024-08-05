@@ -5,6 +5,7 @@ import { FACTORY_INTERFACE_DIR, FactoryInterfaceDir, splitInterfaceId } from '..
 import { selectedNodeOrEdge } from '../../lib/rfListeners';
 import { useAtom } from 'jotai';
 import { RotateCcw, RotateCw } from 'lucide-react';
+import debounce from 'debounce';
 
 /* 
   Wrapper for custom node that providies rendering of:
@@ -32,7 +33,6 @@ export function FactoryNodeWrapper(props: FactoryNodeWrapperProps) {
     for (const handleId of factoryInterfaces) {
       handleDirCount[splitInterfaceId(handleId).dir]++;
     }
-    console.log('handleDirCount', handleDirCount);
     return handleDirCount;
   }, [factoryInterfaces, id]);
 
@@ -121,18 +121,18 @@ export function FactoryNodeWrapper(props: FactoryNodeWrapperProps) {
 */
 interface EditorFormContextValue {
   getValue: (name: string) => any;
-  createSetValue: (name: string) => (value: any) => void;
+  createSetValue: (name: string, debounced?: boolean) => (value: any) => void;
 }
 
 const EditorFormContext = createContext<EditorFormContextValue | null>(null);
 
-export function useEditorField<T>(name: string) {
+export function useEditorField<T>(name: string, useDebounce = false) {
   const ctx = useContext(EditorFormContext);
   if (!ctx) {
     throw new Error('useEditorField must be used inside FactoryNodeEditorWrapper');
   }
   const currentValue = ctx.getValue(name) as T;
-  const setValue = ctx.createSetValue(name) as (value: T) => void;
+  const setValue = ctx.createSetValue(name, useDebounce) as (value: T) => void;
   return { currentValue, setValue };
 }
 
@@ -176,9 +176,15 @@ export function FactoryNodeEditorWrapper({ children: Child, defBgColor }: Factor
     [selNode, setSelNodeProp],
   );
 
+  const debouncedSetValue = useCallback(debounce(setValue, 100), [setValue]);
+
   const createSetValue = useCallback(
-    (name: string) => {
-      return (value: any) => setValue(name, value);
+    (name: string, debounced = false) => {
+      if (!debounced) {
+        return (value: any) => setValue(name, value);
+      } else {
+        return (value: any) => debouncedSetValue(name, value);
+      }
     },
     [setValue],
   );
@@ -217,7 +223,7 @@ export function FactoryNodeEditorWrapper({ children: Child, defBgColor }: Factor
             type='color'
             className='input input-sm input-bordered'
             value={(selNode.node.data.bgColor as string) ?? defBgColor}
-            onChange={e => setValue('bgColor', e.target.value)}
+            onChange={e => debouncedSetValue('bgColor', e.target.value)}
           />
         </label>
       </div>
