@@ -5,6 +5,7 @@ import type { transformFuel } from './generatorParser.js';
 export interface Recipe {
   key: string;
   displayName: string;
+  /** Duration in seconds */
   manufactoringDuration: number;
   ingredients: { itemKey: string; amount: number }[];
   products: { itemKey: string; amount: number }[];
@@ -14,7 +15,9 @@ export interface Recipe {
 export interface ProductionMachine {
   key: string;
   displayName: string;
+  /** Power in MW */
   powerConsumption: number;
+  /** Power in MW */
   maxPowerConsumption: number;
   ingredients: { itemKey: string; amount: number }[];
 }
