@@ -45,11 +45,9 @@ export function ItemNodeEditor() {
     <FactoryNodeEditorWrapper defBgColor={defaultBgColor}>
       {({}) => (
         <>
-          <div className='form-control w-full'>
-            <label className='label'>
-              <p className='label-text mr-4 text-lg'>Item: </p>
-              <ItemComboBox />
-            </label>
+          <div className='flex w-full items-center justify-between'>
+            <p className='label-text mr-4 text-lg'>Item: </p>
+            <ItemComboBox />
           </div>
         </>
       )}

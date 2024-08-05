@@ -17,13 +17,16 @@ export default function ItemComboBox({ name = 'itemKey' }: ItemComboBoxProps) {
   const [itemFuse] = useAtom(itemFuseAtom);
   const [docsMapped] = useAtom(docsMappedAtom);
   const [search, setSearch] = useState('');
-  const filteredItems = useMemo(() => (search ? itemFuse.search(search).map(({ item }) => item) : Array.from(docsMapped.items.values())), [itemFuse, search]);
+  const filteredItems = useMemo(
+    () => (search ? itemFuse.search(search).map(({ item }) => item) : Array.from(docsMapped.items.values())),
+    [itemFuse, search],
+  );
 
   const item = currentValue ? docsMapped.items.get(currentValue) : undefined;
 
   return (
     <details ref={dropdownRef} className='dropdown dropdown-end dropdown-top group w-full'>
-      <summary className='btn btn-block'>
+      <summary className='btn btn-block btn-sm'>
         {item ? (
           <>
             {item.iconPath && <img src={'/extracted/' + item.iconPath} alt={item.displayName} className='mr-2 h-6 w-6' />}

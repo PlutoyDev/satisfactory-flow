@@ -214,10 +214,10 @@ export function FactoryNodeEditorWrapper({ children: Child, defBgColor }: Factor
 
   return (
     <EditorFormContext.Provider value={{ getValue, createSetValue }}>
-      <Child setValue={setValue} currentValue={selNode.node.data} />
-      {/* Color */}
-      <div className='form-control w-full'>
-        <label className='label'>
+      <div className='flex flex-col gap-y-2'>
+        <Child setValue={setValue} currentValue={selNode.node.data} />
+        {/* Color */}
+        <div className='flex w-full items-center justify-between'>
           <p className='label-text mr-4 text-lg'>Color: </p>
           <input
             type='color'
@@ -225,11 +225,9 @@ export function FactoryNodeEditorWrapper({ children: Child, defBgColor }: Factor
             value={(selNode.node.data.bgColor as string) ?? defBgColor}
             onChange={e => debouncedSetValue('bgColor', e.target.value)}
           />
-        </label>
-      </div>
-      {/* Rotation */}
-      <div className='form-control w-full'>
-        <label className='label'>
+        </div>
+        {/* Rotation */}
+        <div className='flex w-full items-center justify-between'>
           <p className='label-text mr-4 text-lg'>Rotation: </p>
           <div className='join'>
             <button
@@ -245,7 +243,7 @@ export function FactoryNodeEditorWrapper({ children: Child, defBgColor }: Factor
               <RotateCcw />
             </button>
           </div>
-        </label>
+        </div>
       </div>
     </EditorFormContext.Provider>
   );
