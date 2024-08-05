@@ -86,7 +86,7 @@ function PropertyEditor() {
 
   return (
     <Panel position='bottom-right'>
-      <div className='bg-base-300 rounded-box w-96 px-3 py-1'>
+      <div className='bg-base-300 rounded-box min-w-64 px-3 py-1'>
         <h2 className='text-lg font-semibold'>Properties</h2>
         <div className='divider m-0 mb-2 h-1' />
         {Editor && (typeof Editor === 'function' ? <Editor /> : Editor)}

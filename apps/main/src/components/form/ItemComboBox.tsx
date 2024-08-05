@@ -3,6 +3,7 @@ import { docsMappedAtom } from '../../lib/store';
 import { atom, useAtom } from 'jotai';
 import { useMemo, useRef, useState } from 'react';
 import { useEditorField } from '../rf/BaseNode';
+import { ChevronUp } from 'lucide-react';
 
 const itemFuseAtom = atom(async get => new Fuse([...(await get(docsMappedAtom)).items.values()], { keys: ['displayName'] }));
 
@@ -21,8 +22,8 @@ export default function ItemComboBox({ name = 'itemKey' }: ItemComboBoxProps) {
   const item = currentValue ? docsMapped.items.get(currentValue) : undefined;
 
   return (
-    <details ref={dropdownRef} className='dropdown dropdown-top w-full'>
-      <summary className='btn btn-sm btn-block'>
+    <details ref={dropdownRef} className='dropdown dropdown-end dropdown-top group w-full'>
+      <summary className='btn btn-block'>
         {item ? (
           <>
             {item.iconPath && <img src={'/extracted/' + item.iconPath} alt={item.displayName} className='mr-2 h-6 w-6' />}
@@ -31,8 +32,9 @@ export default function ItemComboBox({ name = 'itemKey' }: ItemComboBoxProps) {
         ) : (
           'Select an item'
         )}
+        <ChevronUp size={20} className='ml-auto transition-transform group-open:-rotate-180' strokeWidth={4} />
       </summary>
-      <div className='dropdown-content dropdown-right rounded-box bg-base-200 z-10 w-72 p-2 shadow-sm'>
+      <div className='dropdown-content rounded-box bg-base-200 z-10 w-72 p-2 shadow-lg'>
         <input
           type='search'
           placeholder='Search...'
@@ -40,21 +42,20 @@ export default function ItemComboBox({ name = 'itemKey' }: ItemComboBoxProps) {
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
-        <ul className='menu menu-horizontal menu-sm h-48 w-full overflow-y-scroll'>
+        <ul className='mt-1 h-48 w-full flex-nowrap overflow-y-scroll'>
           {filteredItems.map(({ key, iconPath, displayName }) => (
-            <li key={key}>
-              <button
-                type='button'
-                className='btn btn-sm btn-block items-start justify-start'
-                onClick={e => {
-                  e.preventDefault();
-                  setValue(key);
-                }}
-              >
-                {iconPath && <img src={'/extracted/' + iconPath} alt={displayName} className='mr-2 h-6 w-6' />}
-                <span>{displayName}</span>
-              </button>
-            </li>
+            <button
+              key={key}
+              type='button'
+              className='btn btn-sm btn-block btn-ghost items-center justify-start'
+              onClick={e => {
+                e.preventDefault();
+                setValue(key);
+              }}
+            >
+              {iconPath && <img src={'/extracted/' + iconPath} alt={displayName} className='mr-2 h-6 w-6' />}
+              <span>{displayName}</span>
+            </button>
           ))}
         </ul>
       </div>

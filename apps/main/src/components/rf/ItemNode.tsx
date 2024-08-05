@@ -45,7 +45,12 @@ export function ItemNodeEditor() {
     <FactoryNodeEditorWrapper>
       {({}) => (
         <>
-          <ItemComboBox />
+          <div className='form-control w-full'>
+            <label className='label'>
+              <p className='label-text mr-4 text-lg'>Item: </p>
+              <ItemComboBox />
+            </label>
+          </div>
         </>
       )}
     </FactoryNodeEditorWrapper>
