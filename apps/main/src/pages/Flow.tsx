@@ -1,7 +1,7 @@
 import { useAtom } from 'jotai';
 import { edgesAtom, nodesAtom, selectedFlowAtom, selectedFlowDataAtom } from '../lib/store';
-import { addEdge, onDrop, onSelectionChange, reactflowInstanceAtom, selectedNodeOrEdge } from '../lib/rfListeners';
-import { FilePen, Home, Save } from 'lucide-react';
+import { addEdge, isDraggingNodeAtom, onDrop, onSelectionChange, reactflowInstanceAtom, selectedNodeOrEdge } from '../lib/rfListeners';
+import { FilePen, Home, Save, X } from 'lucide-react';
 import { Background, Panel, ReactFlow } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { customNodeEditors, customNodes } from '../components/rf';
@@ -9,6 +9,7 @@ import { Suspense } from 'react';
 import { FACTORY_NODE_DEFAULT_COLORS, FACTORY_NODE_TYPES, FactoryNodeType } from '../components/rf/BaseNode';
 
 function FlowPage() {
+  const [isDraggingNode] = useAtom(isDraggingNodeAtom);
   const [, setReactFlowInstance] = useAtom(reactflowInstanceAtom);
   const [selectedFlow, setSelectedFlow] = useAtom(selectedFlowAtom);
   const [selFlowData, setSelFlowData] = useAtom(selectedFlowDataAtom);
@@ -63,6 +64,16 @@ function FlowPage() {
             }}
           >
             <Background gap={36} />
+
+            {[isDraggingNode].some(b => b) && (
+              <div className='fixed bottom-0 left-0 right-0 top-16 bg-gray-400 bg-opacity-10'>
+                {/* overlay */}
+                {/* Center */}
+                <div className='rounded-box absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transform px-3 py-1'>
+                  {isDraggingNode && <p className='text-lg font-semibold'>Drop here to add node</p>}
+                </div>
+              </div>
+            )}
             <NodeSelectionPanel />
             <PropertyEditorPanel />
           </ReactFlow>
@@ -79,9 +90,22 @@ const NODE_NAMES = {
 } as const satisfies Record<FactoryNodeType, string>;
 
 function NodeSelectionPanel() {
+  const [isDraggingNode, setDraggingNode] = useAtom(isDraggingNodeAtom);
   return (
     <Panel position='top-right'>
-      <div className='bg-base-300 rounded-box w-40 px-3 py-1'>
+      <div
+        className='bg-base-300 rounded-box w-40 px-3 py-1'
+        onDrop={e => {
+          e.preventDefault();
+          e.stopPropagation();
+          setDraggingNode(false);
+        }}
+        onDragOver={e => {
+          e.dataTransfer.effectAllowed = 'none';
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+      >
         <h2 className='text-lg font-semibold'>Node Selection</h2>
         <p className='text-sm text-gray-500'>Drag from here</p>
         <div className='divider m-0 mb-2 h-1' />
@@ -95,11 +119,18 @@ function NodeSelectionPanel() {
               onDragStart={e => {
                 e.dataTransfer.setData('application/reactflow', type);
                 e.dataTransfer.effectAllowed = 'move';
+                setDraggingNode(true);
               }}
             >
               {NODE_NAMES[type]}
             </div>
           ))}
+          {isDraggingNode && (
+            <div className='border-base-300 h-20 w-full rounded-md border-2 border-dashed bg-gray-600 bg-opacity-10 px-2 pt-4'>
+              <X size={24} className='text-error mx-auto' />
+              <p className='text-error w-full text-center'>Cancel</p>
+            </div>
+          )}
         </div>
       </div>
     </Panel>

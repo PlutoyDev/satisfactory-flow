@@ -4,6 +4,7 @@ import { store, generateId, edgesAtom, edgesMapAtom, nodesMapAtom, ExtNode, node
 import { DragEvent } from 'react';
 import { FactoryNodeType } from '../components/rf/BaseNode';
 
+export const isDraggingNodeAtom = atom(false);
 export const reactflowInstanceAtom = atom<ReactFlowInstance | null>(null);
 
 export function addEdge(edgeParams: Edge | Connection) {
@@ -35,6 +36,7 @@ export function onDrop(event: DragEvent<HTMLDivElement>) {
       item: { id: generateId(), position, type, data: {} },
     },
   ]);
+  store.set(isDraggingNodeAtom, false);
 }
 
 const selectedIdsAtom = atom<string[]>([]);
