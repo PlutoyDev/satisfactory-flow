@@ -57,7 +57,7 @@ export function ItemNodeEditor() {
             <ItemComboBox />
           </div>
           <div className='flex w-full items-center justify-between'>
-            <p className='label-text mr-4 text-lg'>Item: </p>
+            <p className='label-text mr-4 text-lg'>Item Speed: </p>
             <NumberInput name='speedThou' defaultValue={0} unit='/ min' step={0.1} />
           </div>
         </>

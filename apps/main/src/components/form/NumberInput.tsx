@@ -60,6 +60,7 @@ export default function NumberInput({ name, defaultValue, step, unit }: NumberIn
       <label className='input input-sm input-ghost join-item flex items-center gap-2'>
         <input
           type='number'
+          className='w-16'
           value={isNaN(localValue) ? '' : localValue.toString().replace(/(?<=\.)(\d{3}).*$/, '$1')}
           onChange={e => {
             const parsedFloat = parseFloat(e.target.value);
