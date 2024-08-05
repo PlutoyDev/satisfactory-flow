@@ -146,7 +146,7 @@ export interface FactoryNodeEditorWrapperProps {
   defBgColor: string;
 }
 
-export function FactoryNodeEditorWrapper({ children: Child, defBgColor }: FactoryNodeEditorWrapperProps) {
+export function FactoryNodeEditorWrapper({ children, defBgColor }: FactoryNodeEditorWrapperProps) {
   const [selNode, setSelNodeProp] = useAtom(selectedNodeOrEdge);
 
   const setValue = useCallback(
@@ -219,7 +219,7 @@ export function FactoryNodeEditorWrapper({ children: Child, defBgColor }: Factor
   return (
     <EditorFormContext.Provider value={{ getValue, createSetValue }}>
       <div className='flex flex-col gap-y-2'>
-        <Child setValue={setValue} currentValue={selNode.node.data} />
+        {children({ setValue, currentValue: selNode.node.data })}
         {/* Color */}
         <div className='flex w-full items-center justify-between'>
           <p className='label-text mr-4 flex-1 text-lg'>Color: </p>

@@ -12,7 +12,7 @@ interface ItemComboBoxProps {
 }
 
 export default function ItemComboBox({ name = 'itemKey' }: ItemComboBoxProps) {
-  const { setValue, currentValue } = useEditorField<string | undefined>(name);
+  const { setValue, currentValue } = useEditorField<string | undefined>(name, true);
   const dropdownRef = useRef<HTMLDetailsElement>(null);
   const [itemFuse] = useAtom(itemFuseAtom);
   const [docsMapped] = useAtom(docsMappedAtom);

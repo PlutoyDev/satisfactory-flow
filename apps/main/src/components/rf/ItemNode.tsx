@@ -6,6 +6,7 @@ import { useAtom } from 'jotai';
 import { useMemo } from 'react';
 import { computeFactoryItemNode } from '../../engines/compute';
 import ItemComboBox from '../form/ItemComboBox';
+import NumberInput from '../form/NumberInput';
 
 const defaultBgColor = '#89dceb';
 const defaultSize = 90;
@@ -35,7 +36,13 @@ export function ItemNode(props: NodeProps<Node<FactoryItemNodeData>>) {
   return (
     <FactoryNodeWrapper {...props} defBgColor={defaultBgColor} factoryInterfaces={res.interfaces} counterRotate='whole' size={defaultSize}>
       {item.iconPath && <img src={'/extracted/' + item.iconPath} alt={item.displayName} className='h-6 w-6' />}
-      <p>{(speedThou / 1000).toPrecision(3).replace('.000', '')} / min</p>
+      <p className='whitespace-pre-wrap text-center'>
+        {(speedThou / 1000)
+          .toFixed(3)
+          .replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+          .replace(/\.?0*$/, '')}
+        <span> /min</span>
+      </p>
     </FactoryNodeWrapper>
   );
 }
@@ -48,6 +55,10 @@ export function ItemNodeEditor() {
           <div className='flex w-full items-center justify-between'>
             <p className='label-text mr-4 text-lg'>Item: </p>
             <ItemComboBox />
+          </div>
+          <div className='flex w-full items-center justify-between'>
+            <p className='label-text mr-4 text-lg'>Item: </p>
+            <NumberInput name='speedThou' defaultValue={0} unit='/ min' />
           </div>
         </>
       )}
