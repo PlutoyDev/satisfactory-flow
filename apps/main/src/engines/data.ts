@@ -25,9 +25,8 @@ Generators Node Data extends Base Node Data:
 - generatorKey: string (key from docsJson)
 - clockSpeedThou: number (thousandth of clock speed)
 */
-
 export interface FactoryBaseNodeData extends Record<string, any> {
-  rotation?: number;
+  rotIdx?: 0 | 1 | 2 | 3; // 0 | 90 | 180 | 270
   bgColor?: string;
 }
 

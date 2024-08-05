@@ -27,13 +27,12 @@ export const FACTORY_NODE_DEFAULT_COLORS = {
 interface FactoryNodeWrapperProps extends NodeProps<Node<FactoryBaseNodeData>> {
   children?: ReactNode;
   factoryInterfaces: string[]; // Refer to engine/compute.ts for more info
-  counterRotate?: 'whole' | 'individual' | 'images';
   size: number | [number, number];
 }
 
 export function FactoryNodeWrapper(props: FactoryNodeWrapperProps) {
-  const { children, factoryInterfaces, counterRotate, size, id, data, selected, type } = props;
-  const { rotation = 0, bgColor = FACTORY_NODE_DEFAULT_COLORS[type as FactoryNodeType] } = data;
+  const { children, factoryInterfaces, size, id, data, selected, type } = props;
+  const { rotIdx = 0, bgColor = FACTORY_NODE_DEFAULT_COLORS[type as FactoryNodeType] } = data;
   const childrenRef = useRef<HTMLDivElement>(null);
   const updateNodeInternals = useUpdateNodeInternals();
   const handleDirCount = useMemo(() => {
@@ -47,39 +46,26 @@ export function FactoryNodeWrapper(props: FactoryNodeWrapperProps) {
   useEffect(() => {
     // Update the node internals when the handle changes
     updateNodeInternals(id);
-  }, [id, updateNodeInternals, rotation, size, factoryInterfaces.join(',')]);
-
-  useEffect(() => {
-    // Handle counter rotation
-    if (childrenRef.current && counterRotate && counterRotate !== 'whole') {
-      const children = counterRotate === 'images' ? childrenRef.current.querySelectorAll('img') : childrenRef.current.children;
-      for (const child of children) {
-        if (child instanceof HTMLElement) {
-          child.style.transform = `rotate(${rotation}deg)`;
-        }
-      }
-    }
-  }, [childrenRef, counterRotate, rotation]);
+  }, [id, updateNodeInternals, rotIdx, size, factoryInterfaces.join(',')]);
 
   const [width, height] = typeof size === 'number' ? [size, size] : size;
-  // const swapWidthHeight = rotation % 180 !== 0;
+  const swapWidthHeight = typeof size !== 'number' && rotIdx % 2 === 1;
 
   return (
     <div
-      className='text-base-100 rounded-md p-1 outline-offset-2 transition-transform'
+      className='text-base-100 rounded-md p-1 outline-offset-2 duration-75'
       style={{
-        width: width,
-        height: height,
+        width: swapWidthHeight ? height : width,
+        height: swapWidthHeight ? width : height,
         backgroundColor: bgColor,
         outline: selected ? '2px solid ' + bgColor : 'none',
-        transform: `rotate(${rotation}deg)`,
       }}
     >
       {children && (
         <div
           ref={childrenRef}
-          style={counterRotate !== 'whole' ? undefined : { transform: `rotate(${rotation * -1}deg)` }}
-          className='flex size-full flex-col items-center justify-center transition-transform'
+          // style={counterRotate !== 'whole' ? undefined : { transform: `rotate(${counterRotateAngle}deg)` }}
+          className='flex size-full flex-col items-center justify-center transition-transform duration-75'
         >
           {children}
         </div>
@@ -88,19 +74,19 @@ export function FactoryNodeWrapper(props: FactoryNodeWrapperProps) {
         const { dir, form, type, index: handleIndex } = splitInterfaceId(handleId);
         const offset = ((handleIndex + 1) / (handleDirCount[dir] + 1)) * 100;
         const dirIndex = FACTORY_INTERFACE_DIR.indexOf(dir);
-        const rAdjDir = FACTORY_INTERFACE_DIR[(dirIndex + 1) % 4];
-        const lAdjDir = FACTORY_INTERFACE_DIR[(dirIndex - 1) % 4];
+        const rotDir = FACTORY_INTERFACE_DIR[(dirIndex + rotIdx) % 4];
+        const rAdjDir = FACTORY_INTERFACE_DIR[(dirIndex + rotIdx + 1) % 4];
+        console.log('handle rendered', { handleId, dirIndex, rotDir, rAdjDir });
         return (
           <Handle
             id={handleId}
             key={handleId}
             type={type === 'in' ? 'target' : 'source'}
-            position={dir as Position}
+            position={rotDir as Position}
             className='size-2'
             style={{
-              [dir]: '-0.25rem', // compensate for p-1
+              [rotDir]: '-0.25rem', // compensate for p-1
               [rAdjDir]: `${offset}%`,
-              [lAdjDir]: `${100 - offset}%`,
               backgroundColor: type === 'in' ? '#F6E05E' : '#68D391', // Yellow for input, green for output
               borderRadius: form === 'fluid' ? undefined : '0', // Circle for fluid, square for solid
             }}
@@ -248,13 +234,13 @@ export function FactoryNodeEditorWrapper({ children }: FactoryNodeEditorWrapperP
           <div className='join'>
             <button
               className='btn btn-sm btn-ghost'
-              onClick={() => setValue('rotation', ((selNode.node.data.rotation as number) ?? 0) + 90)}
+              onClick={() => setValue('rotIdx', (((selNode.node.data.rotIdx as number) ?? 0) + 1) % 4)}
             >
               <RotateCw />
             </button>
             <button
               className='btn btn-sm btn-ghost'
-              onClick={() => setValue('rotation', ((selNode.node.data.rotation as number) ?? 0) - 90)}
+              onClick={() => setValue('rotIdx', (((selNode.node.data.rotIdx as number) ?? 0) + 3) % 4)}
             >
               <RotateCcw />
             </button>

@@ -19,21 +19,21 @@ export function ItemNode(props: NodeProps<Node<FactoryItemNodeData>>) {
 
   if (!itemKey) {
     return (
-      <FactoryNodeWrapper {...props} factoryInterfaces={[]} counterRotate='whole' size={defaultSize}>
+      <FactoryNodeWrapper {...props} factoryInterfaces={[]} size={defaultSize}>
         <p>Unset</p>
       </FactoryNodeWrapper>
     );
   }
   if (!item || !res) {
     return (
-      <FactoryNodeWrapper {...props} factoryInterfaces={[]} counterRotate='whole' size={defaultSize}>
+      <FactoryNodeWrapper {...props} factoryInterfaces={[]} size={defaultSize}>
         <p>Item not found</p>
       </FactoryNodeWrapper>
     );
   }
 
   return (
-    <FactoryNodeWrapper {...props} factoryInterfaces={res.interfaces} counterRotate='whole' size={defaultSize}>
+    <FactoryNodeWrapper {...props} factoryInterfaces={res.interfaces} size={defaultSize}>
       {item.iconPath && <img src={'/extracted/' + item.iconPath} alt={item.displayName} className='h-6 w-6' />}
       <p className='whitespace-pre-wrap text-center'>
         {(speedThou / 1000)
