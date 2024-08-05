@@ -28,11 +28,13 @@ export const store = getDefaultStore();
 export const locationAtom = atomWithLocation();
 
 // Read only atom to fetch parsedDocs.json and map it to a Map
+export type DocsMapped = { [key in keyof ParsedOutput]: ParsedOutput[key] extends Record<string, infer U> ? Map<string, U> : never };
+
 export const docsMappedAtom = atom(async () => {
   try {
     const res = await fetch('/extracted/parsedDocs.json');
     const data = (await res.json()) as ParsedOutput;
-    const mapped = {} as { [key in keyof ParsedOutput]: ParsedOutput[key] extends Record<string, infer U> ? Map<string, U> : never };
+    const mapped = {} as DocsMapped;
     for (const key in data) {
       mapped[key as keyof ParsedOutput] = new Map(Object.entries(data[key as keyof ParsedOutput]));
     }
