@@ -65,7 +65,7 @@ export function FactoryNodeWrapper(props: FactoryNodeWrapperProps) {
         <div
           ref={childrenRef}
           // style={counterRotate !== 'whole' ? undefined : { transform: `rotate(${counterRotateAngle}deg)` }}
-          className='flex size-full flex-col items-center justify-center transition-transform duration-75'
+          className='flex size-full flex-col items-center justify-center gap-y-1 text-center transition-transform duration-75'
         >
           {children}
         </div>

@@ -1,5 +1,5 @@
 import { Edge, Node } from '@xyflow/react';
-import { FactoryItemNodeData } from '../engines/data';
+import { FactoryItemNodeData, FactoryRecipeNodeData } from '../engines/data';
 
 export default {
   nodes: [
@@ -19,6 +19,15 @@ export default {
       position: { x: 200, y: 200 },
       data: {} satisfies FactoryItemNodeData,
       type: 'item',
+    },
+    {
+      id: '94398242080220',
+      position: { x: 300, y: 300 },
+      data: {
+        recipeKey: 'Recipe_UnpackageTurboFuel_C',
+        clockSpeedThou: 1000,
+      } satisfies FactoryRecipeNodeData,
+      type: 'recipe',
     },
   ],
   edges: [
