@@ -42,7 +42,7 @@ export function ItemNode(props: NodeProps<Node<FactoryItemNodeData>>) {
 
 export function ItemNodeEditor() {
   return (
-    <FactoryNodeEditorWrapper>
+    <FactoryNodeEditorWrapper defBgColor={defaultBgColor}>
       {({}) => (
         <>
           <div className='form-control w-full'>

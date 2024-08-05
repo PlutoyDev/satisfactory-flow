@@ -4,6 +4,7 @@ import { FactoryBaseNodeData } from '../../engines/data';
 import { FACTORY_INTERFACE_DIR, FactoryInterfaceDir, splitInterfaceId } from '../../engines/compute';
 import { selectedNodeOrEdge } from '../../lib/rfListeners';
 import { useAtom } from 'jotai';
+import { RotateCcw, RotateCw } from 'lucide-react';
 
 /* 
   Wrapper for custom node that providies rendering of:
@@ -98,7 +99,6 @@ export function FactoryNodeWrapper(props: FactoryNodeWrapperProps) {
   );
 }
 
-// TODO: Custom Node Editor Wrapper
 /*
   Wrapper for custom node editor that
   - follows the [render prop pattern](https://www.patterns.dev/react/render-props-pattern#children-as-a-function)
@@ -139,9 +139,10 @@ export interface FactoryNodeEditorChildProps {
 
 export interface FactoryNodeEditorWrapperProps {
   children: (p: FactoryNodeEditorChildProps) => ReactNode;
+  defBgColor: string;
 }
 
-export function FactoryNodeEditorWrapper({ children: Child }: FactoryNodeEditorWrapperProps) {
+export function FactoryNodeEditorWrapper({ children: Child, defBgColor }: FactoryNodeEditorWrapperProps) {
   const [selNode, setSelNodeProp] = useAtom(selectedNodeOrEdge);
 
   const setValue = useCallback(
@@ -204,6 +205,38 @@ export function FactoryNodeEditorWrapper({ children: Child }: FactoryNodeEditorW
   return (
     <EditorFormContext.Provider value={{ getValue, createSetValue }}>
       <Child setValue={setValue} currentValue={selNode.node.data} />
+      {/* Color */}
+      <div className='form-control w-full'>
+        <label className='label'>
+          <p className='label-text mr-4 text-lg'>Color: </p>
+          <input
+            type='color'
+            className='input input-sm input-bordered'
+            value={(selNode.node.data.bgColor as string) ?? defBgColor}
+            onChange={e => setValue('bgColor', e.target.value)}
+          />
+        </label>
+      </div>
+      {/* Rotation */}
+      <div className='form-control w-full'>
+        <label className='label'>
+          <p className='label-text mr-4 text-lg'>Rotation: </p>
+          <div className='join'>
+            <button
+              className='btn btn-sm btn-ghost'
+              onClick={() => setValue('rotation', ((selNode.node.data.rotation as number) ?? 0) + 90)}
+            >
+              <RotateCw />
+            </button>
+            <button
+              className='btn btn-sm btn-ghost'
+              onClick={() => setValue('rotation', ((selNode.node.data.rotation as number) ?? 0) - 90)}
+            >
+              <RotateCcw />
+            </button>
+          </div>
+        </label>
+      </div>
     </EditorFormContext.Provider>
   );
 }
