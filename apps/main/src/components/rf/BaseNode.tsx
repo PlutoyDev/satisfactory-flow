@@ -66,7 +66,7 @@ export function FactoryNodeWrapper(props: FactoryNodeWrapperProps) {
       }}
     >
       {children && (
-        <div ref={childrenRef} className='flex size-full items-center justify-center transition-transform'>
+        <div ref={childrenRef} className='flex size-full flex-col items-center justify-center transition-transform'>
           {children}
         </div>
       )}
