@@ -54,21 +54,25 @@ export function FactoryNodeWrapper(props: FactoryNodeWrapperProps) {
   }, [childrenRef, counterRotate, rotation]);
 
   const [width, height] = typeof size === 'number' ? [size, size] : size;
-  const swapWidthHeight = rotation % 180 !== 0;
+  // const swapWidthHeight = rotation % 180 !== 0;
 
   return (
     <div
       className='text-base-100 rounded-md p-1 outline-offset-2 transition-transform'
       style={{
-        width: swapWidthHeight ? height : width,
-        height: swapWidthHeight ? width : height,
+        width: width,
+        height: height,
         backgroundColor: bgColor,
         outline: selected ? '2px solid ' + bgColor : 'none',
         transform: `rotate(${rotation}deg)`,
       }}
     >
       {children && (
-        <div ref={childrenRef} className='flex size-full flex-col items-center justify-center transition-transform'>
+        <div
+          ref={childrenRef}
+          style={counterRotate !== 'whole' ? undefined : { transform: `rotate(${rotation * -1}deg)` }}
+          className='flex size-full flex-col items-center justify-center transition-transform'
+        >
           {children}
         </div>
       )}

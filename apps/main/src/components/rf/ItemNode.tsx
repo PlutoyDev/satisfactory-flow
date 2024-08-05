@@ -19,21 +19,21 @@ export function ItemNode(props: NodeProps<Node<FactoryItemNodeData>>) {
 
   if (!itemKey) {
     return (
-      <FactoryNodeWrapper {...props} defBgColor={defaultBgColor} factoryInterfaces={[]} counterRotate='images' size={defaultSize}>
+      <FactoryNodeWrapper {...props} defBgColor={defaultBgColor} factoryInterfaces={[]} counterRotate='whole' size={defaultSize}>
         <p>Unset</p>
       </FactoryNodeWrapper>
     );
   }
   if (!item || !res) {
     return (
-      <FactoryNodeWrapper {...props} defBgColor={defaultBgColor} factoryInterfaces={[]} counterRotate='images' size={defaultSize}>
+      <FactoryNodeWrapper {...props} defBgColor={defaultBgColor} factoryInterfaces={[]} counterRotate='whole' size={defaultSize}>
         <p>Item not found</p>
       </FactoryNodeWrapper>
     );
   }
 
   return (
-    <FactoryNodeWrapper {...props} defBgColor={defaultBgColor} factoryInterfaces={res.interfaces} counterRotate='images' size={defaultSize}>
+    <FactoryNodeWrapper {...props} defBgColor={defaultBgColor} factoryInterfaces={res.interfaces} counterRotate='whole' size={defaultSize}>
       {item.iconPath && <img src={'/extracted/' + item.iconPath} alt={item.displayName} className='h-6 w-6' />}
       <p>{(speedThou / 1000).toPrecision(3).replace('.000', '')} / min</p>
     </FactoryNodeWrapper>
