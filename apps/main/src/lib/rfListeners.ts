@@ -1,6 +1,10 @@
-import { Edge, Connection, OnSelectionChangeParams } from '@xyflow/react';
+import { Edge, Connection, OnSelectionChangeParams, ReactFlowInstance } from '@xyflow/react';
 import { atom } from 'jotai';
 import { store, generateId, edgesAtom, edgesMapAtom, nodesMapAtom, ExtNode, nodesAtom } from './store';
+import { DragEvent } from 'react';
+import { FactoryNodeType } from '../components/rf/BaseNode';
+
+export const reactflowInstanceAtom = atom<ReactFlowInstance | null>(null);
 
 export function addEdge(edgeParams: Edge | Connection) {
   store.set(edgesAtom, [
@@ -13,6 +17,22 @@ export function addEdge(edgeParams: Edge | Connection) {
         sourceHandle: edgeParams.sourceHandle ?? undefined,
         targetHandle: edgeParams.targetHandle ?? undefined,
       },
+    },
+  ]);
+}
+
+export function onDrop(event: DragEvent<HTMLDivElement>) {
+  event.preventDefault();
+  const rfInstance = store.get(reactflowInstanceAtom);
+  if (!rfInstance) {
+    return;
+  }
+  const type = event.dataTransfer.getData('application/reactflow') as FactoryNodeType;
+  const position = rfInstance.screenToFlowPosition({ x: event.clientX, y: event.clientY });
+  store.set(nodesAtom, [
+    {
+      type: 'add',
+      item: { id: generateId(), position, type, data: {} },
     },
   ]);
 }

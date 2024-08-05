@@ -1,6 +1,6 @@
 import { useAtom } from 'jotai';
 import { edgesAtom, nodesAtom, selectedFlowAtom, selectedFlowDataAtom } from '../lib/store';
-import { addEdge, onSelectionChange, selectedNodeOrEdge } from '../lib/rfListeners';
+import { addEdge, onDrop, onSelectionChange, reactflowInstanceAtom, selectedNodeOrEdge } from '../lib/rfListeners';
 import { FilePen, Home, Save } from 'lucide-react';
 import { Background, Panel, ReactFlow } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
@@ -9,6 +9,7 @@ import { Suspense } from 'react';
 import { FACTORY_NODE_DEFAULT_COLORS, FACTORY_NODE_TYPES, FactoryNodeType } from '../components/rf/BaseNode';
 
 function FlowPage() {
+  const [, setReactFlowInstance] = useAtom(reactflowInstanceAtom);
   const [selectedFlow, setSelectedFlow] = useAtom(selectedFlowAtom);
   const [selFlowData, setSelFlowData] = useAtom(selectedFlowDataAtom);
   const [nodes, applyNodeChanges] = useAtom(nodesAtom);
@@ -54,6 +55,12 @@ function FlowPage() {
             snapToGrid={true}
             snapGrid={[6, 6]}
             onSelectionChange={onSelectionChange}
+            onInit={setReactFlowInstance}
+            onDrop={onDrop}
+            onDragOver={e => {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = 'move';
+            }}
           >
             <Background gap={36} />
             <NodeSelectionPanel />
@@ -85,6 +92,10 @@ function NodeSelectionPanel() {
               style={{ backgroundColor: FACTORY_NODE_DEFAULT_COLORS[type] }}
               className='text-base-300 w-full cursor-pointer rounded-md px-2 py-1 text-center'
               draggable
+              onDragStart={e => {
+                e.dataTransfer.setData('application/reactflow', type);
+                e.dataTransfer.effectAllowed = 'move';
+              }}
             >
               {NODE_NAMES[type]}
             </div>
