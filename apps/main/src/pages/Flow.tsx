@@ -6,6 +6,7 @@ import { Background, Panel, ReactFlow } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { customNodeEditors, customNodes } from '../components/rf';
 import { Suspense } from 'react';
+import { FACTORY_NODE_DEFAULT_COLORS, FACTORY_NODE_TYPES, FactoryNodeType } from '../components/rf/BaseNode';
 
 function FlowPage() {
   const [selectedFlow, setSelectedFlow] = useAtom(selectedFlowAtom);
@@ -55,9 +56,8 @@ function FlowPage() {
             onSelectionChange={onSelectionChange}
           >
             <Background gap={36} />
-            {/* TODO: Top (Left/Right) Panel: Node Selection (Item, Recipe, Logistic)*/}
-            {/* TODO: Bottom (Left/Right) Panel: Node/Edge Property Editor*/}
-            <PropertyEditor />
+            <NodeSelectionPanel />
+            <PropertyEditorPanel />
           </ReactFlow>
         </Suspense>
       </div>
@@ -65,7 +65,37 @@ function FlowPage() {
   );
 }
 
-function PropertyEditor() {
+const NODE_NAMES = {
+  item: 'Item',
+  recipe: 'Recipe',
+  logistic: 'Logistic',
+} as const satisfies Record<FactoryNodeType, string>;
+
+function NodeSelectionPanel() {
+  return (
+    <Panel position='top-right'>
+      <div className='bg-base-300 rounded-box w-40 px-3 py-1'>
+        <h2 className='text-lg font-semibold'>Node Selection</h2>
+        <p className='text-sm text-gray-500'>Drag from here</p>
+        <div className='divider m-0 mb-2 h-1' />
+        <div className='flex flex-col gap-y-2'>
+          {FACTORY_NODE_TYPES.map(type => (
+            <div
+              key={type}
+              style={{ backgroundColor: FACTORY_NODE_DEFAULT_COLORS[type] }}
+              className='text-base-300 w-full cursor-pointer rounded-md px-2 py-1 text-center'
+              draggable
+            >
+              {NODE_NAMES[type]}
+            </div>
+          ))}
+        </div>
+      </div>
+    </Panel>
+  );
+}
+
+function PropertyEditorPanel() {
   const [selNodeOrEdge] = useAtom(selectedNodeOrEdge);
   if (!selNodeOrEdge) {
     return null;
