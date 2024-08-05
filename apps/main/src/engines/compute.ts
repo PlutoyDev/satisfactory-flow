@@ -32,8 +32,8 @@ Any variable that is "mimicking" a float will be suffixed with "Thou" (short for
 FYI: the "Thou" suffix is pronounced "th-ow" (like "thousandth" but without the "sandth"), and it came from thousandth of an inch (thou) in engineering. (I'm just bad at naming things)
 */
 
-import type { Item } from 'docs-parser';
-import { FactoryItemNodeData } from './data';
+import type { Item, Recipe } from 'docs-parser';
+import { FactoryItemNodeData, FactoryRecipeNodeData } from './data';
 
 export const FACTORY_INTERFACE_DIR = ['left', 'top', 'right', 'bottom'] as const;
 export type FactoryInterfaceDir = (typeof FACTORY_INTERFACE_DIR)[number];
@@ -70,6 +70,7 @@ export function splitInterfaceId(id: string, validate = false) {
 // Compute for machines
 export interface ItemSpeed {
   itemKey: string;
+  /** Items per minute */
   speedThou: number;
 }
 
@@ -104,6 +105,51 @@ export function computeFactoryItemNode(
     const intId = `right-${itemForm}-out-0`;
     ret.interfaces.push(intId);
     ret.itemSpeed[intId] = { itemKey, speedThou: speedThou };
+  }
+
+  return ret;
+}
+
+export function computeFactoryRecipeNode(
+  data: FactoryRecipeNodeData,
+  recipeGetter: ((key: string) => Recipe | undefined) | Recipe,
+  itemGetter: (key: string) => Item | undefined,
+): ComputeResult | null {
+  const { recipeKey, clockSpeedThou = 1000 } = data;
+
+  if (!recipeKey) return null;
+  const recipe = typeof recipeGetter === 'function' ? recipeGetter(recipeKey) : recipeGetter;
+  if (!recipe) {
+    console.error(`Recipe ${recipeKey} not found`);
+    return null;
+  }
+
+  const ret: ComputeResult = { interfaces: [], itemSpeed: {} };
+  const { ingredients, products, manufactoringDuration } = recipe;
+
+  const durationThou = manufactoringDuration / clockSpeedThou; // Duration in thousandths of a second
+  const itemsLength = ingredients.length + products.length;
+  const FormTypeCount: Record<`${FactoryItemForm}-${FactoryInterfaceType}`, 0 | 1 | 2 | 3> = {
+    'solid-in': 0,
+    'solid-out': 0,
+    'fluid-in': 0,
+    'fluid-out': 0,
+  };
+
+  for (let i = 0; i < itemsLength; i++) {
+    const itemAmt = i < ingredients.length ? ingredients[i] : products[i - ingredients.length];
+    const { itemKey, amount } = itemAmt;
+    const item = itemGetter(itemKey);
+    if (!item) {
+      throw new Error(`Item ${itemKey} not found for recipe ${recipeKey}`);
+    }
+
+    const itemForm = item.form === 'solid' ? 'solid' : 'fluid';
+    const type = i < ingredients.length ? 'in' : 'out';
+    const formTypeIdx = FormTypeCount[`${itemForm}-${type}`]++;
+    const intId = `${i < ingredients.length ? 'left' : 'right'}-${itemForm}-${type}-${formTypeIdx}`;
+    ret.interfaces.push(intId);
+    ret.itemSpeed[intId] = { itemKey, speedThou: Math.floor((amount / durationThou) * 60) };
   }
 
   return ret;
