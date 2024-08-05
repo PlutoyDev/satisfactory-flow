@@ -31,6 +31,7 @@ export function FactoryNodeWrapper(props: FactoryNodeWrapperProps) {
     for (const handleId of factoryInterfaces) {
       handleDirCount[splitInterfaceId(handleId).dir]++;
     }
+    console.log('handleDirCount', handleDirCount);
     return handleDirCount;
   }, [factoryInterfaces, id]);
 
@@ -72,7 +73,7 @@ export function FactoryNodeWrapper(props: FactoryNodeWrapperProps) {
       )}
       {factoryInterfaces.map(handleId => {
         const { dir, form, type, index: handleIndex } = splitInterfaceId(handleId);
-        const offset = (handleIndex / (handleDirCount[dir] + 1)) * 100;
+        const offset = ((handleIndex + 1) / (handleDirCount[dir] + 1)) * 100;
         const dirIndex = FACTORY_INTERFACE_DIR.indexOf(dir);
         const rAdjDir = FACTORY_INTERFACE_DIR[(dirIndex + 1) % 4];
         const lAdjDir = FACTORY_INTERFACE_DIR[(dirIndex - 1) % 4];
