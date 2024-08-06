@@ -1,7 +1,7 @@
 import Fuse from 'fuse.js';
 import { DocsMapped, docsMappedAtom } from '../../lib/store';
 import { atom, useAtom } from 'jotai';
-import { useMemo, useRef, useState } from 'react';
+import { Fragment, useMemo, useRef, useState } from 'react';
 import { useEditorField } from '../rf/BaseNode';
 import { ArrowRight, ChevronUp } from 'lucide-react';
 import type { Recipe } from 'docs-parser';
@@ -25,10 +25,10 @@ function RecipeDisplay({ recipe, docsMapped }: { recipe: Recipe; docsMapped: Doc
       <span className='flex-1 text-left'>{recipe?.displayName}</span>
       <div className='flex flex-nowrap gap-x-0.5'>
         {items.map((item, i) => (
-          <>
+          <Fragment key={i}>
             {i === ingredientCount && <ArrowRight size={24} />}
             <img src={'/extracted/' + item?.iconPath} alt={item?.displayName} className='h-6 w-6' />
-          </>
+          </Fragment>
         ))}
       </div>
     </>
