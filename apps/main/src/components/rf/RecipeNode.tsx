@@ -30,15 +30,15 @@ import RecipeComboBox from '../form/RecipeComboBox';
 import NumberInput from '../form/NumberInput';
 
 export const MachineSize = {
-  Build_SmelterMk1_C: [108, 162],
-  Build_ConstructorMk1_C: [144, 180],
-  Build_FoundryMk1_C: [180, 162],
-  Build_AssemblerMk1_C: [180, 270],
-  Build_ManufacturerMk1_C: [324, 360],
+  Build_SmelterMk1_C: [162, 108],
+  Build_ConstructorMk1_C: [180, 144],
+  Build_FoundryMk1_C: [162, 180],
+  Build_AssemblerMk1_C: [270, 180],
+  Build_ManufacturerMk1_C: [360, 324],
   Build_Packager_C: [144, 144],
-  Build_OilRefinery_C: [180, 360],
-  Build_Blender_C: [324, 288],
-  Build_HadronCollider_C: [432, 684],
+  Build_OilRefinery_C: [360, 180],
+  Build_Blender_C: [288, 324],
+  Build_HadronCollider_C: [684, 432],
 } as const satisfies Record<string, [number, number]>;
 
 const defaultSize = 180;
