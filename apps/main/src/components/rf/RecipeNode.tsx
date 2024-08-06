@@ -94,18 +94,14 @@ export function RecipeNode(props: NodeProps<Node<FactoryRecipeNodeData>>) {
 export function RecipeNodeEditor() {
   return (
     <FactoryNodeEditorWrapper>
-      {() => (
-        <>
-          <div className='flex w-full items-center justify-between'>
-            <p className='label-text mr-4 text-lg'>Recipe: </p>
-            <RecipeComboBox />
-          </div>
-          <div className='flex w-full items-center justify-between'>
-            <p className='label-text mr-4 text-lg'>Clock Speed: </p>
-            <NumberInput name='clockSpeedThou' defaultValue={100000} unit='%' step={0.1} />
-          </div>
-        </>
-      )}
+      <div className='flex w-full items-center justify-between'>
+        <p className='label-text mr-4 text-lg'>Recipe: </p>
+        <RecipeComboBox />
+      </div>
+      <div className='flex w-full items-center justify-between'>
+        <p className='label-text mr-4 text-lg'>Clock Speed: </p>
+        <NumberInput name='clockSpeedThou' defaultValue={100000} unit='%' step={0.1} />
+      </div>
     </FactoryNodeEditorWrapper>
   );
 }
