@@ -137,7 +137,7 @@ export interface FactoryNodeEditorChildProps {
 }
 
 export interface FactoryNodeEditorWrapperProps {
-  children: (p: FactoryNodeEditorChildProps) => ReactNode;
+  children: ReactNode | ((p: FactoryNodeEditorChildProps) => ReactNode);
 }
 
 export function FactoryNodeEditorWrapper({ children }: FactoryNodeEditorWrapperProps) {
@@ -215,7 +215,7 @@ export function FactoryNodeEditorWrapper({ children }: FactoryNodeEditorWrapperP
   return (
     <EditorFormContext.Provider value={{ getValue, createSetValue }}>
       <div className='flex flex-col gap-y-2'>
-        {children({ setValue, currentValue: selNode.node.data })}
+        {children instanceof Function ? children({ setValue, currentValue: getValue('') }) : children}
         {/* Color */}
         <div className='flex w-full items-center justify-between'>
           <p className='label-text mr-4 flex-1 text-lg'>Color: </p>
