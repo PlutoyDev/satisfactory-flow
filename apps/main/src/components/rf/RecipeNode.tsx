@@ -1,3 +1,14 @@
+import { Node, NodeProps } from '@xyflow/react';
+import { FactoryRecipeNodeData } from '../../engines/data';
+import { useAtom } from 'jotai';
+import { docsMappedAtom } from '../../lib/store';
+import { computeFactoryRecipeNode } from '../../engines/compute';
+import { Fragment, useMemo } from 'react';
+import { FactoryNodeEditorWrapper, FactoryNodeWrapper } from './BaseNode';
+import { ArrowRight } from 'lucide-react';
+import RecipeComboBox from '../form/RecipeComboBox';
+import NumberInput from '../form/NumberInput';
+
 /* 
 Sizes of machines (W x L), Taken from satisfactory wiki.
   Smelter 6 x 9
@@ -10,38 +21,27 @@ Sizes of machines (W x L), Taken from satisfactory wiki.
   Blender 18 x 16
   Particle Accelerator 24 x 38
 
-Multiply by 18px/m to get the size in pixels
+Multiply by 24px/m to get the size in pixels
 Width of machine is the "height" in the node, and the length is the "width" in the node
 
 TIP for vscode: using multi-cusor, append *18 to each number and highlight the math expression
   Open the command palette (Ctrl+Shift+P or Cmd+Shift+P or F1) and use "Emmet: Evaluate Math Expression"
-  It will evaluate each math expression and replace it with the result (e.g. 6*18 -> 108)
+  It will evaluate each math expression and replace it with the result (e.g. 6*24 -> 144)
 */
 
-import { Node, NodeProps } from '@xyflow/react';
-import { FactoryRecipeNodeData } from '../../engines/data';
-import { useAtom } from 'jotai';
-import { docsMappedAtom } from '../../lib/store';
-import { computeFactoryRecipeNode } from '../../engines/compute';
-import { Fragment, useMemo } from 'react';
-import { FactoryNodeEditorWrapper, FactoryNodeWrapper } from './BaseNode';
-import { ArrowRight } from 'lucide-react';
-import RecipeComboBox from '../form/RecipeComboBox';
-import NumberInput from '../form/NumberInput';
-
 export const MachineSize = {
-  Build_SmelterMk1_C: [162, 108],
-  Build_ConstructorMk1_C: [180, 144],
-  Build_FoundryMk1_C: [162, 180],
-  Build_AssemblerMk1_C: [270, 180],
-  Build_ManufacturerMk1_C: [360, 324],
-  Build_Packager_C: [144, 144],
-  Build_OilRefinery_C: [360, 180],
-  Build_Blender_C: [288, 324],
-  Build_HadronCollider_C: [684, 432],
+  Build_SmelterMk1_C: [216, 144],
+  Build_ConstructorMk1_C: [240, 192],
+  Build_FoundryMk1_C: [216, 240],
+  Build_AssemblerMk1_C: [360, 240],
+  Build_ManufacturerMk1_C: [480, 432],
+  Build_Packager_C: [192, 192],
+  Build_OilRefinery_C: [480, 240],
+  Build_Blender_C: [384, 432],
+  Build_HadronCollider_C: [912, 576],
 } as const satisfies Record<string, [number, number]>;
 
-const defaultSize = 180;
+const defaultSize = 90;
 
 export function RecipeNode(props: NodeProps<Node<FactoryRecipeNodeData>>) {
   const { recipeKey, clockSpeedThou = 100000, rotIdx = 0 } = props.data;
@@ -67,13 +67,14 @@ export function RecipeNode(props: NodeProps<Node<FactoryRecipeNodeData>>) {
   }
 
   const { displayName, ingredients, products } = recipe;
+  const { displayName: machineName } = docsMapped.productionMachines.get(recipe.producedIn)!;
   const size = MachineSize[recipe.producedIn as keyof typeof MachineSize] ?? defaultSize;
   const swapSides = rotIdx % 2 === 1; // Left becomes top, right becomes bottom
   const flipSides = rotIdx / 2 >= 1; // Left becomes right, top becomes bottom
 
   return (
     <FactoryNodeWrapper {...props} factoryInterfaces={res.interfaces} size={size}>
-      {displayName}
+      <span>{displayName}</span>
       <div
         className='grid place-items-center gap-0.5'
         style={{
@@ -114,7 +115,8 @@ export function RecipeNode(props: NodeProps<Node<FactoryRecipeNodeData>>) {
           );
         })}
       </div>
-      {clockSpeedThou / 1000}%
+      <span>{clockSpeedThou / 1000}%</span>
+      <span>{machineName}</span>
     </FactoryNodeWrapper>
   );
 }
