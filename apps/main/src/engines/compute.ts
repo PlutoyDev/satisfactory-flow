@@ -49,7 +49,11 @@ export function splitInterfaceId(id: string, validate = false) {
   if (validate && parts.length !== 4) {
     throw new Error('Invalid Interface ID');
   }
-  const [dir, form, type, index] = parts as [FactoryInterfaceDir, FactoryItemForm, FactoryInterfaceType, FactoryInterfaceIndex];
+  const [dir, form, type, indexStr] = parts as [FactoryInterfaceDir, FactoryItemForm, FactoryInterfaceType, '0' | '1' | '2' | '3'];
+  const index = parseInt(indexStr) as FactoryInterfaceIndex;
+  if (isNaN(index)) {
+    throw new Error('Invalid Interface Index');
+  }
   if (validate) {
     if (!FACTORY_INTERFACE_DIR.includes(dir)) {
       throw new Error('Invalid Interface Direction');
