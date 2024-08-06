@@ -133,6 +133,7 @@ export interface AdditionalNodeProperties {
 }
 
 type AdditionalNodePropertiesAction = { nodeId: string } & (
+  | { type: 'remove' }
   | { type: 'edge'; handleId: string; edgeId?: string }
   | { type: 'compute'; result?: ComputeResult }
 );
@@ -159,6 +160,10 @@ function additionalNodePropertiesReducer(
         delete node.computeResult;
       }
       break;
+    case 'remove':
+      const newMap = new Map(value);
+      newMap.delete(id);
+      return newMap;
   }
   return new Map(value).set(id, node);
 }
@@ -181,6 +186,7 @@ export const nodesAtom = atom(
           break;
         case 'replace':
           nodes.set(change.id, change.item);
+          set(additionNodePropMapAtom, { nodeId: change.id, type: 'compute' }); // Invalidate compute result
           break;
         default: {
           const node = nodes.get(change.id);

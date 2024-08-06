@@ -29,7 +29,7 @@ TIP for vscode: using multi-cusor, append *18 to each number and highlight the m
   It will evaluate each math expression and replace it with the result (e.g. 6*24 -> 144)
 */
 
-export const MachineSize = {
+const MachineSize = {
   Build_SmelterMk1_C: [216, 144],
   Build_ConstructorMk1_C: [240, 192],
   Build_FoundryMk1_C: [216, 240],
@@ -48,7 +48,7 @@ export function RecipeNode(props: NodeProps<Node<FactoryRecipeNodeData>>) {
   const [docsMapped] = useAtom(docsMappedAtom);
 
   const recipe = recipeKey && docsMapped.recipes.get(recipeKey);
-  const res = useMemo(() => recipe && computeFactoryRecipeNode(props.data, recipe, k => docsMapped.items.get(k))!, [props.data, recipe]);
+  const res = useMemo(() => recipe && computeFactoryRecipeNode(props.id, props.data, docsMapped), [props.data, recipe]);
 
   if (!recipeKey) {
     return (

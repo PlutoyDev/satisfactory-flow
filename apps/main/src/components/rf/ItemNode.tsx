@@ -15,7 +15,7 @@ export function ItemNode(props: NodeProps<Node<FactoryItemNodeData>>) {
   const [docsMapped] = useAtom(docsMappedAtom);
 
   const item = itemKey && docsMapped.items.get(itemKey);
-  const res = useMemo(() => item && computeFactoryItemNode(props.data, item)!, [props.data, item]);
+  const res = useMemo(() => item && computeFactoryItemNode(props.id, props.data, docsMapped)!, [props.data, item]);
 
   if (!itemKey) {
     return (

@@ -32,8 +32,8 @@ Any variable that is "mimicking" a float will be suffixed with "Thou" (short for
 FYI: the "Thou" suffix is pronounced "th-ow" (like "thousandth" but without the "sandth"), and it came from thousandth of an inch (thou) in engineering. (I'm just bad at naming things)
 */
 
-import type { Item, Recipe } from 'docs-parser';
-import { FactoryItemNodeData, FactoryRecipeNodeData } from './data';
+import { FactoryItemNodeData } from './data';
+import { additionNodePropMapAtom, DocsMapped, store } from '../lib/store';
 
 export const FACTORY_INTERFACE_DIR = ['left', 'top', 'right', 'bottom'] as const;
 export type FactoryInterfaceDir = (typeof FACTORY_INTERFACE_DIR)[number];
@@ -83,14 +83,14 @@ export interface ComputeResult {
   itemSpeed: Record<string, ItemSpeed>;
 }
 
-export function computeFactoryItemNode(
-  data: FactoryItemNodeData,
-  itemGetterOrItem: ((key: string) => Item | undefined) | Item,
-): null | ComputeResult {
-  const { itemKey, speedThou = 0, interfaceKind = 'both' } = data;
+export function computeFactoryItemNode(nodeId: string, nodeData: FactoryItemNodeData, docsMapped: DocsMapped): ComputeResult | null {
+  const prevResult = store.get(additionNodePropMapAtom)?.get(nodeId)?.computeResult;
+  if (prevResult) return prevResult;
+
+  const { itemKey, speedThou = 0, interfaceKind = 'both' } = nodeData;
 
   if (!itemKey) return null;
-  const item = typeof itemGetterOrItem === 'function' ? itemGetterOrItem(itemKey) : itemGetterOrItem;
+  const item = docsMapped.items.get(itemKey);
   if (!item) {
     console.error(`Item ${itemKey} not found`);
     return null;
@@ -111,18 +111,18 @@ export function computeFactoryItemNode(
     ret.itemSpeed[intId] = { itemKey, speedThou: speedThou };
   }
 
+  store.set(additionNodePropMapAtom, { type: 'compute', nodeId, result: ret });
   return ret;
 }
 
-export function computeFactoryRecipeNode(
-  data: FactoryRecipeNodeData,
-  recipeGetter: ((key: string) => Recipe | undefined) | Recipe,
-  itemGetter: (key: string) => Item | undefined,
-): ComputeResult | null {
-  const { recipeKey, clockSpeedThou = 1000 } = data;
+export function computeFactoryRecipeNode(nodeId: string, nodeData: FactoryItemNodeData, docsMapped: DocsMapped): ComputeResult | null {
+  const prevResult = store.get(additionNodePropMapAtom)?.get(nodeId)?.computeResult;
+  if (prevResult) return prevResult;
+
+  const { recipeKey, clockSpeedThou = 1000 } = nodeData;
 
   if (!recipeKey) return null;
-  const recipe = typeof recipeGetter === 'function' ? recipeGetter(recipeKey) : recipeGetter;
+  const recipe = docsMapped.recipes.get(recipeKey);
   if (!recipe) {
     console.error(`Recipe ${recipeKey} not found`);
     return null;
@@ -138,7 +138,7 @@ export function computeFactoryRecipeNode(
   for (let i = 0; i < itemsLength; i++) {
     const itemAmt = i < ingredients.length ? ingredients[i] : products[products.length - (i - ingredients.length) - 1];
     const { itemKey, amount } = itemAmt;
-    const item = itemGetter(itemKey);
+    const item = docsMapped.items.get(itemKey);
     if (!item) {
       throw new Error(`Item ${itemKey} not found for recipe ${recipeKey}`);
     }
@@ -152,5 +152,6 @@ export function computeFactoryRecipeNode(
     ret.itemSpeed[intId] = { itemKey, speedThou: Math.floor((amount / durationThou) * 60) };
   }
 
+  store.set(additionNodePropMapAtom, { type: 'compute', nodeId, result: ret });
   return ret;
 }
