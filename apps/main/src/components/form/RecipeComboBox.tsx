@@ -22,7 +22,7 @@ function RecipeDisplay({ recipe, docsMapped }: { recipe: Recipe; docsMapped: Doc
 
   return (
     <>
-      {recipe?.displayName}
+      <span className='flex-1 text-left'>{recipe?.displayName}</span>
       <div className='flex flex-nowrap gap-x-0.5'>
         {items.map((item, i) => (
           <>
@@ -54,7 +54,7 @@ export default function RecipeComboBox({ name = 'recipeKey' }: RecipeComboBoxPro
       className='dropdown dropdown-end dropdown-top group w-full'
       onBlur={e => {
         if (!dropdownRef.current?.contains(e.relatedTarget as Node)) {
-          // dropdownRef.current?.removeAttribute('open');
+          dropdownRef.current?.removeAttribute('open');
         }
       }}
     >
