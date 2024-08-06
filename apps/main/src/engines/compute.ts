@@ -85,11 +85,12 @@ export interface ComputeArgs {
   nodeMap: Map<string, Node>;
   edgeMap: Map<string, Edge>;
   usedAdditionalNodePropMapAtom: UsedAtom<typeof additionNodePropMapAtom>;
+  startedAtNodeId?: string;
 }
 
 export interface ComputeResult {
   interfaces: string[];
-  itemSpeed: Record<string, ItemSpeed>;
+  itemsSpeed: Record<string, ItemSpeed[]>;
 }
 
 export function computeFactoryItemNode(args: ComputeArgs): ComputeResult | null {
@@ -114,18 +115,18 @@ export function computeFactoryItemNode(args: ComputeArgs): ComputeResult | null 
   }
 
   const itemForm = item.form === 'solid' ? 'solid' : 'fluid';
-  const ret: ComputeResult = { interfaces: [], itemSpeed: {} };
+  const ret: ComputeResult = { interfaces: [], itemsSpeed: {} };
 
   if (interfaceKind === 'both' || interfaceKind === 'in') {
     const intId = `left-${itemForm}-in-0`;
     ret.interfaces.push(intId);
-    ret.itemSpeed[intId] = { itemKey, speedThou: speedThou };
+    ret.itemsSpeed[intId] = [{ itemKey, speedThou: speedThou }];
   }
 
   if (interfaceKind === 'both' || interfaceKind === 'out') {
     const intId = `right-${itemForm}-out-0`;
     ret.interfaces.push(intId);
-    ret.itemSpeed[intId] = { itemKey, speedThou: speedThou };
+    ret.itemsSpeed[intId] = [{ itemKey, speedThou: speedThou }];
   }
 
   dispatchAdditionNodePropMap({ type: 'compute', nodeId, result: ret });
@@ -153,7 +154,7 @@ export function computeFactoryRecipeNode(args: ComputeArgs): ComputeResult | nul
     return null;
   }
 
-  const ret: ComputeResult = { interfaces: [], itemSpeed: {} };
+  const ret: ComputeResult = { interfaces: [], itemsSpeed: {} };
   const { ingredients, products, manufactoringDuration } = recipe;
 
   const durationThou = manufactoringDuration / clockSpeedThou; // Duration in thousandths of a second
@@ -174,7 +175,7 @@ export function computeFactoryRecipeNode(args: ComputeArgs): ComputeResult | nul
     const intTypeIdx = IntTypeCount[type]++;
     const intId = `${isIngredient ? 'left' : 'right'}-${itemForm}-${type}-${intTypeIdx}`;
     ret.interfaces.push(intId);
-    ret.itemSpeed[intId] = { itemKey, speedThou: Math.floor((amount / durationThou) * 60) };
+    ret.itemsSpeed[intId] = [{ itemKey, speedThou: Math.floor((amount / durationThou) * 60) }];
   }
 
   dispatchAdditionNodePropMap({ type: 'compute', nodeId, result: ret });
@@ -187,14 +188,15 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
     docsMapped,
     nodeMap,
     edgeMap,
-    usedAdditionalNodePropMapAtom: [additionNodePropMapAtom, dispatchAdditionNodePropMap],
+    usedAdditionalNodePropMapAtom: [additionNodePropMap, dispatchAdditionNodePropMap],
+    startedAtNodeId,
   } = args;
-  const prevResult = additionNodePropMapAtom.get(nodeId)?.computeResult;
+  const nodeAdditionalProperty = additionNodePropMap.get(nodeId);
+  const prevResult = nodeAdditionalProperty?.computeResult;
   if (prevResult) return prevResult;
-
   const nodeData = nodeMap.get(nodeId)?.data as FactoryLogisticNodeData | undefined;
   if (!nodeData) return null;
-  const { type, smartProRules= { center: ['any'] }, pipeJuncInt = { left: 'in' }} = nodeData;
+  const { type, smartProRules = { center: ['any'] }, pipeJuncInt = { left: 'in' } } = nodeData;
 
   /*
   Logistics nodes are a bit more complex than the other nodes.
