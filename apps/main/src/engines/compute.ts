@@ -32,8 +32,9 @@ Any variable that is "mimicking" a float will be suffixed with "Thou" (short for
 FYI: the "Thou" suffix is pronounced "th-ow" (like "thousandth" but without the "sandth"), and it came from thousandth of an inch (thou) in engineering. (I'm just bad at naming things)
 */
 
-import { FactoryItemNodeData } from './data';
-import { additionNodePropMapAtom, DocsMapped, store } from '../lib/store';
+import { FactoryItemNodeData, FactoryRecipeNodeData } from './data';
+import { type additionNodePropMapAtom, DocsMapped, UsedAtom } from '../lib/store';
+import { Node } from '@xyflow/react';
 
 export const FACTORY_INTERFACE_DIR = ['left', 'top', 'right', 'bottom'] as const;
 export type FactoryInterfaceDir = (typeof FACTORY_INTERFACE_DIR)[number];
@@ -78,15 +79,30 @@ export interface ItemSpeed {
   speedThou: number;
 }
 
+export interface ComputeArgs {
+  nodeId: string;
+  docsMapped: DocsMapped;
+  nodeMap: Map<string, Node>;
+  usedAdditionalNodePropMapAtom: UsedAtom<typeof additionNodePropMapAtom>;
+}
+
 export interface ComputeResult {
   interfaces: string[];
   itemSpeed: Record<string, ItemSpeed>;
 }
 
-export function computeFactoryItemNode(nodeId: string, nodeData: FactoryItemNodeData, docsMapped: DocsMapped): ComputeResult | null {
-  const prevResult = store.get(additionNodePropMapAtom)?.get(nodeId)?.computeResult;
+export function computeFactoryItemNode(args: ComputeArgs): ComputeResult | null {
+  const {
+    nodeId,
+    docsMapped,
+    nodeMap,
+    usedAdditionalNodePropMapAtom: [additionNodePropMapAtom, dispatchAdditionNodePropMap],
+  } = args;
+  const prevResult = additionNodePropMapAtom.get(nodeId)?.computeResult;
   if (prevResult) return prevResult;
 
+  const nodeData = nodeMap.get(nodeId)?.data as FactoryItemNodeData | undefined;
+  if (!nodeData) return null;
   const { itemKey, speedThou = 0, interfaceKind = 'both' } = nodeData;
 
   if (!itemKey) return null;
@@ -111,14 +127,22 @@ export function computeFactoryItemNode(nodeId: string, nodeData: FactoryItemNode
     ret.itemSpeed[intId] = { itemKey, speedThou: speedThou };
   }
 
-  store.set(additionNodePropMapAtom, { type: 'compute', nodeId, result: ret });
+  dispatchAdditionNodePropMap({ type: 'compute', nodeId, result: ret });
   return ret;
 }
 
-export function computeFactoryRecipeNode(nodeId: string, nodeData: FactoryItemNodeData, docsMapped: DocsMapped): ComputeResult | null {
-  const prevResult = store.get(additionNodePropMapAtom)?.get(nodeId)?.computeResult;
+export function computeFactoryRecipeNode(args: ComputeArgs): ComputeResult | null {
+  const {
+    nodeId,
+    docsMapped,
+    nodeMap,
+    usedAdditionalNodePropMapAtom: [additionNodePropMapAtom, dispatchAdditionNodePropMap],
+  } = args;
+  const prevResult = additionNodePropMapAtom.get(nodeId)?.computeResult;
   if (prevResult) return prevResult;
 
+  const nodeData = nodeMap.get(nodeId)?.data as FactoryRecipeNodeData | undefined;
+  if (!nodeData) return null;
   const { recipeKey, clockSpeedThou = 1000 } = nodeData;
 
   if (!recipeKey) return null;
@@ -152,6 +176,6 @@ export function computeFactoryRecipeNode(nodeId: string, nodeData: FactoryItemNo
     ret.itemSpeed[intId] = { itemKey, speedThou: Math.floor((amount / durationThou) * 60) };
   }
 
-  store.set(additionNodePropMapAtom, { type: 'compute', nodeId, result: ret });
+  dispatchAdditionNodePropMap({ type: 'compute', nodeId, result: ret });
   return ret;
 }

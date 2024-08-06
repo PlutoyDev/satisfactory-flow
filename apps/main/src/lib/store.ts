@@ -1,6 +1,6 @@
 // Application Store using Jotai
 import { delEdges, delNodes, FlowData, getEdges, getFlows, getNodes, openFlowDb, setEdges, setNodes } from './db';
-import { atom, getDefaultStore } from 'jotai';
+import { Atom, atom, getDefaultStore, PrimitiveAtom, SetStateAction, WritableAtom } from 'jotai';
 import { Node, Edge, NodeChange, EdgeChange } from '@xyflow/react';
 import { atomWithLocation } from 'jotai-location';
 import examples from '../examples';
@@ -396,3 +396,20 @@ selectedFlowAtom.onMount = set => {
     set({ flowId, source: source as FlowSource });
   }
 };
+
+// Jotai Utitlity Types for useAtom return type
+export type UnawaitUsedAtom<A> =
+  A extends PrimitiveAtom<infer V>
+    ? [V, (args: SetStateAction<V>) => V]
+    : A extends WritableAtom<infer V, infer Args, infer Result>
+      ? [V, (...args: Args) => Result]
+      : A extends Atom<infer V>
+        ? [V, never]
+        : 'Unaccounted / Invalid Atom';
+
+export type UsedAtom<A> = UnawaitUsedAtom<A> extends [infer V, infer F] ? [Awaited<V>, F] : never;
+
+export function useAtomOutsideReact<A extends Atom<unknown>>(atom: A): UnawaitUsedAtom<A> {
+  // @ts-ignore
+  return [store.get(atom) as any, (...args: any[]) => store.set(atom, args) as any] as UnawaitUsedAtom<A>;
+}

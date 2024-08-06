@@ -1,6 +1,6 @@
 import { FactoryNodeEditorWrapper, FactoryNodeWrapper } from './BaseNode';
 import { FactoryItemNodeData } from '../../engines/data';
-import { docsMappedAtom } from '../../lib/store';
+import { additionNodePropMapAtom, docsMappedAtom, nodesMapAtom } from '../../lib/store';
 import { NodeProps, Node } from '@xyflow/react';
 import { useAtom } from 'jotai';
 import { useMemo } from 'react';
@@ -13,9 +13,21 @@ const defaultSize = 90;
 export function ItemNode(props: NodeProps<Node<FactoryItemNodeData>>) {
   const { itemKey, speedThou = 0 } = props.data;
   const [docsMapped] = useAtom(docsMappedAtom);
+  const usedAPM = useAtom(additionNodePropMapAtom);
+  const [nodeMap] = useAtom(nodesMapAtom);
 
   const item = itemKey && docsMapped.items.get(itemKey);
-  const res = useMemo(() => item && computeFactoryItemNode(props.id, props.data, docsMapped)!, [props.data, item]);
+  const res = useMemo(
+    () =>
+      item &&
+      computeFactoryItemNode({
+        nodeId: props.id,
+        docsMapped,
+        nodeMap: nodeMap,
+        usedAdditionalNodePropMapAtom: usedAPM,
+      }),
+    [props.data, item],
+  );
 
   if (!itemKey) {
     return (
