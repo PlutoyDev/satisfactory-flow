@@ -1,6 +1,6 @@
-import { Edge, Connection, OnSelectionChangeParams, ReactFlowInstance } from '@xyflow/react';
+import { Node, Edge, Connection, OnSelectionChangeParams, ReactFlowInstance } from '@xyflow/react';
 import { atom } from 'jotai';
-import { store, generateId, edgesAtom, edgesMapAtom, nodesMapAtom, ExtNode, nodesAtom } from './store';
+import { store, generateId, edgesAtom, edgesMapAtom, nodesMapAtom, nodesAtom } from './store';
 import { DragEvent } from 'react';
 import { FactoryNodeType } from '../components/rf/BaseNode';
 
@@ -47,7 +47,7 @@ export function onSelectionChange(params: OnSelectionChangeParams) {
 }
 
 interface SelectedNodeOrEdgeUpdater {
-  node?: ((prev: ExtNode) => ExtNode) | Partial<Omit<ExtNode, 'id' | 'type'>>;
+  node?: ((prev: Node) => Node) | Partial<Omit<Node, 'id' | 'type'>>;
   edge?: ((prev: Edge) => Edge) | Partial<Omit<Edge, 'id' | 'type'>>;
 }
 
@@ -58,7 +58,7 @@ export const selectedNodeOrEdge = atom(
     const edges = get(edgesMapAtom);
     if (selectedIds.length === 1) {
       if (nodes.has(selectedIds[0])) {
-        return { node: nodes.get(selectedIds[0]) } as { node: ExtNode };
+        return { node: nodes.get(selectedIds[0]) } as { node: Node };
       } else if (edges.has(selectedIds[0])) {
         return { edge: edges.get(selectedIds[0]) } as { edge: Edge };
       }
