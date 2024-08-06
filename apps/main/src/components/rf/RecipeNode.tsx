@@ -24,8 +24,10 @@ import { useAtom } from 'jotai';
 import { docsMappedAtom } from '../../lib/store';
 import { computeFactoryRecipeNode } from '../../engines/compute';
 import { Fragment, useMemo } from 'react';
-import { FactoryNodeWrapper } from './BaseNode';
+import { FactoryNodeEditorWrapper, FactoryNodeWrapper } from './BaseNode';
 import { ArrowRight } from 'lucide-react';
+import RecipeComboBox from '../form/RecipeComboBox';
+import NumberInput from '../form/NumberInput';
 
 export const MachineSize = {
   Build_SmelterMk1_C: [108, 162],
@@ -90,5 +92,20 @@ export function RecipeNode(props: NodeProps<Node<FactoryRecipeNodeData>>) {
 }
 
 export function RecipeNodeEditor() {
-  return <p>TODO</p>;
+  return (
+    <FactoryNodeEditorWrapper>
+      {() => (
+        <>
+          <div className='flex w-full items-center justify-between'>
+            <p className='label-text mr-4 text-lg'>Recipe: </p>
+            <RecipeComboBox />
+          </div>
+          <div className='flex w-full items-center justify-between'>
+            <p className='label-text mr-4 text-lg'>Clock Speed: </p>
+            <NumberInput name='clockSpeedThou' defaultValue={100000} unit='%' step={0.1} />
+          </div>
+        </>
+      )}
+    </FactoryNodeEditorWrapper>
+  );
 }
