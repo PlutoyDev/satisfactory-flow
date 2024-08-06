@@ -76,7 +76,7 @@ export function FactoryNodeWrapper(props: FactoryNodeWrapperProps) {
         const dirIndex = FACTORY_INTERFACE_DIR.indexOf(dir);
         const rotDir = FACTORY_INTERFACE_DIR[(dirIndex + rotIdx) % 4];
         const rAdjDir = FACTORY_INTERFACE_DIR[(dirIndex + rotIdx + 1) % 4];
-        console.log('handle rendered', { handleId, dirIndex, rotDir, rAdjDir });
+        const lAdjDir = FACTORY_INTERFACE_DIR[(dirIndex + rotIdx + 3) % 4];
         return (
           <Handle
             id={handleId}
@@ -87,6 +87,7 @@ export function FactoryNodeWrapper(props: FactoryNodeWrapperProps) {
             style={{
               [rotDir]: '-0.25rem', // compensate for p-1
               [rAdjDir]: `${offset}%`,
+              [lAdjDir]: `${100 - offset}%`,
               backgroundColor: type === 'in' ? '#F6E05E' : '#68D391', // Yellow for input, green for output
               borderRadius: form === 'fluid' ? undefined : '0', // Circle for fluid, square for solid
             }}
