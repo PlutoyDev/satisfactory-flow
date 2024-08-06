@@ -133,12 +133,7 @@ export function computeFactoryRecipeNode(
 
   const durationThou = manufactoringDuration / clockSpeedThou; // Duration in thousandths of a second
   const itemsLength = ingredients.length + products.length;
-  const FormTypeCount: Record<`${FactoryItemForm}-${FactoryInterfaceType}`, 0 | 1 | 2 | 3> = {
-    'solid-in': 0,
-    'solid-out': 0,
-    'fluid-in': 0,
-    'fluid-out': 0,
-  };
+  const IntTypeCount = { in: 0, out: 0 };
 
   for (let i = 0; i < itemsLength; i++) {
     const itemAmt = i < ingredients.length ? ingredients[i] : products[i - ingredients.length];
@@ -149,9 +144,10 @@ export function computeFactoryRecipeNode(
     }
 
     const itemForm = item.form === 'solid' ? 'solid' : 'fluid';
-    const type = i < ingredients.length ? 'in' : 'out';
-    const formTypeIdx = FormTypeCount[`${itemForm}-${type}`]++;
-    const intId = `${i < ingredients.length ? 'left' : 'right'}-${itemForm}-${type}-${formTypeIdx}`;
+    const isIngredient = i < ingredients.length;
+    const type = isIngredient ? 'in' : 'out';
+    const intTypeIdx = IntTypeCount[type]++;
+    const intId = `${isIngredient ? 'left' : 'right'}-${itemForm}-${type}-${intTypeIdx}`;
     ret.interfaces.push(intId);
     ret.itemSpeed[intId] = { itemKey, speedThou: Math.floor((amount / durationThou) * 60) };
   }
