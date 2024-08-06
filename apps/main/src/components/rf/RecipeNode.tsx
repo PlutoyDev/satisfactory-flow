@@ -1,7 +1,7 @@
 import { Node, NodeProps } from '@xyflow/react';
 import { FactoryRecipeNodeData } from '../../engines/data';
 import { useAtom } from 'jotai';
-import { additionNodePropMapAtom, docsMappedAtom, nodesMapAtom } from '../../lib/store';
+import { additionNodePropMapAtom, docsMappedAtom, edgesMapAtom, nodesMapAtom } from '../../lib/store';
 import { computeFactoryRecipeNode } from '../../engines/compute';
 import { Fragment, useMemo } from 'react';
 import { FactoryNodeEditorWrapper, FactoryNodeWrapper } from './BaseNode';
@@ -48,6 +48,7 @@ export function RecipeNode(props: NodeProps<Node<FactoryRecipeNodeData>>) {
   const [docsMapped] = useAtom(docsMappedAtom);
   const usedAPM = useAtom(additionNodePropMapAtom);
   const [nodeMap] = useAtom(nodesMapAtom);
+  const [edgeMap] = useAtom(edgesMapAtom);
 
   const recipe = recipeKey && docsMapped.recipes.get(recipeKey);
   const res = useMemo(
@@ -56,7 +57,8 @@ export function RecipeNode(props: NodeProps<Node<FactoryRecipeNodeData>>) {
       computeFactoryRecipeNode({
         nodeId: props.id,
         docsMapped,
-        nodeMap: nodeMap,
+        nodeMap,
+        edgeMap,
         usedAdditionalNodePropMapAtom: usedAPM,
       }),
     [props.data, recipe],

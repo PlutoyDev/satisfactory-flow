@@ -32,9 +32,9 @@ Any variable that is "mimicking" a float will be suffixed with "Thou" (short for
 FYI: the "Thou" suffix is pronounced "th-ow" (like "thousandth" but without the "sandth"), and it came from thousandth of an inch (thou) in engineering. (I'm just bad at naming things)
 */
 
-import { FactoryItemNodeData, FactoryRecipeNodeData } from './data';
+import { FactoryItemNodeData, FactoryLogisticNodeData, FactoryRecipeNodeData } from './data';
 import { type additionNodePropMapAtom, DocsMapped, UsedAtom } from '../lib/store';
-import { Node } from '@xyflow/react';
+import { Edge, Node } from '@xyflow/react';
 
 export const FACTORY_INTERFACE_DIR = ['left', 'top', 'right', 'bottom'] as const;
 export type FactoryInterfaceDir = (typeof FACTORY_INTERFACE_DIR)[number];
@@ -83,6 +83,7 @@ export interface ComputeArgs {
   nodeId: string;
   docsMapped: DocsMapped;
   nodeMap: Map<string, Node>;
+  edgeMap: Map<string, Edge>;
   usedAdditionalNodePropMapAtom: UsedAtom<typeof additionNodePropMapAtom>;
 }
 
