@@ -19,10 +19,10 @@ export default function NumberInput({ name, defaultValue, step, unit, minValue =
     }
     let powOfTen = 0;
     if (unit === '%') {
-      powOfTen = -2;
+      powOfTen += 2;
     }
     if (name.endsWith('Thou')) {
-      powOfTen = 3;
+      powOfTen += 3;
     }
     return currentValue / Math.pow(10, powOfTen);
   });
@@ -31,7 +31,7 @@ export default function NumberInput({ name, defaultValue, step, unit, minValue =
     // Value in node are stored as thousandth
     let powOfTen = 0; // the number will be multiplied by 10^powOfTen
     if (unit === '%') {
-      powOfTen -= 2;
+      powOfTen += 2;
     }
     if (name.endsWith('Thou')) {
       powOfTen += 3;

@@ -115,7 +115,14 @@ export function RecipeNode(props: NodeProps<Node<FactoryRecipeNodeData>>) {
           );
         })}
       </div>
-      <span>{clockSpeedThou / 1000}%</span>
+
+      <span>
+        {(clockSpeedThou / 100_000)
+          .toFixed(3)
+          .replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+          .replace(/\.?0*$/, '')}
+        %
+      </span>
       <span>{machineName}</span>
     </FactoryNodeWrapper>
   );
