@@ -52,7 +52,7 @@ export type LogisticPipeJuncInt = (typeof LOGISTIC_PIPE_JUNC_INT)[number];
 
 export interface FactoryLogisticNodeData extends FactoryBaseNodeData {
   type?: LogisticType;
-  smartProRules?: Partial<Record<LogisticDir, LogisticSmartProRules>>;
+  smartProRules?: Partial<Record<LogisticDir, LogisticSmartProRules[]>>;
   pipeJuncInt?: Partial<Record<LogisticDir, LogisticPipeJuncInt>>;
 }
 

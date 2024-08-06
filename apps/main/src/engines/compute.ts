@@ -180,3 +180,42 @@ export function computeFactoryRecipeNode(args: ComputeArgs): ComputeResult | nul
   dispatchAdditionNodePropMap({ type: 'compute', nodeId, result: ret });
   return ret;
 }
+
+export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | null {
+  const {
+    nodeId,
+    docsMapped,
+    nodeMap,
+    edgeMap,
+    usedAdditionalNodePropMapAtom: [additionNodePropMapAtom, dispatchAdditionNodePropMap],
+  } = args;
+  const prevResult = additionNodePropMapAtom.get(nodeId)?.computeResult;
+  if (prevResult) return prevResult;
+
+  const nodeData = nodeMap.get(nodeId)?.data as FactoryLogisticNodeData | undefined;
+  if (!nodeData) return null;
+  const { type, smartProRules= { center: ['any'] }, pipeJuncInt = { left: 'in' }} = nodeData;
+
+  /*
+  Logistics nodes are a bit more complex than the other nodes.
+  There item speed calculation are based on the connected nodes.
+
+  For future reference, 
+  1. Get all connected edges and the nodes they connect to.
+  2. Get the connected nodes' compute results. (If not computed, compute them)
+  3. Sum the item speeds of the connected nodes into a map of itemKey to speedThou.
+  4. Distribute the items evenly based on the rules.
+  
+  if type is pipe junction (pipeJunc), for a POC, the inputs and outputs must be configured manually and stored in pipeJuncInt.
+  - pipeJuncInt is a record of direction to type (in/out)
+
+  if type is smart / programmable splitter (splitterSmart / splitterPro), the rules can be configured.
+    any: The output will behave just like a normal Splitter. Parts will be evenly distributed across this output and any other available outputs. Appears by default in the center output.
+    none: The output is unused. Appears by default in the right and left outputs.
+    anyUndefined: Only parts that do not have their own Item rule will pass through. For example, if a  Rotor has its own output, no Rotors will ever pass through.
+    overflow: This output will only be used if there are no other outputs to use (due to being full, or having no suitable rule). If multiple outputs have this filter, overflowing parts will be distributed evenly among them.
+    item-${string}: Only the selected item will pass through. Its recipe has to be unlocked first for it to appear in the list.  
+   */
+
+  
+}
