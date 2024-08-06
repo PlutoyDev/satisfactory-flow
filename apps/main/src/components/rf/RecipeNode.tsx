@@ -44,7 +44,7 @@ export const MachineSize = {
 const defaultSize = 90;
 
 export function RecipeNode(props: NodeProps<Node<FactoryRecipeNodeData>>) {
-  const { recipeKey, clockSpeedThou = 100000, rotIdx = 0 } = props.data;
+  const { recipeKey, clockSpeedThou = 100_00_000, rotIdx = 0 } = props.data;
   const [docsMapped] = useAtom(docsMappedAtom);
 
   const recipe = recipeKey && docsMapped.recipes.get(recipeKey);
@@ -137,7 +137,7 @@ export function RecipeNodeEditor() {
       </div>
       <div className='flex w-full items-center justify-between'>
         <p className='label-text mr-4 text-lg'>Clock Speed: </p>
-        <NumberInput name='clockSpeedThou' defaultValue={100000} unit='%' step={0.1} />
+        <NumberInput name='clockSpeedThou' unit='%' defaultValue={100} step={1} minValue={1} maxValue={250} />
       </div>
     </FactoryNodeEditorWrapper>
   );
