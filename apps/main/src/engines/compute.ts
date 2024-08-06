@@ -136,7 +136,7 @@ export function computeFactoryRecipeNode(
   const IntTypeCount = { in: 0, out: 0 };
 
   for (let i = 0; i < itemsLength; i++) {
-    const itemAmt = i < ingredients.length ? ingredients[i] : products[i - ingredients.length];
+    const itemAmt = i < ingredients.length ? ingredients[i] : products[products.length - (i - ingredients.length) - 1];
     const { itemKey, amount } = itemAmt;
     const item = itemGetter(itemKey);
     if (!item) {
