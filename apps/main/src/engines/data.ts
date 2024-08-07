@@ -25,6 +25,7 @@ Generators Node Data extends Base Node Data:
 - generatorKey: string (key from docsJson)
 - clockSpeedThou: number (thousandth of clock speed)
 */
+import type { FactoryInterfaceDir } from './compute';
 export interface FactoryBaseNodeData extends Record<string, any> {
   rotIdx?: 0 | 1 | 2 | 3; // 0 | 90 | 180 | 270
   bgColor?: string;
@@ -41,8 +42,8 @@ export interface FactoryRecipeNodeData extends FactoryBaseNodeData {
   clockSpeedThou?: number;
 }
 
-export const LOGISTIC_DIR = ['left', 'right', 'center'] as const;
-export type LogisticDir = (typeof LOGISTIC_DIR)[number];
+// export const LOGISTIC_DIR = ['left', 'right', 'center'] as const;
+// export type LogisticDir = (typeof LOGISTIC_DIR)[number];
 export const LOGISTIC_TYPE = ['splitter', 'merger', 'splitterSmart', 'splitterPro', 'pipeJunc'] as const;
 export type LogisticType = (typeof LOGISTIC_TYPE)[number];
 export const LOGISTIC_SMART_PRO_RULES = ['any', 'none', 'anyUndefined', 'overflow'] as const;
@@ -52,8 +53,17 @@ export type LogisticPipeJuncInt = (typeof LOGISTIC_PIPE_JUNC_INT)[number];
 
 export interface FactoryLogisticNodeData extends FactoryBaseNodeData {
   type?: LogisticType;
-  smartProRules?: Partial<Record<LogisticDir, LogisticSmartProRules[]>>;
-  pipeJuncInt?: Partial<Record<LogisticDir, LogisticPipeJuncInt>>;
+  /**
+   * Smart/Pro rules for splitterPro & splitterSmart
+   *
+   * Note: Dir are stored base on Node Dir which has (left, top, right, bottom)
+   * but for splitter, the left is the input, the rest are output
+   *
+   * In-game the output are named (left, center, right) relative to the input
+   * Hence, top -> left, right -> center, bottom -> right
+   */
+  smartProRules?: Partial<Record<Exclude<FactoryInterfaceDir, 'left'>, LogisticSmartProRules[]>>;
+  pipeJuncInt?: Partial<Record<FactoryInterfaceDir, LogisticPipeJuncInt>>;
 }
 
 export interface FactoryGeneratorNodeData extends FactoryBaseNodeData {

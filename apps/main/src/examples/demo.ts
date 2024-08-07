@@ -29,6 +29,14 @@ export default {
       } satisfies FactoryRecipeNodeData,
       type: 'recipe',
     },
+    {
+      id: '523907234890340',
+      position: { x: 400, y: 400 },
+      data: {
+        type: 'splitter',
+      },
+      type: 'logistic',
+    },
   ],
   edges: [
     {

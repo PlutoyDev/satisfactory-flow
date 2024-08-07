@@ -196,7 +196,7 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
   if (prevResult) return prevResult;
   const nodeData = nodeMap.get(nodeId)?.data as FactoryLogisticNodeData | undefined;
   if (!nodeData) return null;
-  const { type, smartProRules = { center: ['any'] }, pipeJuncInt = { left: 'in' } } = nodeData;
+  const { type: logisticType, smartProRules = { right: ['any'] }, pipeJuncInt = { left: 'in' } } = nodeData;
 
   /*
   Logistics nodes are a bit more complex than the other nodes.
@@ -218,6 +218,47 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
     overflow: This output will only be used if there are no other outputs to use (due to being full, or having no suitable rule). If multiple outputs have this filter, overflowing parts will be distributed evenly among them.
     item-${string}: Only the selected item will pass through. Its recipe has to be unlocked first for it to appear in the list.  
    */
+  const ret: ComputeResult = { interfaces: [], itemsSpeed: {} };
 
-  
+  const itemsSpeed: Map<string, number> = new Map();
+  const handleItemsSpeed: Map<string, ItemSpeed[]> = new Map();
+  const handleIdToEdgeIdMap = nodeAdditionalProperty?.edges;
+  const usedDir = new Set<FactoryInterfaceDir>();
+  for (const dir of FACTORY_INTERFACE_DIR) {
+    let itemForm: FactoryItemForm;
+    let intType: FactoryInterfaceType;
+    if (logisticType === 'pipeJunc') {
+      itemForm = 'fluid';
+      intType = pipeJuncInt[dir] ?? 'out';
+    } else {
+      itemForm = 'solid';
+      intType = (logisticType === 'merger' ? dir !== 'right' : dir === 'left') ? 'in' : 'out';
+    }
+
+    // Find the connected edge and the other node
+    const handleId = `${dir}-${itemForm}-${intType}-0`;
+    ret.interfaces.push(handleId);
+  }
+
+  return ret;
+
+  dispatchAdditionNodePropMap({ type: 'compute', nodeId, result: ret });
+  return ret;
+}
+
+export function computeNode(args: ComputeArgs) {
+  const { nodeId, nodeMap } = args;
+  const node = nodeMap.get(nodeId);
+  if (!node) return null;
+  switch (node.data.type) {
+    case 'item':
+      return computeFactoryItemNode(args);
+    case 'recipe':
+      return computeFactoryRecipeNode(args);
+    case 'logistic':
+      return computeFactoryLogisticsNode(args);
+    default:
+      console.error(`Unknown node type ${node.data.type}`);
+      return null;
+  }
 }
