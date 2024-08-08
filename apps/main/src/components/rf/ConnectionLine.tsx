@@ -1,6 +1,6 @@
 import { getSmoothStepPath, ConnectionLineComponentProps } from '@xyflow/react';
-import { connectionErrorReasonAtom } from '../../lib/rfListeners';
 import { useAtom } from 'jotai';
+import { connectionErrorReasonAtom } from '../../lib/rfListeners';
 
 export function ConnectionLine({ fromX, fromY, toX, toY, fromPosition, toPosition, connectionStatus }: ConnectionLineComponentProps) {
   const connectionErrorReason = useAtom(connectionErrorReasonAtom)[0];

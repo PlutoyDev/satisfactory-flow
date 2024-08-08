@@ -1,12 +1,12 @@
 import { readFile, writeFile, mkdir, stat, rm } from 'fs/promises';
 import path from 'path';
+import { argv } from 'process';
+import sharp from 'sharp';
 import { parseProductionMachine } from './buildableParser.js';
+import { parsePowerGenerator } from './generatorParser.js';
 import { parseItem } from './itemParser.js';
 import { parseRecipe } from './recipeParser.js';
 import { ParsedOutput } from './types.js';
-import { parsePowerGenerator } from './generatorParser.js';
-import { argv } from 'process';
-import sharp from 'sharp';
 
 const cwd = process.cwd();
 // In case I forget to run the script from the correct directory

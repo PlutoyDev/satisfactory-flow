@@ -1,6 +1,6 @@
 import { useAtom } from 'jotai';
-import { flowsAtom, selectedFlowAtom } from '../lib/store';
 import examples from '../examples';
+import { flowsAtom, selectedFlowAtom } from '../lib/store';
 
 function NavigateToFlowButton({ flowName, flowId, source }: { flowName: string; flowId: string; source: 'db' | 'example' }) {
   const [, setSelectedFlow] = useAtom(selectedFlowAtom);

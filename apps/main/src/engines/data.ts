@@ -1,3 +1,5 @@
+import type { FactoryInterfaceDir } from './compute';
+
 /*
 Data type using for computation
 
@@ -25,7 +27,7 @@ Generators Node Data extends Base Node Data:
 - generatorKey: string (key from docsJson)
 - clockSpeedThou: number (thousandth of clock speed)
 */
-import type { FactoryInterfaceDir } from './compute';
+
 export interface FactoryBaseNodeData extends Record<string, any> {
   rotIdx?: 0 | 1 | 2 | 3; // 0 | 90 | 180 | 270
   bgColor?: string;

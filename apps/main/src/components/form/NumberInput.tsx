@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useEditorField } from '../rf/BaseNode';
 import { Minus, Plus } from 'lucide-react';
+import { useEditorField } from '../rf/BaseNode';
 
 interface NumberInputProps {
   name: string;

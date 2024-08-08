@@ -1,13 +1,15 @@
-// Application Store using Jotai
-import { delEdges, delNodes, FlowData, getEdges, getFlows, getNodes, openFlowDb, setEdges, setNodes } from './db';
-import { Atom, atom, getDefaultStore, PrimitiveAtom, SetStateAction, WritableAtom } from 'jotai';
 import { Node, Edge, NodeChange, EdgeChange } from '@xyflow/react';
+import type { ParsedOutput } from 'docs-parser';
+import { Atom, atom, getDefaultStore, PrimitiveAtom, SetStateAction, WritableAtom } from 'jotai';
 import { atomWithLocation } from 'jotai-location';
-import examples from '../examples';
-import { nanoid } from 'nanoid';
-import type { ParsedOutput } from 'docs-parser'; // Get the types for docs.json
-import type { ComputeResult } from '../engines/compute';
 import { atomWithReducer } from 'jotai/utils';
+import { nanoid } from 'nanoid';
+import type { ComputeResult } from '../engines/compute';
+import examples from '../examples';
+import { delEdges, delNodes, FlowData, getEdges, getFlows, getNodes, openFlowDb, setEdges, setNodes } from './db';
+
+// Application Store using Jotai
+// Get the types for docs.json
 
 export const generateId = () => nanoid(16);
 

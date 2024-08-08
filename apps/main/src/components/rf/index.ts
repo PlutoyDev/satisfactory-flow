@@ -1,7 +1,7 @@
 import { ComponentType } from 'react';
 import { ItemNode, ItemNodeEditor } from './ItemNode';
-import { RecipeNode, RecipeNodeEditor } from './RecipeNode';
 import { LogisticNode, LogisticNodeEditor } from './LogisticNode';
+import { RecipeNode, RecipeNodeEditor } from './RecipeNode';
 
 export const customNodes = {
   item: ItemNode,

@@ -1,5 +1,4 @@
 import { mkdir } from 'fs/promises';
-import { statSync } from 'fs';
 import type { Item } from './types.js';
 
 const eStackSize = {

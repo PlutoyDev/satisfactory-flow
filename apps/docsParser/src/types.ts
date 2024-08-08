@@ -1,6 +1,6 @@
-// Export interfaces of the parsed
-
 import type { transformFuel } from './generatorParser.js';
+
+// Export interfaces of the parsed
 
 export interface Recipe {
   key: string;

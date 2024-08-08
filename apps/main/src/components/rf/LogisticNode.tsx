@@ -1,7 +1,7 @@
 import { NodeProps, Node } from '@xyflow/react';
-import { FactoryLogisticNodeData } from '../../engines/data';
-import { computeFactoryLogisticsNode } from '../../engines/compute';
 import { useAtom } from 'jotai';
+import { computeFactoryLogisticsNode } from '../../engines/compute';
+import { FactoryLogisticNodeData } from '../../engines/data';
 import { docsMappedAtom, additionNodePropMapAtom, nodesMapAtom, edgesMapAtom } from '../../lib/store';
 import { FactoryNodeEditorWrapper, FactoryNodeWrapper } from './BaseNode';
 

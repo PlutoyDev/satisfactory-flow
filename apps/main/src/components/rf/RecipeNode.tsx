@@ -1,13 +1,13 @@
-import { Node, NodeProps } from '@xyflow/react';
-import { FactoryRecipeNodeData } from '../../engines/data';
-import { useAtom } from 'jotai';
-import { additionNodePropMapAtom, docsMappedAtom, edgesMapAtom, nodesMapAtom } from '../../lib/store';
-import { computeFactoryRecipeNode } from '../../engines/compute';
 import { Fragment } from 'react';
-import { FactoryNodeEditorWrapper, FactoryNodeWrapper } from './BaseNode';
+import { Node, NodeProps } from '@xyflow/react';
+import { useAtom } from 'jotai';
 import { ArrowRight } from 'lucide-react';
-import RecipeComboBox from '../form/RecipeComboBox';
+import { computeFactoryRecipeNode } from '../../engines/compute';
+import { FactoryRecipeNodeData } from '../../engines/data';
+import { additionNodePropMapAtom, docsMappedAtom, edgesMapAtom, nodesMapAtom } from '../../lib/store';
 import NumberInput from '../form/NumberInput';
+import RecipeComboBox from '../form/RecipeComboBox';
+import { FactoryNodeEditorWrapper, FactoryNodeWrapper } from './BaseNode';
 
 /* 
 Sizes of machines (W x L), Taken from satisfactory wiki.

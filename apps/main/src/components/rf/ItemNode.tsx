@@ -1,11 +1,11 @@
-import { FactoryNodeEditorWrapper, FactoryNodeWrapper } from './BaseNode';
-import { FactoryItemNodeData } from '../../engines/data';
-import { additionNodePropMapAtom, docsMappedAtom, edgesMapAtom, nodesMapAtom } from '../../lib/store';
 import { NodeProps, Node } from '@xyflow/react';
 import { useAtom } from 'jotai';
 import { computeFactoryItemNode } from '../../engines/compute';
+import { FactoryItemNodeData } from '../../engines/data';
+import { additionNodePropMapAtom, docsMappedAtom, edgesMapAtom, nodesMapAtom } from '../../lib/store';
 import ItemComboBox from '../form/ItemComboBox';
 import NumberInput from '../form/NumberInput';
+import { FactoryNodeEditorWrapper, FactoryNodeWrapper } from './BaseNode';
 
 const defaultSize = 90;
 

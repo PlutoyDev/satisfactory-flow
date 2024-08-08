@@ -1,10 +1,10 @@
-import Fuse from 'fuse.js';
-import { DocsMapped, docsMappedAtom } from '../../lib/store';
-import { atom, useAtom } from 'jotai';
 import { Fragment, useMemo, useRef, useState } from 'react';
-import { useEditorField } from '../rf/BaseNode';
-import { ArrowRight, ChevronUp } from 'lucide-react';
 import type { Recipe } from 'docs-parser';
+import Fuse from 'fuse.js';
+import { atom, useAtom } from 'jotai';
+import { ArrowRight, ChevronUp } from 'lucide-react';
+import { DocsMapped, docsMappedAtom } from '../../lib/store';
+import { useEditorField } from '../rf/BaseNode';
 
 const recipeFuseAtom = atom(
   async get =>

@@ -1,4 +1,7 @@
-// TODO: Computation engine
+import { Edge, Node } from '@xyflow/react';
+import { type additionNodePropMapAtom, DocsMapped, UsedAtom } from '../lib/store';
+import { FactoryItemNodeData, FactoryLogisticNodeData, FactoryRecipeNodeData } from './data';
+
 /*
 Will be Modified from: 
   https://github.com/PlutoyDev/satisfactory-planning-tool/blob/e0e7999f0542e5ad068c8c414c426fb904b8f6fa/src/lib/factoryCompute.ts
@@ -31,10 +34,6 @@ Due to floating point precision, all computations will be done in integers by mu
 Any variable that is "mimicking" a float will be suffixed with "Thou" (short for thousandth) ie clockSpeedThou, itemRateThou, etc.
 FYI: the "Thou" suffix is pronounced "th-ow" (like "thousandth" but without the "sandth"), and it came from thousandth of an inch (thou) in engineering. (I'm just bad at naming things)
 */
-
-import { FactoryItemNodeData, FactoryLogisticNodeData, FactoryRecipeNodeData } from './data';
-import { type additionNodePropMapAtom, DocsMapped, UsedAtom } from '../lib/store';
-import { Edge, Node } from '@xyflow/react';
 
 export const FACTORY_INTERFACE_DIR = ['left', 'top', 'right', 'bottom'] as const;
 export type FactoryInterfaceDir = (typeof FACTORY_INTERFACE_DIR)[number];
@@ -186,6 +185,27 @@ export function computeFactoryRecipeNode(args: ComputeArgs): ComputeResult | nul
   return ret;
 }
 
+
+/*
+  Logistics nodes are a bit more complex than the other nodes.
+  There item speed calculation are based on the connected nodes.
+
+  For future reference, 
+  1. Get all connected edges and the nodes they connect to.
+  2. Get the connected nodes' compute results. (If not computed, compute them)
+  3. Sum the item speeds of the connected nodes into a map of itemKey to speedThou.
+  4. Distribute the items evenly based on the rules.
+  
+  if type is pipe junction (pipeJunc), for a POC, the inputs and outputs must be configured manually and stored in pipeJuncInt.
+  - pipeJuncInt is a record of direction to type (in/out)
+
+  if type is smart / programmable splitter (splitterSmart / splitterPro), the rules can be configured.
+  - any: The output will behave just like a normal Splitter. Parts will be evenly distributed across this output and any other available outputs. Appears by default in the center output.
+  - none: The output is unused. Appears by default in the right and left outputs.
+  - anyUndefined: Only parts that do not have their own Item rule will pass through. For example, if a  Rotor has its own output, no Rotors will ever pass through.
+  - overflow: This output will only be used if there are no other outputs to use (due to being full, or having no suitable rule). If multiple outputs have this filter, overflowing parts will be distributed evenly among them.
+  - item-${string}: Only the selected item will pass through. Its recipe has to be unlocked first for it to appear in the list.  
+*/
 export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | null {
   const {
     nodeId,
@@ -200,7 +220,7 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
     const prevIgnores = prevResult.ignoreHandleIds;
     if (ignoreHandleIds?.length === prevIgnores?.length) {
       // If the ignoreHandleIds are the same, return the previous result
-      if (!ignoreHandleIds || ignoreHandleIds.every((id) => prevIgnores!.includes(id))) {
+      if (!ignoreHandleIds || ignoreHandleIds.every(id => prevIgnores!.includes(id))) {
         return prevResult;
       }
     }
@@ -213,26 +233,6 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
     return null;
   }
 
-  /*
-  Logistics nodes are a bit more complex than the other nodes.
-  There item speed calculation are based on the connected nodes.
-
-  For future reference, 
-  1. Get all connected edges and the nodes they connect to.
-  2. Get the connected nodes' compute results. (If not computed, compute them)
-  3. Sum the item speeds of the connected nodes into a map of itemKey to speedThou.
-  4. Distribute the items evenly based on the rules.
-  
-  if type is pipe junction (pipeJunc), for a POC, the inputs and outputs must be configured manually and stored in pipeJuncInt.
-  - pipeJuncInt is a record of direction to type (in/out)
-
-  if type is smart / programmable splitter (splitterSmart / splitterPro), the rules can be configured.
-    any: The output will behave just like a normal Splitter. Parts will be evenly distributed across this output and any other available outputs. Appears by default in the center output.
-    none: The output is unused. Appears by default in the right and left outputs.
-    anyUndefined: Only parts that do not have their own Item rule will pass through. For example, if a  Rotor has its own output, no Rotors will ever pass through.
-    overflow: This output will only be used if there are no other outputs to use (due to being full, or having no suitable rule). If multiple outputs have this filter, overflowing parts will be distributed evenly among them.
-    item-${string}: Only the selected item will pass through. Its recipe has to be unlocked first for it to appear in the list.  
-   */
   const ret: ComputeResult = { interfaces: [], itemsSpeed: {} };
   if (ignoreHandleIds && ignoreHandleIds.length > 0) {
     ret.ignoreHandleIds = ignoreHandleIds;

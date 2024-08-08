@@ -1,9 +1,9 @@
+import { DragEvent } from 'react';
 import { Node, Edge, Connection, OnSelectionChangeParams, ReactFlowInstance } from '@xyflow/react';
 import { atom } from 'jotai';
-import { store, generateId, edgesAtom, edgesMapAtom, nodesMapAtom, nodesAtom, additionNodePropMapAtom } from './store';
-import { DragEvent } from 'react';
 import { FactoryNodeType } from '../components/rf/BaseNode';
 import { splitInterfaceId } from '../engines/compute';
+import { store, generateId, edgesAtom, edgesMapAtom, nodesMapAtom, nodesAtom, additionNodePropMapAtom } from './store';
 
 export const connectionErrorReasonAtom = atom<string | null>(null);
 export const isDraggingNodeAtom = atom(false);

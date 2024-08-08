@@ -1,3 +1,7 @@
+import type { Node, Edge } from '@xyflow/react';
+import { openDB, DBSchema } from 'idb';
+import { filter, map, mapToObj, pipe } from 'remeda';
+
 // IndexedDB for the app
 
 /*
@@ -15,10 +19,6 @@ How data is stored:
     - 'viewportZoom' - zoom level of the viewport
   TODO: History of changes
 */
-
-import type { Node, Edge } from '@xyflow/react';
-import { openDB, DBSchema } from 'idb';
-import { filter, map, mapToObj, pick, pipe } from 'remeda';
 
 export interface FlowData {
   id: string;

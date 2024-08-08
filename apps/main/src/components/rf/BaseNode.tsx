@@ -1,11 +1,11 @@
-import { Handle, NodeProps, Position, Node, useUpdateNodeInternals } from '@xyflow/react';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useRef } from 'react';
-import { FactoryBaseNodeData } from '../../engines/data';
-import { FACTORY_INTERFACE_DIR, FactoryInterfaceDir, splitInterfaceId } from '../../engines/compute';
-import { selectedNodeOrEdge } from '../../lib/rfListeners';
+import { Handle, NodeProps, Position, Node, useUpdateNodeInternals } from '@xyflow/react';
+import debounce from 'debounce';
 import { useAtom } from 'jotai';
 import { RotateCcw, RotateCw } from 'lucide-react';
-import debounce from 'debounce';
+import { FACTORY_INTERFACE_DIR, FactoryInterfaceDir, splitInterfaceId } from '../../engines/compute';
+import { FactoryBaseNodeData } from '../../engines/data';
+import { selectedNodeOrEdge } from '../../lib/rfListeners';
 
 export const FACTORY_NODE_TYPES = ['item', 'recipe', 'logistic'] as const;
 export type FactoryNodeType = (typeof FACTORY_NODE_TYPES)[number];

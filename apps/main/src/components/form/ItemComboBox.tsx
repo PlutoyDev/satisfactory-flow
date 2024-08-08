@@ -1,9 +1,9 @@
-import Fuse from 'fuse.js';
-import { docsMappedAtom } from '../../lib/store';
-import { atom, useAtom } from 'jotai';
 import { useMemo, useRef, useState } from 'react';
-import { useEditorField } from '../rf/BaseNode';
+import Fuse from 'fuse.js';
+import { atom, useAtom } from 'jotai';
 import { ChevronUp } from 'lucide-react';
+import { docsMappedAtom } from '../../lib/store';
+import { useEditorField } from '../rf/BaseNode';
 
 const itemFuseAtom = atom(async get => new Fuse([...(await get(docsMappedAtom)).items.values()], { keys: ['displayName'] }));
 

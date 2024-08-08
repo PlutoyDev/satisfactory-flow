@@ -1,5 +1,5 @@
-import type { FlowData } from '../lib/db';
 import type { Edge, Node } from '@xyflow/react';
+import type { FlowData } from '../lib/db';
 
 interface ExampleFlowData extends Omit<FlowData, 'created' | 'updated'> {
   getData: () => Promise<{ default: { nodes: Node[]; edges: Edge[] } }>;
