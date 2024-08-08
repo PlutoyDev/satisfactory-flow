@@ -86,11 +86,15 @@ export interface ComputeArgs {
   edgeMap: Map<string, Edge>;
   usedAdditionalNodePropMapAtom: UsedAtom<typeof additionNodePropMapAtom>;
   startedAtNodeId?: string;
+  // Do not ask the nodes connected here for their compute result
+  ignoreHandleIds?: string[];
 }
 
 export interface ComputeResult {
   interfaces: string[];
   itemsSpeed: Record<string, ItemSpeed[]>;
+  // Use to specify that this result might be incomplete
+  ignoreHandleIds?: string[];
 }
 
 export function computeFactoryItemNode(args: ComputeArgs): ComputeResult | null {
@@ -120,7 +124,7 @@ export function computeFactoryItemNode(args: ComputeArgs): ComputeResult | null 
   if (interfaceKind === 'both' || interfaceKind === 'in') {
     const intId = `left-${itemForm}-in-0`;
     ret.interfaces.push(intId);
-    ret.itemsSpeed[intId] = [{ itemKey, speedThou: speedThou }];
+    ret.itemsSpeed[intId] = [{ itemKey, speedThou: -speedThou }];
   }
 
   if (interfaceKind === 'both' || interfaceKind === 'out') {
@@ -157,12 +161,13 @@ export function computeFactoryRecipeNode(args: ComputeArgs): ComputeResult | nul
   const ret: ComputeResult = { interfaces: [], itemsSpeed: {} };
   const { ingredients, products, manufactoringDuration } = recipe;
 
-  const durationThou = manufactoringDuration / clockSpeedThou; // Duration in thousandths of a second
+  const durationThou = manufactoringDuration / (clockSpeedThou / 100_00); // Duration in thousandths of a second
   const itemsLength = ingredients.length + products.length;
   const IntTypeCount = { in: 0, out: 0 };
 
   for (let i = 0; i < itemsLength; i++) {
-    const itemAmt = i < ingredients.length ? ingredients[i] : products[products.length - (i - ingredients.length) - 1];
+    const isIngredient = i < ingredients.length;
+    const itemAmt = isIngredient ? ingredients[i] : products[products.length - (i - ingredients.length) - 1];
     const { itemKey, amount } = itemAmt;
     const item = docsMapped.items.get(itemKey);
     if (!item) {
@@ -170,12 +175,11 @@ export function computeFactoryRecipeNode(args: ComputeArgs): ComputeResult | nul
     }
 
     const itemForm = item.form === 'solid' ? 'solid' : 'fluid';
-    const isIngredient = i < ingredients.length;
     const type = isIngredient ? 'in' : 'out';
     const intTypeIdx = IntTypeCount[type]++;
     const intId = `${isIngredient ? 'left' : 'right'}-${itemForm}-${type}-${intTypeIdx}`;
     ret.interfaces.push(intId);
-    ret.itemsSpeed[intId] = [{ itemKey, speedThou: Math.floor((amount / durationThou) * 60) }];
+    ret.itemsSpeed[intId] = [{ itemKey, speedThou: ((isIngredient ? -amount : amount) / durationThou) * 60 }];
   }
 
   dispatchAdditionNodePropMap({ type: 'compute', nodeId, result: ret });
@@ -185,18 +189,29 @@ export function computeFactoryRecipeNode(args: ComputeArgs): ComputeResult | nul
 export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | null {
   const {
     nodeId,
-    docsMapped,
     nodeMap,
     edgeMap,
     usedAdditionalNodePropMapAtom: [additionNodePropMap, dispatchAdditionNodePropMap],
-    startedAtNodeId,
+    ignoreHandleIds,
   } = args;
   const nodeAdditionalProperty = additionNodePropMap.get(nodeId);
   const prevResult = nodeAdditionalProperty?.computeResult;
-  if (prevResult) return prevResult;
+  if (prevResult) {
+    const prevIgnores = prevResult.ignoreHandleIds;
+    if (ignoreHandleIds?.length === prevIgnores?.length) {
+      // If the ignoreHandleIds are the same, return the previous result
+      if (!ignoreHandleIds || ignoreHandleIds.every((id) => prevIgnores!.includes(id))) {
+        return prevResult;
+      }
+    }
+  }
   const nodeData = nodeMap.get(nodeId)?.data as FactoryLogisticNodeData | undefined;
   if (!nodeData) return null;
   const { type: logisticType, smartProRules = { right: ['any'] }, pipeJuncInt = { left: 'in' } } = nodeData;
+
+  if (!logisticType) {
+    return null;
+  }
 
   /*
   Logistics nodes are a bit more complex than the other nodes.
@@ -219,11 +234,21 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
     item-${string}: Only the selected item will pass through. Its recipe has to be unlocked first for it to appear in the list.  
    */
   const ret: ComputeResult = { interfaces: [], itemsSpeed: {} };
+  if (ignoreHandleIds && ignoreHandleIds.length > 0) {
+    ret.ignoreHandleIds = ignoreHandleIds;
+  }
 
-  const itemsSpeed: Map<string, number> = new Map();
+  const remainingItemsSpeed: Map<string, number> = new Map();
   const handleItemsSpeed: Map<string, ItemSpeed[]> = new Map();
   const handleIdToEdgeIdMap = nodeAdditionalProperty?.edges;
-  const usedDir = new Set<FactoryInterfaceDir>();
+  // Connected in and outs
+  const inHandleIds: string[] = [];
+  const outHandleIds: string[] = [];
+  const anyOutHandleIds: string[] = [];
+  const overflowOutHandleIds: string[] = [];
+  const specificItemOutHandleIds: Record<string, string[]> = {};
+  const anyUndefinedOutHandleIds: string[] = [];
+
   for (const dir of FACTORY_INTERFACE_DIR) {
     let itemForm: FactoryItemForm;
     let intType: FactoryInterfaceType;
@@ -238,9 +263,126 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
     // Find the connected edge and the other node
     const handleId = `${dir}-${itemForm}-${intType}-0`;
     ret.interfaces.push(handleId);
+
+    const edgeId = handleIdToEdgeIdMap?.get(handleId);
+    if (edgeId && !ignoreHandleIds?.includes(handleId)) {
+      // Connected to an edge with id ${edgeId}
+      const edge = edgeMap.get(edgeId);
+      if (!edge) {
+        console.error(`Edge ${edgeId} not found`);
+        continue;
+      }
+      const otherNodeId = intType === 'in' ? edge.source : edge.target;
+      const otherHandleId = intType === 'in' ? edge.sourceHandle : edge.targetHandle;
+      if (!otherHandleId) {
+        console.error(`Invalid handleId ${otherHandleId} connected with edge ${edgeId} at node ${otherNodeId}`);
+        continue;
+      }
+      const otherNodeAdditionalProperty = additionNodePropMap.get(otherNodeId);
+      if (!otherNodeAdditionalProperty) {
+        console.error(`Node ${otherNodeId} not found`);
+        continue;
+      }
+      const nodeComputeResult =
+        otherNodeAdditionalProperty.computeResult ??
+        computeNode({ startedAtNodeId: otherNodeId, ...args, nodeId: otherNodeId, ignoreHandleIds: [otherHandleId] });
+      if (!nodeComputeResult) {
+        console.error(`Unable to compute node ${otherNodeId}`);
+        continue;
+      }
+      const nodeItemSpeed = nodeComputeResult.itemsSpeed[otherHandleId];
+      if (!nodeItemSpeed) {
+        console.warn(`Item speed not found for handleId ${otherHandleId} at node ${otherNodeId}`);
+        continue;
+      }
+      handleItemsSpeed.set(handleId, nodeItemSpeed);
+      for (const { itemKey, speedThou } of nodeItemSpeed) {
+        ret.itemsSpeed[handleId] ??= [];
+        ret.itemsSpeed[handleId].push({ itemKey, speedThou: -speedThou });
+
+        const newValue = (remainingItemsSpeed.get(itemKey) ?? 0) + speedThou;
+        if (newValue === 0) {
+          remainingItemsSpeed.delete(itemKey);
+        } else {
+          remainingItemsSpeed.set(itemKey, newValue);
+        }
+      }
+
+      if (intType === 'in') {
+        inHandleIds.push(handleId);
+      } else if (dir !== 'left') {
+        // Left is always in for all logistic nodes, doing this just prevent typescript error
+        outHandleIds.push(handleId);
+        if (logisticType === 'splitterSmart' || logisticType === 'splitterPro') {
+          // Need do split based on the rules here
+          const rules = smartProRules[dir] ?? ['none'];
+          if (rules[0] === 'none') continue; // Don't distribute to this node
+          if (rules[0] === 'any') {
+            anyOutHandleIds.push(handleId);
+          } else if (rules[0] === 'overflow') {
+            overflowOutHandleIds.push(handleId);
+          } else if (rules[0] === 'anyUndefined') {
+            anyUndefinedOutHandleIds.push(handleId);
+          } else {
+            for (const rule of rules) {
+              if (!rule.startsWith('item-')) {
+                console.error(`Invalid rule ${rule} for node ${nodeId}`);
+                continue;
+              }
+              const itemKey = rule.slice(5);
+              specificItemOutHandleIds[itemKey] ??= [];
+              specificItemOutHandleIds[itemKey].push(handleId);
+            }
+          }
+        } else {
+          // Normal splitter / merger / pipeJunc
+          anyOutHandleIds.push(handleId);
+        }
+      }
+    }
   }
 
-  return ret;
+  const hasSpecificItemOutAndAnyUndefinedOut = Object.keys(specificItemOutHandleIds).length > 0 && anyUndefinedOutHandleIds.length > 0;
+
+  // Distribute remaining items based on the rules
+  for (const [itemKey, speedThou] of remainingItemsSpeed) {
+    if (speedThou === 0) continue;
+    let handleIds: string[]; // Handle Ids to distribute the item to
+    if (speedThou < 0) {
+      // if negative speedThou, it means the item is being consumed more than what is provided
+      handleIds = inHandleIds.length > 0 ? inHandleIds : outHandleIds;
+    } else {
+      if (itemKey in specificItemOutHandleIds) {
+        // If the item has been specified to go to a specific output
+        handleIds = specificItemOutHandleIds[itemKey];
+        handleIds.push(...anyOutHandleIds); //If there are any out, it will be distributed to any out also
+      } else if (hasSpecificItemOutAndAnyUndefinedOut) {
+        // If the item isn't specified to go to a specific output.
+        // But this node has specific item out and any undefined out
+        // So it needs to be distributed to anyUndefined output
+        handleIds = anyUndefinedOutHandleIds;
+        handleIds.push(...anyOutHandleIds); //If there are any out, it will be distributed to any out also
+      } else {
+        handleIds = anyOutHandleIds;
+      }
+      if (handleIds.length === 0) {
+        // if no handleId to distribute to, floor the speedThou in the negHandleIds
+        handleIds = inHandleIds;
+      }
+    }
+
+    // TODO: Handle Overflow
+    const itemSpeed = Math.floor(speedThou / handleIds.length);
+    for (const handleId of handleIds) {
+      ret.itemsSpeed[handleId] ??= [];
+      const existingSpeed = ret.itemsSpeed[handleId].find(x => x.itemKey === itemKey); //TODO: Switch to map or record
+      if (existingSpeed) {
+        existingSpeed.speedThou += itemSpeed;
+      } else {
+        ret.itemsSpeed[handleId].push({ itemKey, speedThou: itemSpeed });
+      }
+    }
+  }
 
   dispatchAdditionNodePropMap({ type: 'compute', nodeId, result: ret });
   return ret;
@@ -250,7 +392,7 @@ export function computeNode(args: ComputeArgs) {
   const { nodeId, nodeMap } = args;
   const node = nodeMap.get(nodeId);
   if (!node) return null;
-  switch (node.data.type) {
+  switch (node.type) {
     case 'item':
       return computeFactoryItemNode(args);
     case 'recipe':

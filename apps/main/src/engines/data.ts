@@ -39,6 +39,13 @@ export interface FactoryItemNodeData extends FactoryBaseNodeData {
 
 export interface FactoryRecipeNodeData extends FactoryBaseNodeData {
   recipeKey?: string;
+  /**
+   * Clock speed percent in thousandth
+   * 100_00_000 = 100%
+   *
+   * To get percentage: clockSpeedThou / 100 (percentage) / 1000 (thousandth)
+   * To get decimalThou: clockSpeedThou / 100 (percentage) / 100 (percent -> decimal)
+   */
   clockSpeedThou?: number;
 }
 

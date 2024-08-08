@@ -152,6 +152,7 @@ function additionalNodePropertiesReducer(
       } else {
         node.edges.delete(action.handleId);
       }
+      delete node.computeResult; // Invalidate compute result when edge changes
       break;
     case 'compute':
       if (action.result) {
