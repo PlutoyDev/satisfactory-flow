@@ -56,17 +56,42 @@ export function ItemNode(props: NodeProps<Node<FactoryItemNodeData>>) {
   );
 }
 
+const interfaceCycle = {
+  both: 'in',
+  in: 'out',
+  out: 'both',
+} as const;
+
+const interfaceText = {
+  both: 'Input & Output',
+  in: 'Input Only',
+  out: 'Output Only',
+} as const;
+
 export function ItemNodeEditor() {
   return (
-    <FactoryNodeEditorWrapper>
-      <div className='flex w-full items-center justify-between'>
-        <p className='label-text mr-4 text-lg'>Item: </p>
-        <ItemComboBox />
-      </div>
-      <div className='flex w-full items-center justify-between'>
-        <p className='label-text mr-4 text-lg'>Item Speed: </p>
-        <NumberInput name='speedThou' defaultValue={0} unit='/ min' step={0.1} />
-      </div>
+    <FactoryNodeEditorWrapper<FactoryItemNodeData>>
+      {({ currentValue, setValue }) => {
+        const interfaceKind = currentValue.interfaceKind ?? 'both';
+        return (
+          <>
+            <div className='flex w-full items-center justify-between'>
+              <p className='label-text mr-4 text-lg'>Item: </p>
+              <ItemComboBox />
+            </div>
+            <div className='flex w-full items-center justify-between'>
+              <p className='label-text mr-4 text-lg'>Item Speed: </p>
+              <NumberInput name='speedThou' defaultValue={0} unit='/ min' step={0.1} />
+            </div>
+            <div className='flex w-full items-center justify-between'>
+              <p className='label-text mr-4 text-lg'>Available Interface: </p>
+              <button className='btn btn-sm' onClick={() => setValue('interfaceKind', interfaceCycle[interfaceKind])}>
+                {interfaceText[interfaceKind]}
+              </button>
+            </div>
+          </>
+        );
+      }}
     </FactoryNodeEditorWrapper>
   );
 }
