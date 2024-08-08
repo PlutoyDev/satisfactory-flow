@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { Background, Panel, ReactFlow } from '@xyflow/react';
+import { Background, ConnectionMode, Panel, ReactFlow } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useAtom } from 'jotai';
 import { FilePen, Home, Save, X } from 'lucide-react';
@@ -53,26 +53,46 @@ function FlowPage() {
       <div className='fixed bottom-0 left-0 right-0 top-16'>
         <Suspense fallback={<div>Loading...</div>}>
           <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onConnect={addEdge}
-            onNodesChange={applyNodeChanges}
-            onEdgesChange={applyEdgeChanges}
-            attributionPosition='bottom-left'
-            colorMode='dark'
-            defaultEdgeOptions={{ type: 'smoothstep' }}
-            nodeTypes={customNodes}
+            // Viewport
+            minZoom={0.05}
+            maxZoom={1}
             snapToGrid={true}
             snapGrid={[6, 6]}
-            onSelectionChange={onSelectionChange}
+            attributionPosition='bottom-left'
+            
+            // Node
+            nodes={nodes}
+            nodeTypes={customNodes}
+            nodeOrigin={[0.5, 0.5]}
+            onNodesChange={applyNodeChanges}
+            
+            // Edge
+            edges={edges}
+            defaultEdgeOptions={{ type: 'smoothstep' }}
+            onEdgesChange={applyEdgeChanges}
+            
+            // Connection
+            connectionRadius={36}
+            connectionMode={ConnectionMode.Loose}
+            connectionLineComponent={ConnectionLine}
+            isValidConnection={isValidConnection}
+            onConnect={addEdge}
+            
+            // Misc
+            colorMode='dark'
             onInit={setReactFlowInstance}
+            onSelectionChange={onSelectionChange}
+            
+            // Drag and Drop
             onDrop={onDrop}
             onDragOver={e => {
               e.preventDefault();
               e.dataTransfer.dropEffect = 'move';
             }}
-            isValidConnection={isValidConnection}
-            connectionLineComponent={ConnectionLine}
+
+            // Keyboard Props
+            deleteKeyCode={['Delete', 'Backspace']}
+            selectionKeyCode={['Shift', 'Control']}
           >
             <Background gap={36} />
 
