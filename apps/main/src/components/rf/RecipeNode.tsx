@@ -3,7 +3,7 @@ import { FactoryRecipeNodeData } from '../../engines/data';
 import { useAtom } from 'jotai';
 import { additionNodePropMapAtom, docsMappedAtom, edgesMapAtom, nodesMapAtom } from '../../lib/store';
 import { computeFactoryRecipeNode } from '../../engines/compute';
-import { Fragment, useMemo } from 'react';
+import { Fragment } from 'react';
 import { FactoryNodeEditorWrapper, FactoryNodeWrapper } from './BaseNode';
 import { ArrowRight } from 'lucide-react';
 import RecipeComboBox from '../form/RecipeComboBox';
@@ -51,18 +51,15 @@ export function RecipeNode(props: NodeProps<Node<FactoryRecipeNodeData>>) {
   const [edgeMap] = useAtom(edgesMapAtom);
 
   const recipe = recipeKey && docsMapped.recipes.get(recipeKey);
-  const res = useMemo(
-    () =>
-      recipe &&
-      computeFactoryRecipeNode({
-        nodeId: props.id,
-        docsMapped,
-        nodeMap,
-        edgeMap,
-        usedAdditionalNodePropMapAtom: usedAPM,
-      }),
-    [props.data, recipe],
-  );
+  const res =
+    recipe &&
+    computeFactoryRecipeNode({
+      nodeId: props.id,
+      docsMapped,
+      nodeMap,
+      edgeMap,
+      usedAdditionalNodePropMapAtom: usedAPM,
+    });
 
   if (!recipeKey) {
     return (

@@ -3,7 +3,6 @@ import { FactoryItemNodeData } from '../../engines/data';
 import { additionNodePropMapAtom, docsMappedAtom, edgesMapAtom, nodesMapAtom } from '../../lib/store';
 import { NodeProps, Node } from '@xyflow/react';
 import { useAtom } from 'jotai';
-import { useMemo } from 'react';
 import { computeFactoryItemNode } from '../../engines/compute';
 import ItemComboBox from '../form/ItemComboBox';
 import NumberInput from '../form/NumberInput';
@@ -18,18 +17,15 @@ export function ItemNode(props: NodeProps<Node<FactoryItemNodeData>>) {
   const [edgeMap] = useAtom(edgesMapAtom);
 
   const item = itemKey && docsMapped.items.get(itemKey);
-  const res = useMemo(
-    () =>
-      item &&
-      computeFactoryItemNode({
-        nodeId: props.id,
-        docsMapped,
-        nodeMap,
-        edgeMap,
-        usedAdditionalNodePropMapAtom: usedAPM,
-      }),
-    [props.data, item],
-  );
+  const res =
+    item &&
+    computeFactoryItemNode({
+      nodeId: props.id,
+      docsMapped,
+      nodeMap,
+      edgeMap,
+      usedAdditionalNodePropMapAtom: usedAPM,
+    });
 
   if (!itemKey) {
     return (

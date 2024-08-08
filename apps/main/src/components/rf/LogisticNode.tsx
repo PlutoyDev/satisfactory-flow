@@ -1,7 +1,6 @@
 import { NodeProps, Node } from '@xyflow/react';
 import { FactoryLogisticNodeData } from '../../engines/data';
-import { useMemo } from 'react';
-import { computeFactoryItemNode, computeFactoryLogisticsNode } from '../../engines/compute';
+import { computeFactoryLogisticsNode } from '../../engines/compute';
 import { useAtom } from 'jotai';
 import { docsMappedAtom, additionNodePropMapAtom, nodesMapAtom, edgesMapAtom } from '../../lib/store';
 import { FactoryNodeEditorWrapper, FactoryNodeWrapper } from './BaseNode';
@@ -14,17 +13,13 @@ export function LogisticNode(props: NodeProps<Node<FactoryLogisticNodeData>>) {
   const [nodeMap] = useAtom(nodesMapAtom);
   const [edgeMap] = useAtom(edgesMapAtom);
 
-  const res = useMemo(
-    () =>
-      computeFactoryLogisticsNode({
-        nodeId: props.id,
-        docsMapped,
-        nodeMap,
-        edgeMap,
-        usedAdditionalNodePropMapAtom: usedAPM,
-      }),
-    [props.data],
-  );
+  const res = computeFactoryLogisticsNode({
+    nodeId: props.id,
+    docsMapped,
+    nodeMap,
+    edgeMap,
+    usedAdditionalNodePropMapAtom: usedAPM,
+  });
 
   if (!res) {
     return (
@@ -37,6 +32,6 @@ export function LogisticNode(props: NodeProps<Node<FactoryLogisticNodeData>>) {
   return <FactoryNodeWrapper {...props} factoryInterfaces={res?.interfaces} size={defaultSize} />;
 }
 
-export function LogisticNodeEditor(props: NodeProps<Node<FactoryLogisticNodeData>>) {
-  return <FactoryNodeEditorWrapper {...props}> </FactoryNodeEditorWrapper>;
+export function LogisticNodeEditor() {
+  return <FactoryNodeEditorWrapper> </FactoryNodeEditorWrapper>;
 }
