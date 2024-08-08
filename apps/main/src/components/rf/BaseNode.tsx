@@ -131,16 +131,16 @@ export function useEditorField<T>(name: string, useDebounce = false) {
   return { currentValue, setValue };
 }
 
-export interface FactoryNodeEditorChildProps {
-  setValue: (name: string, value: any) => void;
-  currentValue: any;
+export interface FactoryNodeEditorChildProps<V = Record<string, unknown>> {
+  setValue: <K extends keyof V>(name: K, value: V[K]) => void;
+  currentValue: V;
 }
 
-export interface FactoryNodeEditorWrapperProps {
-  children: ReactNode | ((p: FactoryNodeEditorChildProps) => ReactNode);
+export interface FactoryNodeEditorWrapperProps<V = Record<string, unknown>> {
+  children: ReactNode | ((p: FactoryNodeEditorChildProps<V>) => ReactNode);
 }
 
-export function FactoryNodeEditorWrapper({ children }: FactoryNodeEditorWrapperProps) {
+export function FactoryNodeEditorWrapper<V = Record<string, unknown>>({ children }: FactoryNodeEditorWrapperProps<V>) {
   const [selNode, setSelNodeProp] = useAtom(selectedNodeOrEdge);
 
   const setValue = useCallback(
@@ -188,9 +188,13 @@ export function FactoryNodeEditorWrapper({ children }: FactoryNodeEditorWrapperP
   );
 
   const getValue = useCallback(
-    (name: string) => {
+    (name?: string) => {
       if (!selNode || 'edge' in selNode) {
         return undefined;
+      }
+
+      if (!name) {
+        return selNode.node.data;
       }
 
       const path = name.split('.');
@@ -215,7 +219,7 @@ export function FactoryNodeEditorWrapper({ children }: FactoryNodeEditorWrapperP
   return (
     <EditorFormContext.Provider value={{ getValue, createSetValue }}>
       <div className='flex flex-col gap-y-2'>
-        {children instanceof Function ? children({ setValue, currentValue: getValue('') }) : children}
+        {children instanceof Function ? children({ setValue, currentValue: getValue() } as FactoryNodeEditorChildProps<V>) : children}
         {/* Color */}
         <div className='flex w-full items-center justify-between'>
           <p className='label-text mr-4 flex-1 text-lg'>Color: </p>
