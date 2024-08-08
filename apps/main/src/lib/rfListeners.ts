@@ -1,11 +1,48 @@
 import { Node, Edge, Connection, OnSelectionChangeParams, ReactFlowInstance } from '@xyflow/react';
 import { atom } from 'jotai';
-import { store, generateId, edgesAtom, edgesMapAtom, nodesMapAtom, nodesAtom } from './store';
+import { store, generateId, edgesAtom, edgesMapAtom, nodesMapAtom, nodesAtom, additionNodePropMapAtom } from './store';
 import { DragEvent } from 'react';
 import { FactoryNodeType } from '../components/rf/BaseNode';
+import { splitInterfaceId } from '../engines/compute';
 
+export const connectionErrorReasonAtom = atom<string | null>(null);
 export const isDraggingNodeAtom = atom(false);
 export const reactflowInstanceAtom = atom<ReactFlowInstance | null>(null);
+
+export function isValidConnection(params: Connection | Edge): boolean {
+  const { source, sourceHandle, target, targetHandle } = params;
+  if (source === target) {
+    store.set(connectionErrorReasonAtom, 'Cannot connect a node to itself');
+    return false;
+  }
+  if (!sourceHandle || !targetHandle) {
+    store.set(connectionErrorReasonAtom, 'Invalid Node (please submit a bug report)');
+    return false;
+  }
+  const sourceIntData = splitInterfaceId(sourceHandle);
+  const targetIntData = splitInterfaceId(targetHandle);
+  if (sourceIntData.type === targetIntData.type) {
+    store.set(connectionErrorReasonAtom, `Cannot connect ${sourceIntData.type}put to ${targetIntData.type}put`);
+    return false;
+  }
+  if (sourceIntData.form !== targetIntData.form) {
+    store.set(connectionErrorReasonAtom, `Cannot connect ${sourceIntData.form} to ${targetIntData.form}`);
+    return false;
+  }
+  const sourceNodeAdditionalProp = store.get(additionNodePropMapAtom).get(source)!;
+  if (sourceNodeAdditionalProp.edges?.has(sourceHandle)) {
+    store.set(connectionErrorReasonAtom, `Source already connected`);
+    return false;
+  }
+  const targetNodeAdditionalProp = store.get(additionNodePropMapAtom).get(target)!;
+  if (targetNodeAdditionalProp.edges?.has(targetHandle)) {
+    store.set(connectionErrorReasonAtom, `Target already connected`);
+    return false;
+  }
+
+  store.set(connectionErrorReasonAtom, null);
+  return true;
+}
 
 export function addEdge(edgeParams: Edge | Connection) {
   store.set(edgesAtom, [

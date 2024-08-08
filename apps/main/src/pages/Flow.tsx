@@ -1,12 +1,13 @@
 import { useAtom } from 'jotai';
 import { edgesAtom, nodesAtom, selectedFlowAtom, selectedFlowDataAtom } from '../lib/store';
-import { addEdge, isDraggingNodeAtom, onDrop, onSelectionChange, reactflowInstanceAtom, selectedNodeOrEdge } from '../lib/rfListeners';
+import { addEdge, isDraggingNodeAtom, isValidConnection, onDrop, onSelectionChange, reactflowInstanceAtom, selectedNodeOrEdge } from '../lib/rfListeners';
 import { FilePen, Home, Save, X } from 'lucide-react';
 import { Background, Panel, ReactFlow } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { customNodeEditors, customNodes } from '../components/rf';
 import { Suspense } from 'react';
 import { FACTORY_NODE_DEFAULT_COLORS, FACTORY_NODE_TYPES, FactoryNodeType } from '../components/rf/BaseNode';
+import ConnectionLine from '../components/rf/ConnectionLine';
 
 function FlowPage() {
   const [isDraggingNode] = useAtom(isDraggingNodeAtom);
@@ -62,6 +63,8 @@ function FlowPage() {
               e.preventDefault();
               e.dataTransfer.dropEffect = 'move';
             }}
+            isValidConnection={isValidConnection}
+            connectionLineComponent={ConnectionLine}
           >
             <Background gap={36} />
 
