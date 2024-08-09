@@ -255,8 +255,6 @@ function PropertyEditorPanel() {
       <p>Unknown type</p>
     );
 
-  console.log('render');
-
   return (
     <Panel position='bottom-right'>
       <FactoryEditorContextProvider

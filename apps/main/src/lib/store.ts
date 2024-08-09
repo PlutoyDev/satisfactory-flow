@@ -189,7 +189,6 @@ export const nodesAtom = atom(
           break;
         case 'replace':
           nodes.set(change.id, change.item);
-          set(additionNodePropMapAtom, { nodeId: change.id, type: 'compute' }); // Invalidate compute result
           break;
         default: {
           const node = nodes.get(change.id);

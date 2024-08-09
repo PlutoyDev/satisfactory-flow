@@ -1,6 +1,6 @@
 import { Edge, Node } from '@xyflow/react';
 import { type additionNodePropMapAtom, DocsMapped, UsedAtom } from '../lib/store';
-import { FactoryItemNodeData, FactoryLogisticNodeData, FactoryRecipeNodeData } from './data';
+import { FactoryItemNodeData, FactoryLogisticNodeData, FactoryRecipeNodeData, resolveItemNodeData, resolveLogisticNodeData, resolveRecipeNodeData } from './data';
 
 /*
 Will be Modified from: 
@@ -89,9 +89,22 @@ export interface ComputeArgs {
   ignoreHandleIds?: string[];
 }
 
-export interface ComputeResult {
+function isSameIgnoreHandleIds(prevHandleIds?: string[], newHandleIds?: string[]) {
+  if (!prevHandleIds) return true; // If previous no ignore, its already acurate
+  if (prevHandleIds.length === newHandleIds?.length) {
+    // If the ignoreHandleIds are the same, return the previous result
+    if (prevHandleIds?.every(id => newHandleIds!.includes(id))) {
+      return true;
+    }
+  }
+  return false;
+}
+
+export interface ComputeResult<BasedOnData extends Record<string, unknown> = Record<string, string>> {
   interfaces: string[];
   itemsSpeed: Record<string, ItemSpeed[]>;
+  // Data calculated based on
+  basedOn: BasedOnData;
   // Use to specify that this result might be incomplete
   ignoreHandleIds?: string[];
 }
@@ -102,13 +115,26 @@ export function computeFactoryItemNode(args: ComputeArgs): ComputeResult | null 
     docsMapped,
     nodeMap,
     usedAdditionalNodePropMapAtom: [additionNodePropMapAtom, dispatchAdditionNodePropMap],
+    ignoreHandleIds,
   } = args;
-  const prevResult = additionNodePropMapAtom.get(nodeId)?.computeResult;
-  if (prevResult) return prevResult;
+  const prevResult = additionNodePropMapAtom.get(nodeId)?.computeResult as ComputeResult<FactoryItemNodeData>;
+  if (prevResult) {
+    if (isSameIgnoreHandleIds(prevResult.ignoreHandleIds, ignoreHandleIds)) {
+      return prevResult;
+    }
+  }
 
   const nodeData = nodeMap.get(nodeId)?.data as FactoryItemNodeData | undefined;
   if (!nodeData) return null;
-  const { itemKey, speedThou = 0, interfaceKind = 'both' } = nodeData;
+  const { itemKey, speedThou, interfaceKind } = resolveItemNodeData(nodeData);
+  if (prevResult) {
+    // Compare prev basedOn with current node data
+    const p = resolveItemNodeData(prevResult.basedOn);
+    const isSame = [itemKey === p.itemKey, speedThou === p.speedThou, interfaceKind === p.interfaceKind].every(v => v);
+    if (isSame) {
+      return prevResult;
+    }
+  }
 
   if (!itemKey) return null;
   const item = docsMapped.items.get(itemKey);
@@ -118,7 +144,7 @@ export function computeFactoryItemNode(args: ComputeArgs): ComputeResult | null 
   }
 
   const itemForm = item.form === 'solid' ? 'solid' : 'fluid';
-  const ret: ComputeResult = { interfaces: [], itemsSpeed: {} };
+  const ret: ComputeResult = { interfaces: [], itemsSpeed: {}, basedOn: nodeData };
 
   if (interfaceKind === 'both' || interfaceKind === 'in') {
     const intId = `left-${itemForm}-in-0`;
@@ -142,13 +168,25 @@ export function computeFactoryRecipeNode(args: ComputeArgs): ComputeResult | nul
     docsMapped,
     nodeMap,
     usedAdditionalNodePropMapAtom: [additionNodePropMapAtom, dispatchAdditionNodePropMap],
+    ignoreHandleIds,
   } = args;
-  const prevResult = additionNodePropMapAtom.get(nodeId)?.computeResult;
-  if (prevResult) return prevResult;
+  const prevResult = additionNodePropMapAtom.get(nodeId)?.computeResult as ComputeResult<FactoryRecipeNodeData>;
+  if (prevResult) {
+    if (isSameIgnoreHandleIds(prevResult.ignoreHandleIds, ignoreHandleIds)) {
+      return prevResult;
+    }
+  }
 
   const nodeData = nodeMap.get(nodeId)?.data as FactoryRecipeNodeData | undefined;
   if (!nodeData) return null;
-  const { recipeKey, clockSpeedThou = 1000 } = nodeData;
+  const { recipeKey, clockSpeedThou } = resolveRecipeNodeData(nodeData);
+  if (prevResult) {
+    const p = resolveRecipeNodeData(prevResult.basedOn);
+    const isSame = [recipeKey === p.recipeKey, clockSpeedThou === p.clockSpeedThou].every(v => v);
+    if (isSame) {
+      return prevResult;
+    }
+  }
 
   if (!recipeKey) return null;
   const recipe = docsMapped.recipes.get(recipeKey);
@@ -157,7 +195,7 @@ export function computeFactoryRecipeNode(args: ComputeArgs): ComputeResult | nul
     return null;
   }
 
-  const ret: ComputeResult = { interfaces: [], itemsSpeed: {} };
+  const ret: ComputeResult = { interfaces: [], itemsSpeed: {}, basedOn: nodeData };
   const { ingredients, products, manufactoringDuration } = recipe;
 
   const durationThou = manufactoringDuration / (clockSpeedThou / 100_00); // Duration in thousandths of a second
@@ -184,7 +222,6 @@ export function computeFactoryRecipeNode(args: ComputeArgs): ComputeResult | nul
   dispatchAdditionNodePropMap({ type: 'compute', nodeId, result: ret });
   return ret;
 }
-
 
 /*
   Logistics nodes are a bit more complex than the other nodes.
@@ -217,23 +254,28 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
   const nodeAdditionalProperty = additionNodePropMap.get(nodeId);
   const prevResult = nodeAdditionalProperty?.computeResult;
   if (prevResult) {
-    const prevIgnores = prevResult.ignoreHandleIds;
-    if (ignoreHandleIds?.length === prevIgnores?.length) {
-      // If the ignoreHandleIds are the same, return the previous result
-      if (!ignoreHandleIds || ignoreHandleIds.every(id => prevIgnores!.includes(id))) {
-        return prevResult;
-      }
+    if (isSameIgnoreHandleIds(prevResult.ignoreHandleIds, ignoreHandleIds)) {
+      return prevResult;
     }
   }
   const nodeData = nodeMap.get(nodeId)?.data as FactoryLogisticNodeData | undefined;
   if (!nodeData) return null;
-  const { type: logisticType, smartProRules = { right: ['any'] }, pipeJuncInt = { left: 'in' } } = nodeData;
+  const { type: logisticType, smartProRules, pipeJuncInt } = resolveLogisticNodeData(nodeData);
+
+  if (prevResult) {
+    const p = resolveLogisticNodeData(prevResult.basedOn);
+    const isSame = [logisticType === p.logisticType, smartProRules === p.smartProRules, pipeJuncInt === p.pipeJuncInt].every(v => v);
+    if (isSame) {
+      return prevResult;
+    }
+  }
+
 
   if (!logisticType) {
     return null;
   }
 
-  const ret: ComputeResult = { interfaces: [], itemsSpeed: {} };
+  const ret: ComputeResult = { interfaces: [], itemsSpeed: {}, basedOn: nodeData };
   if (ignoreHandleIds && ignoreHandleIds.length > 0) {
     ret.ignoreHandleIds = ignoreHandleIds;
   }
@@ -254,7 +296,7 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
     let intType: FactoryInterfaceType;
     if (logisticType === 'pipeJunc') {
       itemForm = 'fluid';
-      intType = pipeJuncInt[dir] ?? 'out';
+      intType = dir === 'left' ? 'in' : (pipeJuncInt[dir] ?? 'out');
     } else {
       itemForm = 'solid';
       intType = (logisticType === 'merger' ? dir !== 'right' : dir === 'left') ? 'in' : 'out';
