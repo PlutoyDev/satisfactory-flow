@@ -42,7 +42,7 @@ const LogisticMachineName = {
 } as const satisfies Record<LogisticType, string>;
 
 export function LogisticNodeEditor() {
-  const { currentValue: logisticType, setValue } = useEditorField<LogisticType>('type');
+  const { currentValue: logisticType, setValue: setLogisticType } = useEditorField<LogisticType>('type');
   return (
     <>
       <div className='flex w-full items-center justify-between'>
@@ -52,7 +52,7 @@ export function LogisticNodeEditor() {
           className='select select-sm select-ghost'
           value={logisticType}
           onChange={e => {
-            setValue(() => e.target.value as LogisticType);
+            setLogisticType(e.target.value as LogisticType);
           }}
         >
           {Object.entries(LogisticMachineName).map(([key, value]) => (
