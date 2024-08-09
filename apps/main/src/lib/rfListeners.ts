@@ -29,13 +29,13 @@ export function isValidConnection(params: Connection | Edge): boolean {
     store.set(connectionErrorReasonAtom, `Cannot connect ${sourceIntData.form} to ${targetIntData.form}`);
     return false;
   }
-  const sourceNodeAdditionalProp = store.get(additionNodePropMapAtom).get(source)!;
-  if (sourceNodeAdditionalProp.edges?.has(sourceHandle)) {
+  const sourceNodeAdditionalProp = store.get(additionNodePropMapAtom).get(source);
+  if (sourceNodeAdditionalProp?.edges?.has(sourceHandle)) {
     store.set(connectionErrorReasonAtom, `Source already connected`);
     return false;
   }
-  const targetNodeAdditionalProp = store.get(additionNodePropMapAtom).get(target)!;
-  if (targetNodeAdditionalProp.edges?.has(targetHandle)) {
+  const targetNodeAdditionalProp = store.get(additionNodePropMapAtom).get(target);
+  if (targetNodeAdditionalProp?.edges?.has(targetHandle)) {
     store.set(connectionErrorReasonAtom, `Target already connected`);
     return false;
   }
