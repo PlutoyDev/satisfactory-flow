@@ -41,10 +41,12 @@ export interface FactoryItemNodeData extends FactoryBaseNodeData {
   interfaceKind?: 'both' | 'in' | 'out';
 }
 
+export type ResolvedFactoryItemNodeData = RequireSome<FactoryItemNodeData, 'speedThou' | 'interfaceKind'>;
+
 export function resolveItemNodeData(data: FactoryItemNodeData | Record<string, unknown> = {}) {
   data.speedThou ??= 0;
   data.interfaceKind ??= 'both';
-  return data as RequireSome<FactoryItemNodeData, 'speedThou' | 'interfaceKind'>;
+  return data as ResolvedFactoryItemNodeData;
 }
 
 export interface FactoryRecipeNodeData extends FactoryBaseNodeData {
@@ -59,9 +61,11 @@ export interface FactoryRecipeNodeData extends FactoryBaseNodeData {
   clockSpeedThou?: number;
 }
 
+export type ResolvedFactoryRecipeNodeData = RequireSome<FactoryRecipeNodeData, 'clockSpeedThou'>;
+
 export function resolveRecipeNodeData(data: FactoryRecipeNodeData | Record<string, unknown> = {}) {
   data.clockSpeedThou = 100_00_000;
-  return data as RequireSome<FactoryRecipeNodeData, 'clockSpeedThou'>;
+  return data as ResolvedFactoryRecipeNodeData;
 }
 
 // export const LOGISTIC_DIR = ['left', 'right', 'center'] as const;
@@ -93,10 +97,12 @@ export interface FactoryLogisticNodeData extends FactoryBaseNodeData {
   pipeJuncInt?: Partial<Record<Exclude<FactoryInterfaceDir, 'left'>, LogisticPipeJuncInt>>;
 }
 
+export type ResolvedFactoryLogisticNodeData = RequireSome<FactoryLogisticNodeData, 'smartProRules' | 'pipeJuncInt'>;
+
 export function resolveLogisticNodeData(data: FactoryLogisticNodeData | Record<string, unknown> = {}) {
   data.smartProRules ??= { right: ['any'] };
   data.pipeJuncInt ??= {};
-  return data as RequireSome<FactoryLogisticNodeData, 'smartProRules' | 'pipeJuncInt'>;
+  return data as ResolvedFactoryLogisticNodeData;
 }
 
 export interface FactoryGeneratorNodeData extends FactoryBaseNodeData {

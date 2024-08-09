@@ -1,6 +1,17 @@
 import { Edge, Node } from '@xyflow/react';
+import { isDeepEqual, isShallowEqual } from 'remeda';
 import { type additionNodePropMapAtom, DocsMapped, UsedAtom } from '../lib/store';
-import { FactoryItemNodeData, FactoryLogisticNodeData, FactoryRecipeNodeData, resolveItemNodeData, resolveLogisticNodeData, resolveRecipeNodeData } from './data';
+import {
+  FactoryItemNodeData,
+  FactoryLogisticNodeData,
+  FactoryRecipeNodeData,
+  ResolvedFactoryItemNodeData,
+  ResolvedFactoryLogisticNodeData,
+  ResolvedFactoryRecipeNodeData,
+  resolveItemNodeData,
+  resolveLogisticNodeData,
+  resolveRecipeNodeData,
+} from './data';
 
 /*
 Will be Modified from: 
@@ -89,17 +100,6 @@ export interface ComputeArgs {
   ignoreHandleIds?: string[];
 }
 
-function isSameIgnoreHandleIds(prevHandleIds?: string[], newHandleIds?: string[]) {
-  if (!prevHandleIds) return true; // If previous no ignore, its already acurate
-  if (prevHandleIds.length === newHandleIds?.length) {
-    // If the ignoreHandleIds are the same, return the previous result
-    if (prevHandleIds?.every(id => newHandleIds!.includes(id))) {
-      return true;
-    }
-  }
-  return false;
-}
-
 export interface ComputeResult<BasedOnData extends Record<string, unknown> = Record<string, string>> {
   interfaces: string[];
   itemsSpeed: Record<string, ItemSpeed[]>;
@@ -117,21 +117,14 @@ export function computeFactoryItemNode(args: ComputeArgs): ComputeResult | null 
     usedAdditionalNodePropMapAtom: [additionNodePropMapAtom, dispatchAdditionNodePropMap],
     ignoreHandleIds,
   } = args;
-  const prevResult = additionNodePropMapAtom.get(nodeId)?.computeResult as ComputeResult<FactoryItemNodeData>;
-  if (prevResult) {
-    if (isSameIgnoreHandleIds(prevResult.ignoreHandleIds, ignoreHandleIds)) {
-      return prevResult;
-    }
-  }
+  const prevResult = additionNodePropMapAtom.get(nodeId)?.computeResult as ComputeResult<ResolvedFactoryItemNodeData>;
 
-  const nodeData = nodeMap.get(nodeId)?.data as FactoryItemNodeData | undefined;
-  if (!nodeData) return null;
-  const { itemKey, speedThou, interfaceKind } = resolveItemNodeData(nodeData);
+  const nullableNodeData = nodeMap.get(nodeId)?.data as FactoryItemNodeData | undefined;
+  if (!nullableNodeData) return null;
+  const nodeData = resolveItemNodeData(nullableNodeData);
+  const { itemKey, speedThou, interfaceKind } = nodeData;
   if (prevResult) {
-    // Compare prev basedOn with current node data
-    const p = resolveItemNodeData(prevResult.basedOn);
-    const isSame = [itemKey === p.itemKey, speedThou === p.speedThou, interfaceKind === p.interfaceKind].every(v => v);
-    if (isSame) {
+    if (isShallowEqual(ignoreHandleIds, prevResult.ignoreHandleIds) && isDeepEqual(nodeData, prevResult.basedOn)) {
       return prevResult;
     }
   }
@@ -170,20 +163,14 @@ export function computeFactoryRecipeNode(args: ComputeArgs): ComputeResult | nul
     usedAdditionalNodePropMapAtom: [additionNodePropMapAtom, dispatchAdditionNodePropMap],
     ignoreHandleIds,
   } = args;
-  const prevResult = additionNodePropMapAtom.get(nodeId)?.computeResult as ComputeResult<FactoryRecipeNodeData>;
-  if (prevResult) {
-    if (isSameIgnoreHandleIds(prevResult.ignoreHandleIds, ignoreHandleIds)) {
-      return prevResult;
-    }
-  }
+  const prevResult = additionNodePropMapAtom.get(nodeId)?.computeResult as ComputeResult<ResolvedFactoryRecipeNodeData>;
 
-  const nodeData = nodeMap.get(nodeId)?.data as FactoryRecipeNodeData | undefined;
-  if (!nodeData) return null;
-  const { recipeKey, clockSpeedThou } = resolveRecipeNodeData(nodeData);
+  const nullableNodeData = nodeMap.get(nodeId)?.data as FactoryRecipeNodeData | undefined;
+  if (!nullableNodeData) return null;
+  const nodeData = resolveRecipeNodeData(nullableNodeData);
+  const { recipeKey, clockSpeedThou } = nodeData;
   if (prevResult) {
-    const p = resolveRecipeNodeData(prevResult.basedOn);
-    const isSame = [recipeKey === p.recipeKey, clockSpeedThou === p.clockSpeedThou].every(v => v);
-    if (isSame) {
+    if (isShallowEqual(ignoreHandleIds, prevResult.ignoreHandleIds) && isDeepEqual(nodeData, prevResult.basedOn)) {
       return prevResult;
     }
   }
@@ -252,27 +239,20 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
     ignoreHandleIds,
   } = args;
   const nodeAdditionalProperty = additionNodePropMap.get(nodeId);
-  const prevResult = nodeAdditionalProperty?.computeResult;
-  if (prevResult) {
-    if (isSameIgnoreHandleIds(prevResult.ignoreHandleIds, ignoreHandleIds)) {
-      return prevResult;
-    }
-  }
-  const nodeData = nodeMap.get(nodeId)?.data as FactoryLogisticNodeData | undefined;
-  if (!nodeData) return null;
-  const { type: logisticType, smartProRules, pipeJuncInt } = resolveLogisticNodeData(nodeData);
+  const prevResult = nodeAdditionalProperty?.computeResult as ComputeResult<ResolvedFactoryLogisticNodeData>;
 
-  if (prevResult) {
-    const p = resolveLogisticNodeData(prevResult.basedOn);
-    const isSame = [logisticType === p.logisticType, smartProRules === p.smartProRules, pipeJuncInt === p.pipeJuncInt].every(v => v);
-    if (isSame) {
-      return prevResult;
-    }
-  }
-
-
+  const nullableNodeData = nodeMap.get(nodeId)?.data as FactoryLogisticNodeData | undefined;
+  if (!nullableNodeData) return null;
+  const nodeData = resolveLogisticNodeData(nullableNodeData);
+  const { type: logisticType, smartProRules, pipeJuncInt } = nodeData;
   if (!logisticType) {
     return null;
+  }
+
+  if (prevResult) {
+    if (isShallowEqual(ignoreHandleIds, prevResult.ignoreHandleIds) && isDeepEqual(nodeData, prevResult.basedOn)) {
+      return prevResult;
+    }
   }
 
   const ret: ComputeResult = { interfaces: [], itemsSpeed: {}, basedOn: nodeData };
