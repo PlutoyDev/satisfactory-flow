@@ -207,11 +207,10 @@ function PropertyEditorPanel() {
           return;
         }
         // Can only update data, other properties cannot be changed
-
         let newData: Record<string, any>;
         prevValue.data ??= {};
         if (typeof updateOrUpdater === 'function') {
-          newData = name ? updateOrUpdater(prevValue.data[name]) : updateOrUpdater(prevValue.data);
+          newData = name ? { ...prevValue.data, [name]: updateOrUpdater(prevValue.data) } : updateOrUpdater(prevValue.data);
         } else {
           newData = name ? { ...prevValue.data, [name]: updateOrUpdater } : updateOrUpdater;
         }
@@ -219,7 +218,6 @@ function PropertyEditorPanel() {
         const newValue = { ...prevValue, data: newData };
         // const newValue = typeof update === 'function' ? update(name ? prevValue.data[name] : prevValue.data) : { ...prevValue, data: name ? { ...prevValue.data, [name]: update } : { ...prevValue.data, ...update } };
         if (selectedType === 'node') {
-          console.log('Setting node', selectedIds[0], newValue);
           setNodesMap(new Map(nodesMap.set(selectedIds[0], newValue as Node)));
         } else if (selectedType === 'edge') {
           setEdgesMap(new Map(edgesMap.set(selectedIds[0], newValue as Edge)));
