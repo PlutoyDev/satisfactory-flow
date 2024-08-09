@@ -5,7 +5,8 @@ import { FactoryItemNodeData } from '../../engines/data';
 import { additionNodePropMapAtom, docsMappedAtom, edgesMapAtom, nodesMapAtom } from '../../lib/store';
 import ItemComboBox from '../form/ItemComboBox';
 import NumberInput from '../form/NumberInput';
-import { FactoryNodeEditorWrapper, FactoryNodeWrapper } from './BaseNode';
+import { RotationAndColorFields } from '../form/RotationAndColor';
+import { FactoryNodeWrapper, useEditorField } from './BaseNode';
 
 const defaultSize = 90;
 
@@ -69,29 +70,25 @@ const interfaceText = {
 } as const;
 
 export function ItemNodeEditor() {
+  const { currentValue: interfaceKind = 'both', setValue: setInterfaceKind } =
+    useEditorField<FactoryItemNodeData['interfaceKind']>('interfaceKind');
   return (
-    <FactoryNodeEditorWrapper<FactoryItemNodeData>>
-      {({ currentValue, setValue }) => {
-        const interfaceKind = currentValue.interfaceKind ?? 'both';
-        return (
-          <>
-            <div className='flex w-full items-center justify-between'>
-              <p className='label-text mr-4 text-lg'>Item: </p>
-              <ItemComboBox />
-            </div>
-            <div className='flex w-full items-center justify-between'>
-              <p className='label-text mr-4 text-lg'>Item Speed: </p>
-              <NumberInput name='speedThou' defaultValue={0} unit='/ min' step={0.1} />
-            </div>
-            <div className='flex w-full items-center justify-between'>
-              <p className='label-text mr-4 text-lg'>Available Interface: </p>
-              <button className='btn btn-sm' onClick={() => setValue('interfaceKind', interfaceCycle[interfaceKind])}>
-                {interfaceText[interfaceKind]}
-              </button>
-            </div>
-          </>
-        );
-      }}
-    </FactoryNodeEditorWrapper>
+    <>
+      <div className='flex w-full items-center justify-between'>
+        <p className='label-text mr-4 text-lg'>Item: </p>
+        <ItemComboBox />
+      </div>
+      <div className='flex w-full items-center justify-between'>
+        <p className='label-text mr-4 text-lg'>Item Speed: </p>
+        <NumberInput name='speedThou' defaultValue={0} unit='/ min' step={0.1} />
+      </div>
+      <div className='flex w-full items-center justify-between'>
+        <p className='label-text mr-4 text-lg'>Available Interface: </p>
+        <button className='btn btn-sm' onClick={() => setInterfaceKind(interfaceCycle[interfaceKind])}>
+          {interfaceText[interfaceKind]}
+        </button>
+      </div>
+      <RotationAndColorFields />
+    </>
   );
 }

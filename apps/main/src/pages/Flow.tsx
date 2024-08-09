@@ -1,10 +1,11 @@
-import { Suspense } from 'react';
-import { Background, ConnectionMode, Panel, ReactFlow } from '@xyflow/react';
+import { Suspense, useCallback } from 'react';
+import { Background, ConnectionMode, Edge, Node, Panel, ReactFlow } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import debounce from 'debounce';
 import { useAtom } from 'jotai';
 import { FilePen, Home, Save, X } from 'lucide-react';
 import { customNodeEditors, customNodes } from '../components/rf';
-import { FACTORY_NODE_DEFAULT_COLORS, FACTORY_NODE_TYPES, FactoryNodeType } from '../components/rf/BaseNode';
+import { FACTORY_NODE_DEFAULT_COLORS, FACTORY_NODE_TYPES, FactoryEditorContextProvider, FactoryNodeType } from '../components/rf/BaseNode';
 import ConnectionLine from '../components/rf/ConnectionLine';
 import {
   addEdge,
@@ -13,9 +14,9 @@ import {
   onDrop,
   onSelectionChange,
   reactflowInstanceAtom,
-  selectedNodeOrEdge,
+  selectedIdsAtom,
 } from '../lib/rfListeners';
-import { edgesAtom, nodesAtom, selectedFlowAtom, selectedFlowDataAtom } from '../lib/store';
+import { edgesAtom, edgesMapAtom, nodesAtom, nodesMapAtom, selectedFlowAtom, selectedFlowDataAtom } from '../lib/store';
 
 function FlowPage() {
   const [isDraggingNode] = useAtom(isDraggingNodeAtom);
@@ -59,37 +60,31 @@ function FlowPage() {
             snapToGrid={true}
             snapGrid={[6, 6]}
             attributionPosition='bottom-left'
-            
             // Node
             nodes={nodes}
             nodeTypes={customNodes}
             nodeOrigin={[0.5, 0.5]}
             onNodesChange={applyNodeChanges}
-            
             // Edge
             edges={edges}
             defaultEdgeOptions={{ type: 'smoothstep' }}
             onEdgesChange={applyEdgeChanges}
-            
             // Connection
             connectionRadius={36}
             connectionMode={ConnectionMode.Loose}
             connectionLineComponent={ConnectionLine}
             isValidConnection={isValidConnection}
             onConnect={addEdge}
-            
             // Misc
             colorMode='dark'
             onInit={setReactFlowInstance}
             onSelectionChange={onSelectionChange}
-            
             // Drag and Drop
             onDrop={onDrop}
             onDragOver={e => {
               e.preventDefault();
               e.dataTransfer.dropEffect = 'move';
             }}
-
             // Keyboard Props
             deleteKeyCode={['Delete', 'Backspace']}
             selectionKeyCode={['Shift', 'Control']}
@@ -169,31 +164,113 @@ function NodeSelectionPanel() {
 }
 
 function PropertyEditorPanel() {
-  const [selNodeOrEdge] = useAtom(selectedNodeOrEdge);
-  if (!selNodeOrEdge) {
+  // const [selNodeOrEdge] = useAtom(selectedNodeOrEdge);
+  // if (!selNodeOrEdge) {
+  //   return null;
+  // }
+  const [nodesMap, setNodesMap] = useAtom(nodesMapAtom);
+  const [edgesMap, setEdgesMap] = useAtom(edgesMapAtom);
+  const [selectedIds] = useAtom(selectedIdsAtom);
+
+  let selNodeOrEdge: Node | Edge | undefined = undefined;
+  let selectedType: 'node' | 'edge' | undefined = undefined;
+  if (nodesMap.has(selectedIds[0])) {
+    selNodeOrEdge = nodesMap.get(selectedIds[0])!;
+    selectedType = 'node';
+  } else if (edgesMap.has(selectedIds[0])) {
+    selNodeOrEdge = edgesMap.get(selectedIds[0])!;
+    selectedType = 'edge';
+  }
+
+  const getValue = useCallback(
+    (key?: string) => {
+      if (!selNodeOrEdge) {
+        console.error('Selected node or edge not found');
+        return undefined;
+      }
+      selNodeOrEdge.data ??= {};
+      if (key) {
+        return selNodeOrEdge.data && key in selNodeOrEdge.data ? selNodeOrEdge.data[key] : undefined;
+      } else {
+        return selNodeOrEdge.data;
+      }
+    },
+    [selNodeOrEdge],
+  );
+
+  const createSetValue = useCallback(
+    (name?: string, debounceMs: number = 0) => {
+      const setValue = (updateOrUpdater: any | ((prev: any) => any)) => {
+        const prevValue = selNodeOrEdge;
+        if (!prevValue) {
+          console.error('Selected node or edge not found');
+          return;
+        }
+        // Can only update data, other properties cannot be changed
+
+        let newData: Record<string, any>;
+        prevValue.data ??= {};
+        if (typeof updateOrUpdater === 'function') {
+          newData = name ? updateOrUpdater(prevValue.data[name]) : updateOrUpdater(prevValue.data);
+        } else {
+          newData = name ? { ...prevValue.data, [name]: updateOrUpdater } : updateOrUpdater;
+        }
+
+        const newValue = { ...prevValue, data: newData };
+        // const newValue = typeof update === 'function' ? update(name ? prevValue.data[name] : prevValue.data) : { ...prevValue, data: name ? { ...prevValue.data, [name]: update } : { ...prevValue.data, ...update } };
+        if (selectedType === 'node') {
+          console.log('Setting node', selectedIds[0], newValue);
+          setNodesMap(new Map(nodesMap.set(selectedIds[0], newValue as Node)));
+        } else if (selectedType === 'edge') {
+          setEdgesMap(new Map(edgesMap.set(selectedIds[0], newValue as Edge)));
+        }
+      };
+
+      if (debounceMs > 0) {
+        return debounce(setValue, debounceMs);
+      } else {
+        return setValue;
+      }
+    },
+    [selNodeOrEdge, setNodesMap, setEdgesMap],
+  );
+
+  if (selectedIds.length !== 1 || !selNodeOrEdge || !selectedType) {
+    // For now, only support editing one node or edge at a time
+    // TODO: Provide ways to deselect all nodes or edges in the future
+    // TODO: Support editing multiple nodes or edges at a time
     return null;
   }
 
   const Editor =
-    'node' in selNodeOrEdge ? (
-      selNodeOrEdge.node.type && selNodeOrEdge.node.type in customNodeEditors ? (
-        customNodeEditors[selNodeOrEdge.node.type as keyof typeof customNodeEditors]
+    selectedType === 'node' ? (
+      selNodeOrEdge.type && selNodeOrEdge.type in customNodeEditors ? (
+        customNodeEditors[selNodeOrEdge.type as FactoryNodeType]
       ) : (
-        <p>Unknown node type: {selNodeOrEdge.node.type}</p>
+        <p>Node type not supported</p>
       )
-    ) : 'edge' in selNodeOrEdge ? (
-      <p>TODO: Edge Editor</p>
+    ) : selectedType === 'edge' ? (
+      <p>Edge editing not supported</p>
     ) : (
-      <p>Unknown selection</p>
+      <p>Unknown type</p>
     );
+
+  console.log('render');
 
   return (
     <Panel position='bottom-right'>
-      <div className='bg-base-300 rounded-box min-w-64 px-3 py-1'>
-        <h2 className='text-lg font-semibold'>Properties</h2>
-        <div className='divider m-0 mb-2 h-1' />
-        {Editor && (typeof Editor === 'function' ? <Editor /> : Editor)}
-      </div>
+      <FactoryEditorContextProvider
+        getValue={getValue}
+        createSetValue={createSetValue}
+        nodeOrEdge={selNodeOrEdge}
+        selectedType={selectedType}
+      >
+        <div className='bg-base-300 rounded-box min-w-64 px-3 py-1'>
+          <h2 className='text-lg font-semibold'>Properties</h2>
+          <div className='divider m-0 mb-2 h-1' />
+          {typeof Editor === 'function' ? <Editor /> : Editor}
+        </div>
+      </FactoryEditorContextProvider>
     </Panel>
   );
 }

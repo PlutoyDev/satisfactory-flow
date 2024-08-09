@@ -7,7 +7,8 @@ import { FactoryRecipeNodeData } from '../../engines/data';
 import { additionNodePropMapAtom, docsMappedAtom, edgesMapAtom, nodesMapAtom } from '../../lib/store';
 import NumberInput from '../form/NumberInput';
 import RecipeComboBox from '../form/RecipeComboBox';
-import { FactoryNodeEditorWrapper, FactoryNodeWrapper } from './BaseNode';
+import { FactoryNodeWrapper } from './BaseNode';
+import { RotationAndColorFields } from '../form/RotationAndColor';
 
 /* 
 Sizes of machines (W x L), Taken from satisfactory wiki.
@@ -141,7 +142,7 @@ export function RecipeNode(props: NodeProps<Node<FactoryRecipeNodeData>>) {
 
 export function RecipeNodeEditor() {
   return (
-    <FactoryNodeEditorWrapper>
+    <>
       <div className='flex w-full items-center justify-between'>
         <p className='label-text mr-4 text-lg'>Recipe: </p>
         <RecipeComboBox />
@@ -150,6 +151,7 @@ export function RecipeNodeEditor() {
         <p className='label-text mr-4 text-lg'>Clock Speed: </p>
         <NumberInput name='clockSpeedThou' unit='%' defaultValue={100} step={1} minValue={1} maxValue={250} />
       </div>
-    </FactoryNodeEditorWrapper>
+      <RotationAndColorFields />
+    </>
   );
 }

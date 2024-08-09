@@ -1,9 +1,10 @@
 import { NodeProps, Node } from '@xyflow/react';
 import { useAtom } from 'jotai';
 import { computeFactoryLogisticsNode } from '../../engines/compute';
-import { FactoryLogisticNodeData } from '../../engines/data';
+import { FactoryLogisticNodeData, LogisticType } from '../../engines/data';
 import { docsMappedAtom, additionNodePropMapAtom, nodesMapAtom, edgesMapAtom } from '../../lib/store';
-import { FactoryNodeEditorWrapper, FactoryNodeWrapper } from './BaseNode';
+import { RotationAndColorFields } from '../form/RotationAndColor';
+import { FactoryNodeWrapper, useEditorField } from './BaseNode';
 
 const defaultSize = 36;
 
@@ -32,6 +33,36 @@ export function LogisticNode(props: NodeProps<Node<FactoryLogisticNodeData>>) {
   return <FactoryNodeWrapper {...props} factoryInterfaces={res?.interfaces} size={defaultSize} />;
 }
 
+const LogisticMachineName = {
+  splitter: 'Splitter',
+  merger: 'Merger',
+  splitterSmart: 'Smart Splitter',
+  splitterPro: 'Programmable Splitter',
+  pipeJunc: 'Pipe Junction',
+} as const satisfies Record<LogisticType, string>;
+
 export function LogisticNodeEditor() {
-  return <FactoryNodeEditorWrapper> </FactoryNodeEditorWrapper>;
+  const { currentValue: logisticType, setValue } = useEditorField<LogisticType>('type');
+  return (
+    <>
+      <div className='flex w-full items-center justify-between'>
+        <label>Type: </label>
+        <select
+          name='type'
+          className='select select-sm select-ghost'
+          value={logisticType}
+          onChange={e => {
+            setValue(() => e.target.value as LogisticType);
+          }}
+        >
+          {Object.entries(LogisticMachineName).map(([key, value]) => (
+            <option key={key} value={key}>
+              {value}
+            </option>
+          ))}
+        </select>
+      </div>
+      <RotationAndColorFields />
+    </>
+  );
 }

@@ -1,11 +1,7 @@
-import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useRef } from 'react';
-import { Handle, NodeProps, Position, Node, useUpdateNodeInternals } from '@xyflow/react';
-import debounce from 'debounce';
-import { useAtom } from 'jotai';
-import { RotateCcw, RotateCw } from 'lucide-react';
+import { createContext, ReactNode, useContext, useEffect, useMemo, useRef } from 'react';
+import { Handle, NodeProps, Position, Node, useUpdateNodeInternals, Edge } from '@xyflow/react';
 import { FACTORY_INTERFACE_DIR, FactoryInterfaceDir, splitInterfaceId } from '../../engines/compute';
 import { FactoryBaseNodeData } from '../../engines/data';
-import { selectedNodeOrEdge } from '../../lib/rfListeners';
 
 export const FACTORY_NODE_TYPES = ['item', 'recipe', 'logistic'] as const;
 export type FactoryNodeType = (typeof FACTORY_NODE_TYPES)[number];
@@ -99,6 +95,7 @@ export function FactoryNodeWrapper(props: FactoryNodeWrapperProps) {
 }
 
 /*
+  TODO: Outdated, please update
   Wrapper for custom node editor that
   - follows the [render prop pattern](https://www.patterns.dev/react/render-props-pattern#children-as-a-function)
   - provides a form for editing node properties (maybe with Formik)
@@ -115,143 +112,49 @@ export function FactoryNodeWrapper(props: FactoryNodeWrapperProps) {
     onChange -> updateNode (stored directly in node) -> propogateAndCompute (update other nodes/edges)
 */
 interface EditorFormContextValue {
-  getValue: (name: string) => any;
-  createSetValue: (name: string, debounced?: boolean) => (value: any) => void;
+  getValue: (name?: string) => any;
+  createSetValue: (name: string | undefined, debounceMs?: number) => (updateOrUpdater: any | ((prev: any) => any)) => void;
+  selectedType: 'node' | 'edge';
+  nodeOrEdge: Node | Edge;
 }
 
 const EditorFormContext = createContext<EditorFormContextValue | null>(null);
 
-export function useEditorField<T>(name: string, useDebounce = false) {
+export function useEditorField<D>(name: string, debounceMs: boolean | number = 0) {
   const ctx = useContext(EditorFormContext);
   if (!ctx) {
     throw new Error('useEditorField must be used inside FactoryNodeEditorWrapper');
   }
-  const currentValue = ctx.getValue(name) as T;
-  const setValue = ctx.createSetValue(name, useDebounce) as (value: T) => void;
-  return { currentValue, setValue };
+  const currentValue = ctx.getValue(name as string) as D;
+  const debouceMsV = typeof debounceMs === 'number' ? debounceMs : debounceMs ? 100 : 0;
+  const setValue = ctx.createSetValue(name as string, debouceMsV) as (updateOrUpdater: D | ((prev: D) => D)) => void;
+  return { currentValue, setValue, selectedType: ctx.selectedType, nodeOrEdge: ctx.nodeOrEdge };
+}
+
+export function useEditor<D>(debounceMs: boolean | number = 0) {
+  const ctx = useContext(EditorFormContext);
+  if (!ctx) {
+    throw new Error('useEditor must be used inside FactoryNodeEditorWrapper');
+  }
+  const currentValue = ctx.getValue() as D;
+  const debouceMsV = typeof debounceMs === 'number' ? debounceMs : debounceMs ? 100 : 0;
+  const setValue = ctx.createSetValue(undefined, debouceMsV) as (updateOrUpdater: Partial<D> | ((prev: D) => D)) => void;
+  return { currentValue, setValue, selectedType: ctx.selectedType, nodeOrEdge: ctx.nodeOrEdge };
 }
 
 export interface FactoryNodeEditorChildProps<V = Record<string, unknown>> {
-  setValue: <K extends keyof V>(name: K, value: V[K]) => void;
+  setValue: <K extends keyof V | undefined>(name: K, value: K extends keyof V ? V[K] : V) => void;
   currentValue: V;
 }
 
-export interface FactoryNodeEditorWrapperProps<V = Record<string, unknown>> {
-  children: ReactNode | ((p: FactoryNodeEditorChildProps<V>) => ReactNode);
+export interface FactoryNodeEditorWrapperProps {
+  children: ReactNode;
 }
 
-export function FactoryNodeEditorWrapper<V = Record<string, unknown>>({ children }: FactoryNodeEditorWrapperProps<V>) {
-  const [selNode, setSelNodeProp] = useAtom(selectedNodeOrEdge);
+export interface FactoryEditorContextProviderProps extends EditorFormContextValue {
+  children: ReactNode;
+}
 
-  const setValue = useCallback(
-    (name: string, value: any) => {
-      // Write value to data of node
-      // name can be nested
-      const path = name.split('.');
-      setSelNodeProp({
-        node: prev => {
-          const next = { ...prev };
-          let current: any = next.data;
-          for (let i = 0; i < path.length - 1; i++) {
-            if (!(path[i] in current)) {
-              if (/\d+/.test(path[i + 1])) {
-                current[path[i]] = [];
-              } else {
-                current[path[i]] = {};
-              }
-            }
-            current = current[path[i]];
-          }
-          if (value === undefined) {
-            delete current[path[path.length - 1]];
-          } else {
-            current[path[path.length - 1]] = value;
-          }
-          return next;
-        },
-      });
-    },
-    [selNode, setSelNodeProp],
-  );
-
-  const debouncedSetValue = useCallback(debounce(setValue, 100), [setValue]);
-
-  const createSetValue = useCallback(
-    (name: string, debounced = false) => {
-      if (!debounced) {
-        return (value: any) => setValue(name, value);
-      } else {
-        return (value: any) => debouncedSetValue(name, value);
-      }
-    },
-    [setValue],
-  );
-
-  const getValue = useCallback(
-    (name?: string) => {
-      if (!selNode || 'edge' in selNode) {
-        return undefined;
-      }
-
-      if (!name) {
-        return selNode.node.data;
-      }
-
-      const path = name.split('.');
-      let current: any = selNode?.node?.data;
-      for (let i = 0; i < path.length; i++) {
-        if (!(path[i] in current)) {
-          return undefined;
-        }
-        current = current[path[i]];
-      }
-      return current;
-    },
-    [selNode],
-  );
-
-  if (!selNode || 'edge' in selNode) {
-    return <p>No node selected</p>;
-  }
-
-  const defBgColor = FACTORY_NODE_DEFAULT_COLORS[selNode.node.type as FactoryNodeType];
-
-  return (
-    <EditorFormContext.Provider value={{ getValue, createSetValue }}>
-      <div className='flex flex-col gap-y-2'>
-        {children instanceof Function ? children({ setValue, currentValue: getValue() } as FactoryNodeEditorChildProps<V>) : children}
-        {/* Color */}
-        <div className='flex w-full items-center justify-between'>
-          <p className='label-text mr-4 flex-1 text-lg'>Color: </p>
-          <input
-            type='color'
-            className='input input-sm input-ghost'
-            value={(selNode.node.data.bgColor as string) ?? defBgColor}
-            onChange={e => debouncedSetValue('bgColor', e.target.value)}
-          />
-          <button className='btn btn-sm btn-ghost' onClick={() => setValue('bgColor', undefined)}>
-            Reset
-          </button>
-        </div>
-        {/* Rotation */}
-        <div className='flex w-full items-center justify-between'>
-          <p className='label-text mr-4 text-lg'>Rotation: </p>
-          <div className='join'>
-            <button
-              className='btn btn-sm btn-ghost'
-              onClick={() => setValue('rotIdx', (((selNode.node.data.rotIdx as number) ?? 0) + 1) % 4)}
-            >
-              <RotateCw />
-            </button>
-            <button
-              className='btn btn-sm btn-ghost'
-              onClick={() => setValue('rotIdx', (((selNode.node.data.rotIdx as number) ?? 0) + 3) % 4)}
-            >
-              <RotateCcw />
-            </button>
-          </div>
-        </div>
-      </div>
-    </EditorFormContext.Provider>
-  );
+export function FactoryEditorContextProvider({ children, ...providerProps }: FactoryEditorContextProviderProps) {
+  return <EditorFormContext.Provider value={providerProps}>{children}</EditorFormContext.Provider>;
 }
