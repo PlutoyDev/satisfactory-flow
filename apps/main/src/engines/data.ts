@@ -28,6 +28,8 @@ Generators Node Data extends Base Node Data:
 - clockSpeedThou: number (thousandth of clock speed)
 */
 
+type RequireSome<T, K extends keyof T> = T & Required<Pick<T, K>>;
+
 export interface FactoryBaseNodeData extends Record<string, any> {
   rotIdx?: 0 | 1 | 2 | 3; // 0 | 90 | 180 | 270
   bgColor?: string;
@@ -37,6 +39,12 @@ export interface FactoryItemNodeData extends FactoryBaseNodeData {
   itemKey?: string;
   speedThou?: number;
   interfaceKind?: 'both' | 'in' | 'out';
+}
+
+export function resolveItemNodeData(data: FactoryItemNodeData | Record<string, unknown> = {}) {
+  data.speedThou ??= 0;
+  data.interfaceKind ??= 'both';
+  return data as RequireSome<FactoryItemNodeData, 'speedThou' | 'interfaceKind'>;
 }
 
 export interface FactoryRecipeNodeData extends FactoryBaseNodeData {
@@ -49,6 +57,11 @@ export interface FactoryRecipeNodeData extends FactoryBaseNodeData {
    * To get decimalThou: clockSpeedThou / 100 (percentage) / 100 (percent -> decimal)
    */
   clockSpeedThou?: number;
+}
+
+export function resolveRecipeNodeData(data: FactoryRecipeNodeData | Record<string, unknown> = {}) {
+  data.clockSpeedThou = 100_00_000;
+  return data as RequireSome<FactoryRecipeNodeData, 'clockSpeedThou'>;
 }
 
 // export const LOGISTIC_DIR = ['left', 'right', 'center'] as const;
@@ -72,7 +85,18 @@ export interface FactoryLogisticNodeData extends FactoryBaseNodeData {
    * Hence, top -> left, right -> center, bottom -> right
    */
   smartProRules?: Partial<Record<Exclude<FactoryInterfaceDir, 'left'>, LogisticSmartProRules[]>>;
-  pipeJuncInt?: Partial<Record<FactoryInterfaceDir, LogisticPipeJuncInt>>;
+  /**
+   * For easier computation, Left is always input, make the user rotate instead :)
+   *
+   * Bahahaha
+   */
+  pipeJuncInt?: Partial<Record<Exclude<FactoryInterfaceDir, 'left'>, LogisticPipeJuncInt>>;
+}
+
+export function resolveLogisticNodeData(data: FactoryLogisticNodeData | Record<string, unknown> = {}) {
+  data.smartProRules ??= { right: ['any'] };
+  data.pipeJuncInt ??= {};
+  return data as RequireSome<FactoryLogisticNodeData, 'smartProRules' | 'pipeJuncInt'>;
 }
 
 export interface FactoryGeneratorNodeData extends FactoryBaseNodeData {
