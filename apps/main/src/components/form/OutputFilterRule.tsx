@@ -104,13 +104,39 @@ export function OutputFilterRule() {
 
   return (
     <>
-      {/* Field with Label and Button */}
-      <button
-        className='btn btn-sm btn-wide btn-ghost'
-        onClick={() => setLocalRules(smartProRules)} // Open Modal
-      >
-        Edit Output Filter
-      </button>
+      {/* Mini display */}
+      <label>
+        <div className='flex flex-row w-full justify-between items-start mb-2'>
+          {(['top', 'right', 'bottom'] as const).map(dir => (
+            <div key={dir} className='flex flex-wrap w-28 justify-center gap-0.5'>
+              <p className='w-full text-center'>{dirText[dir]}</p>
+              {(smartProRules[dir] && smartProRules[dir].length > 0 ? smartProRules[dir] : ['none'])?.map((rule, index) => {
+                let imgPath: string | null = null;
+                if (rule.startsWith('item-')) {
+                  const itemKey = rule.slice(5);
+                  const item = docsMapped.items.get(itemKey);
+                  if (!item) {
+                    return `Item not found: ${itemKey}`;
+                  } else {
+                    imgPath = item.iconPath;
+                  }
+                } else if (rule in ruleText) {
+                  imgPath = ruleIcon64[rule as ExcludedItemRules];
+                }
+
+                return <img key={index} src={`/extracted/${imgPath}`} className='h-6 w-6' />;
+              })}
+            </div>
+          ))}
+        </div>
+        {/* Edit Button */}
+        <button
+          className='btn btn-sm w-full btn-ghost'
+          onClick={() => setLocalRules(smartProRules)} // Open Modal
+        >
+          Edit Output Filter
+        </button>
+      </label>
       {localRules && (
         <>
           {/* Overlay */}
