@@ -49,7 +49,7 @@ interface DropdownProps {
 export function OutputFilterRule() {
   const [dropdownProps, setDropdownProps] = useState<DropdownProps | undefined>(undefined); // if not undefined, drop down will show
   const [docsMapped] = useAtom(docsMappedAtom);
-  const { currentValue: logisticType } = useEditorField<LogisticType>('type');
+  const { currentValue: logisticType, setValue: setLogisticType } = useEditorField<LogisticType>('type');
   const [localRules, setLocalRules] = useState<FactoryLogisticNodeData['smartProRules'] | null>(null);
   const { currentValue: smartProRules = { right: ['any'] }, setValue: setSmartProRules } =
     useEditorField<FactoryLogisticNodeData['smartProRules']>('smartProRules');
@@ -88,13 +88,30 @@ export function OutputFilterRule() {
           <div className='fixed inset-0 bg-black bg-opacity-50 z-50' />
           {/* Modal */}
           <div className='fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 px-8 py-4 shadow-md bg-base-300 z-50 rounded-box'>
-            <h2 className='text-xl font-bold'>Output Filter</h2>
+            <h2 className='text-xl font-bold inline-block'>Output Filter</h2>
+            <button
+              className='btn btn-xs btn-ghost float-right'
+              onClick={() => {
+                // TODO: Set the localRules to the smartProRules
+                setLocalRules(null); // Close Modal
+              }}
+            >
+              <X size={24} />
+            </button>
+            <button
+              className='btn btn-xs btn-ghost float-right'
+              onClick={() => {
+                setLogisticType(logisticType === 'splitterSmart' ? 'splitterPro' : 'splitterSmart');
+              }}
+            >
+              Switch to {logisticType === 'splitterSmart' ? 'Programmable' : 'Smart'} Splitter
+            </button>
             <div className='divider m-0 mb-2 h-1' />
             {/* Rule List */}
             <div className='flex justify-center gap-4'>
               {(['top', 'right', 'bottom'] as const).map(dir => (
                 <div key={dir} className='w-64'>
-                  <h3 className='font-semibold text-center w-full'>{dirText[dir]} Output</h3>
+                  <h3 className='font-semibold text-center'>{dirText[dir]} Output</h3>
                   <div className='bg-black p-1'>
                     {(localRules[dir] ?? ['none']).map((rule, index, { length: totalCount }) => {
                       let imgPath: string | null = null;
@@ -129,7 +146,7 @@ export function OutputFilterRule() {
                                 }
                               }}
                             >
-                              {imgPath && <img src={`/extracted/${imgPath}`} alt={text} className='h-6 w-6' />}
+                              {imgPath && <img src={`/extracted/icons/${imgPath}`} alt={text} className='h-6 w-6' />}
                               <span>{text}</span>
                               <ChevronDown
                                 className='data-[show=true]:rotate-180 transition-transform inline'
