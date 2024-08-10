@@ -21,10 +21,10 @@ export function ConnectionLine({ fromX, fromY, toX, toY, fromPosition, toPositio
         d={dAttr}
         strokeWidth={2}
         fill='none'
-        className={`react-flow__connection-path ${isError ? 'stroke-error' : connectionStatus === 'valid' ? 'stroke-success' : ''}`}
+        className={`react-flow__connection-path ${isError ? 'stroke-rose-700' : connectionStatus === 'valid' ? 'stroke-success' : ''}`}
       />
       {connectionStatus === 'invalid' && (
-        <text x={labelX} y={labelY + 20} textAnchor='middle' className='fill-error bg-base-100 text-sm font-semibold'>
+        <text x={labelX} y={labelY + 20} textAnchor='middle' className='fill-rose-700 bg-base-100 text-sm font-semibold'>
           {connectionErrorReason}
         </text>
       )}

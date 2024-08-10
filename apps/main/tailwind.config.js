@@ -22,7 +22,7 @@ export default {
           'success-content': '#11111b',
           'warning': '#f9e2af',
           'warning-content': '#11111b',
-          'error': '#bd2841',
+          'error': '#eba0ac',
           'error-content': '#11111b',
           'info': '#89dceb',
           'info-content': '#11111b',
