@@ -38,6 +38,7 @@ Right click on each of the following files/folders and select `Save Folder's Pac
 - `FactoryGame/Content/FactoryGame/IconDesc_PortableMiner_256.uasset`
 - `FactoryGame/Content/FactoryGame/Equipment/RebarGun/UI`
 - `FactoryGame/Content/FactoryGame/Equipment/Rifle/UI`
+- `FactoryGame/Content/FactoryGame/Interface/UI/Assets/MonochromeIcons`
 
 You could also extract at the following folders but this will take a long time to extract:
 
@@ -46,6 +47,7 @@ You could also extract at the following folders but this will take a long time t
 - `FactoryGame/Content/FactoryGame/Buildable`
 - `FactoryGame/Content/FactoryGame/Events`
 - `FactoryGame/Content/FactoryGame/IconDesc_PortableMiner_256.uasset`
+- `FactoryGame/Content/FactoryGame/Interface/UI/Assets/MonochromeIcons`
 
 ## Unable to find `FactoryGame/Content/FactoryGame/IconDesc_PortableMiner_256.uasset`
 

@@ -163,6 +163,7 @@ for (const recipe of Object.values(results.recipes)) {
 // Handle image conversion of items
 await mkdir(path.join(outputDirPath, 'icons'), { recursive: true });
 const promises: Promise<any>[] = [];
+// Item icons
 for (const item of Object.values(results.items)) {
   if (item.iconPath) {
     const subpath = item.iconPath.substring(28).split('.')[0];
@@ -182,6 +183,27 @@ for (const item of Object.values(results.items)) {
     promises.push(pr);
   }
 }
+// Monochrome icons
+const iconMap = {
+  'TXUI_MIcon_SortRule_Any.png': 'RuleAny.webp',
+  'TXUI_MIcon_Stop_X.png': 'None.webp',
+  'TXUI_MIcon_SortRule_AnyUndefined.png': 'RuleUndef.webp',
+  'TXUI_MIcon_SortRule_Overflow.png': 'RuleOverflow.webp',
+};
+
+for (const [key, value] of Object.entries(iconMap)) {
+  const originalPath = path.join(extractedDirPath, './Interface/UI/Assets/MonochromeIcons', key);
+  const pr = stat(originalPath)
+    .then(async () => {
+      const newPath = path.join(outputDirPath, 'icons', value);
+      await sharp(originalPath).resize({ width: 64, height: 64 }).webp({ force: true, effort: 6 }).toFile(newPath);
+    })
+    .catch(() => {
+      console.log("File doesn't exist", originalPath);
+    });
+  promises.push(pr);
+}
+
 await Promise.allSettled(promises);
 
 const outputPath = path.join(outputDirPath, 'parsedDocs.json');

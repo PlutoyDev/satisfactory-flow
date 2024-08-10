@@ -55,6 +55,8 @@ extracted
 │   ├── Parts
 │   ├── RawResources
 │   └── Tape
+├── Interface
+│   └── UI
 ├── IconDesc_PortableMiner_256.png
 └── put-extracted-file-here
 ```
