@@ -5,6 +5,7 @@ import { FactoryLogisticNodeData, LogisticType } from '../../engines/data';
 import { docsMappedAtom, additionNodePropMapAtom, nodesMapAtom, edgesMapAtom } from '../../lib/store';
 import { RotationAndColorFields } from '../form/RotationAndColor';
 import { FactoryNodeWrapper, useEditorField } from './BaseNode';
+import { OutputFilterRule } from '../form/OutputFilterRule';
 
 const defaultSize = 36;
 
@@ -62,6 +63,7 @@ export function LogisticNodeEditor() {
           ))}
         </select>
       </div>
+      <OutputFilterRule />
       <RotationAndColorFields />
     </>
   );
