@@ -2,6 +2,7 @@ import { Fragment, useCallback, useMemo, useRef, useState } from 'react';
 import Fuse from 'fuse.js';
 import { useAtom } from 'jotai';
 import { ChevronDown, Plus, X } from 'lucide-react';
+import { isDeepEqual } from 'remeda';
 import { FactoryInterfaceDir } from '../../engines/compute';
 import { FactoryLogisticNodeData, LogisticSmartProRules, LogisticType } from '../../engines/data';
 import { docsMappedAtom } from '../../lib/store';
@@ -220,31 +221,36 @@ export function OutputFilterRule() {
             {warning && <p className='text-red-500 text-center'>{warning}</p>}
             {/* Save and Cancel Button */}
             <div className='flex justify-center gap-4 mt-4'>
-              <button
-                className='btn btn-sm btn-error'
-                onClick={() => {
-                  setLocalRules(null); // Close Modal
-                }}
-              >
-                Close without Saving
-              </button>
-              <button
-                className='btn btn-sm btn-success'
-                onClick={() => {
-                  setSmartProRules(localRules);
-                  setLocalRules(null); // Close Modal
-                }}
-              >
-                Save
-              </button>
-              <button
-                className='btn btn-sm btn-error'
-                onClick={() => {
-                  setLocalRules(smartProRules);
-                }}
-              >
-                Reset
-              </button>
+              {!isDeepEqual(localRules, smartProRules) ? (
+                <>
+                  <button
+                    className='btn btn-sm btn-success'
+                    onClick={() => {
+                      setSmartProRules(localRules);
+                      setLocalRules(null); // Close Modal
+                    }}
+                  >
+                    Save & Close
+                  </button>
+                  <button
+                    className='btn btn-sm btn-error'
+                    onClick={() => {
+                      setLocalRules(smartProRules);
+                    }}
+                  >
+                    Reset
+                  </button>
+                </>
+              ) : (
+                <button
+                  className='btn btn-sm btn-error'
+                  onClick={() => {
+                    setLocalRules(null); // Close Modal
+                  }}
+                >
+                  Close
+                </button>
+              )}
             </div>
           </div>
           <div
