@@ -1,8 +1,8 @@
-import { Fragment, useCallback, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Fuse from 'fuse.js';
 import { useAtom } from 'jotai';
 import { ChevronDown, Plus, X } from 'lucide-react';
-import { isDeepEqual } from 'remeda';
+import { isDeepEqual, set } from 'remeda';
 import { FactoryInterfaceDir } from '../../engines/compute';
 import { FactoryLogisticNodeData, LogisticSmartProRules, LogisticType } from '../../engines/data';
 import { docsMappedAtom } from '../../lib/store';
@@ -61,6 +61,10 @@ export function OutputFilterRule() {
   const filteredRules = useMemo(() => (search ? ruleFuse.search(search).map(({ item }) => item) : ruleList), [ruleFuse, ruleList, search]);
   const filterUlElement = useRef<HTMLUListElement>(null);
 
+  useEffect(() => {
+    setTimeout(() => setWarning(null), 3000);
+  }, [warning]);
+
   const onSelectRule = useCallback(
     (rule: LogisticSmartProRules) => {
       if (!localRules || !dropdownProps) {
@@ -79,17 +83,17 @@ export function OutputFilterRule() {
         // Special rules
         setLocalRules({ ...localRules, [dir]: [rule] });
       } else if (!localRules[dir].includes(rule)) {
-        if (localRules[dir].length <= index) {
-          setLocalRules({ ...localRules, [dir]: [...localRules[dir], rule] });
-        } else {
-          setLocalRules({
-            ...localRules,
-            [dir]: localRules[dir].map((r, i) => (i === index ? rule : r)),
-          });
+        const newRule: LogisticSmartProRules[] = [];
+        for (let i = 0; i < localRules[dir].length; i++) {
+          if (i === index) newRule.push(rule);
+          else if (!['any', 'none', 'anyUndefined', 'overflow'].includes(localRules[dir][i])) newRule.push(localRules[dir][i]);
         }
+        if (index >= localRules[dir].length) {
+          newRule.push(rule);
+        }
+        setLocalRules({ ...localRules, [dir]: newRule });
       } else {
         setWarning('Rule already exists');
-        setTimeout(() => setWarning(null), 3000);
       }
 
       setDropdownProps(undefined); // Hide dropdown
@@ -147,7 +151,11 @@ export function OutputFilterRule() {
             <button
               className='btn btn-xs btn-ghost float-right'
               onClick={() => {
-                setLogisticType(logisticType === 'splitterSmart' ? 'splitterPro' : 'splitterSmart');
+                if (Object.values(localRules).some(rules => rules.length > 1)) {
+                  setWarning('Unable to change to Smart Splitter: Multiple rules in the same direction');
+                } else {
+                  setLogisticType(logisticType === 'splitterSmart' ? 'splitterPro' : 'splitterSmart');
+                }
               }}
             >
               Switch to {logisticType === 'splitterSmart' ? 'Programmable' : 'Smart'} Splitter
