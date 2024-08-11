@@ -49,6 +49,17 @@ export function resolveItemNodeData(data: FactoryItemNodeData | Record<string, u
   return data as ResolvedFactoryItemNodeData;
 }
 
+export function speedThouToString(speedThou: number) {
+  return (speedThou / 1000)
+    .toFixed(3)
+    .replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+    .replace(/\.?0*$/, '');
+}
+
+export function parseSpeedThou(speedStr: string) {
+  return parseFloat(speedStr.replaceAll(/,/g, '')) * 1000;
+}
+
 export interface FactoryRecipeNodeData extends FactoryBaseNodeData {
   recipeKey?: string;
   /**
@@ -64,8 +75,19 @@ export interface FactoryRecipeNodeData extends FactoryBaseNodeData {
 export type ResolvedFactoryRecipeNodeData = RequireSome<FactoryRecipeNodeData, 'clockSpeedThou'>;
 
 export function resolveRecipeNodeData(data: FactoryRecipeNodeData | Record<string, unknown> = {}) {
-  data.clockSpeedThou = 100_00_000;
+  data.clockSpeedThou ??= 100_00_000;
   return data as ResolvedFactoryRecipeNodeData;
+}
+
+export function clockSpeedThouToPercentString(clockSpeedThou: number) {
+  return (clockSpeedThou / 100_000)
+    .toFixed(3)
+    .replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+    .replace(/\.?0*$/, '');
+}
+
+export function parseClockSpeedThouFromPercentString(clockSpeedStr: string) {
+  return parseFloat(clockSpeedStr.replaceAll(/,/g, '')) * 1_00_000;
 }
 
 // export const LOGISTIC_DIR = ['left', 'right', 'center'] as const;

@@ -3,12 +3,12 @@ import { Node, NodeProps } from '@xyflow/react';
 import { useAtom } from 'jotai';
 import { ArrowRight } from 'lucide-react';
 import { computeFactoryRecipeNode } from '../../engines/compute';
-import { FactoryRecipeNodeData } from '../../engines/data';
+import { clockSpeedThouToPercentString, FactoryRecipeNodeData } from '../../engines/data';
 import { additionNodePropMapAtom, docsMappedAtom, edgesMapAtom, nodesMapAtom } from '../../lib/store';
 import NumberInput from '../form/NumberInput';
 import RecipeComboBox from '../form/RecipeComboBox';
-import { FactoryNodeWrapper } from './BaseNode';
 import { RotationAndColorFields } from '../form/RotationAndColor';
+import { FactoryNodeWrapper } from './BaseNode';
 
 /* 
 Sizes of machines (W x L), Taken from satisfactory wiki.
@@ -128,13 +128,7 @@ export function RecipeNode(props: NodeProps<Node<FactoryRecipeNodeData>>) {
         })}
       </div>
 
-      <span>
-        {(clockSpeedThou / 100_000)
-          .toFixed(3)
-          .replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-          .replace(/\.?0*$/, '')}
-        %
-      </span>
+      <span>{clockSpeedThouToPercentString(clockSpeedThou)}%</span>
       <span>{machineName}</span>
     </FactoryNodeWrapper>
   );

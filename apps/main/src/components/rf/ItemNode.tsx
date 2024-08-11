@@ -1,7 +1,7 @@
 import { NodeProps, Node } from '@xyflow/react';
 import { useAtom } from 'jotai';
 import { computeFactoryItemNode } from '../../engines/compute';
-import { FactoryItemNodeData } from '../../engines/data';
+import { FactoryItemNodeData, speedThouToString } from '../../engines/data';
 import { additionNodePropMapAtom, docsMappedAtom, edgesMapAtom, nodesMapAtom } from '../../lib/store';
 import ItemComboBox from '../form/ItemComboBox';
 import NumberInput from '../form/NumberInput';
@@ -47,10 +47,7 @@ export function ItemNode(props: NodeProps<Node<FactoryItemNodeData>>) {
     <FactoryNodeWrapper {...props} factoryInterfaces={res.interfaces} size={defaultSize}>
       {item.iconPath && <img src={'/extracted/' + item.iconPath} alt={item.displayName} className='h-6 w-6' />}
       <p className='whitespace-pre-wrap text-center'>
-        {(speedThou / 1000)
-          .toFixed(3)
-          .replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-          .replace(/\.?0*$/, '')}
+        {speedThouToString(speedThou)}
         <span> /min</span>
       </p>
     </FactoryNodeWrapper>

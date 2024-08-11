@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Minus, Plus } from 'lucide-react';
+import { clockSpeedThouToPercentString, parseClockSpeedThouFromPercentString, parseSpeedThou, speedThouToString } from '../../engines/data';
 import { useEditorField } from '../rf/BaseNode';
 
 interface NumberInputProps {
@@ -12,32 +13,27 @@ interface NumberInputProps {
 }
 
 export default function NumberInput({ name, defaultValue, step, unit, minValue = 0, maxValue = Infinity }: NumberInputProps) {
-  const { setValue, currentValue } = useEditorField<number | undefined>(name, true);
-  const [localValue, setLocalValue] = useState<number>(() => {
-    if (currentValue === undefined) {
-      return defaultValue;
-    }
-    let powOfTen = 0;
-    if (unit === '%') {
-      powOfTen += 2;
-    }
-    if (name.endsWith('Thou')) {
-      powOfTen += 3;
-    }
-    return currentValue / Math.pow(10, powOfTen);
-  });
+  const { setValue: setGlobalValue, currentValue } = useEditorField<number | undefined>(name, true);
+  const multiplier = unit === '%' ? 100_000 : 1_000;
+  const [localValue, setLocalValue] = useState<number>(currentValue ?? defaultValue * multiplier);
 
-  useEffect(() => {
-    // Value in node are stored as thousandth
-    let powOfTen = 0; // the number will be multiplied by 10^powOfTen
-    if (unit === '%') {
-      powOfTen += 2;
-    }
-    if (name.endsWith('Thou')) {
-      powOfTen += 3;
-    }
-    setValue(isNaN(localValue) ? undefined : Math.floor(localValue * Math.pow(10, powOfTen)));
-  }, [localValue]);
+  const setValue = useCallback(
+    (valueOrUpdater: undefined | string | number | '+' | '-') => {
+      setLocalValue(p => {
+        p ??= defaultValue * multiplier;
+        let newValue: number;
+        if (valueOrUpdater === undefined) newValue = defaultValue * multiplier;
+        else if (typeof valueOrUpdater === 'number') newValue = valueOrUpdater * multiplier;
+        else if (valueOrUpdater === '+') newValue = p + step! * multiplier;
+        else if (valueOrUpdater === '-') newValue = p - step! * multiplier;
+        else newValue = unit === '%' ? parseClockSpeedThouFromPercentString(valueOrUpdater) : parseSpeedThou(valueOrUpdater);
+        newValue = Math.min(Math.max(newValue, minValue * multiplier), maxValue * multiplier);
+        setGlobalValue(newValue);
+        return newValue;
+      });
+    },
+    [unit, setLocalValue, setGlobalValue],
+  );
 
   return (
     <div className='join'>
@@ -46,10 +42,8 @@ export default function NumberInput({ name, defaultValue, step, unit, minValue =
           className='btn btn-sm btn-ghost join-item'
           onMouseDown={e => {
             e.preventDefault();
-            setLocalValue(Math.max(localValue - step, minValue));
-            const interval = setInterval(() => {
-              setLocalValue(localValue => Math.max(localValue - step, minValue));
-            }, 100);
+            setValue('-');
+            const interval = setInterval(() => setValue('-'), 100);
             const stop = () => clearInterval(interval);
             window.addEventListener('mouseup', stop);
             return stop;
@@ -63,11 +57,8 @@ export default function NumberInput({ name, defaultValue, step, unit, minValue =
         <input
           type='number'
           className='w-16'
-          value={isNaN(localValue) ? '' : localValue.toString().replace(/(?<=\.)(\d{3}).*$/, '$1')}
-          onChange={e => {
-            const parsedFloat = parseFloat(e.target.value);
-            setLocalValue(isNaN(parsedFloat) ? NaN : Math.min(Math.max(parsedFloat, minValue), maxValue));
-          }}
+          value={unit === '%' ? clockSpeedThouToPercentString(localValue) : speedThouToString(localValue)}
+          onChange={e => setValue(e.target.value)}
         />
         {unit}
       </label>
@@ -76,10 +67,8 @@ export default function NumberInput({ name, defaultValue, step, unit, minValue =
           className='btn btn-sm btn-ghost join-item'
           onMouseDown={e => {
             e.preventDefault();
-            setLocalValue(Math.min(localValue + step, maxValue));
-            const interval = setInterval(() => {
-              setLocalValue(localValue => Math.min(localValue + step, maxValue));
-            }, 100);
+            setValue('+');
+            const interval = setInterval(() => setValue('+'), 100);
             const stop = () => clearInterval(interval);
             window.addEventListener('mouseup', stop);
             return stop;
