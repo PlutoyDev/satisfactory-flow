@@ -89,12 +89,7 @@ export default function RecipeComboBox({ name = 'recipeKey' }: RecipeComboBoxPro
             </button>
           ))}
           <div className='flex justify-center gap-6 w-full'>
-            <button
-              className='btn btn-sm rounded-full'
-              disabled={recipePage === 0}
-              onClick={() => setRecipePage(0)}
-              style={{ visibility: recipePage !== 0 ? 'visible' : 'hidden' }}
-            >
+            <button className='btn btn-sm rounded-full' disabled={recipePage === 0} onClick={() => setRecipePage(0)}>
               <ChevronsLeft size={20} />
             </button>
             <button className='btn btn-sm rounded-full' disabled={recipePage === 0} onClick={() => setRecipePage(p => p - 1)}>
@@ -115,7 +110,6 @@ export default function RecipeComboBox({ name = 'recipeKey' }: RecipeComboBoxPro
               className='btn btn-sm rounded-full'
               disabled={Math.floor(filteredRecipes.length / 10) === recipePage}
               onClick={() => setRecipePage(Math.floor(filteredRecipes.length / 10))}
-              style={{ visibility: Math.floor(filteredRecipes.length / 10) !== recipePage ? 'visible' : 'hidden' }}
             >
               <ChevronsRight size={20} />
             </button>
