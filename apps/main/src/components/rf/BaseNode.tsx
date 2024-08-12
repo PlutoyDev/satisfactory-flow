@@ -59,30 +59,6 @@ export function FactoryNodeWrapper(props: FactoryNodeWrapperProps) {
           {children}
         </div>
       )}
-      {/* {factoryInterfaces.map(handleId => {
-        const { dir, form, type, index: handleIndex } = splitInterfaceId(handleId);
-        const offset = ((handleIndex + 1) / (handleDirCount[dir] + 1)) * 100;
-        const dirIndex = FACTORY_INTERFACE_DIR.indexOf(dir);
-        const rotDir = FACTORY_INTERFACE_DIR[(dirIndex + rotIdx) % 4];
-        const rAdjDir = FACTORY_INTERFACE_DIR[(dirIndex + rotIdx + 1) % 4];
-        const lAdjDir = FACTORY_INTERFACE_DIR[(dirIndex + rotIdx + 3) % 4];
-        return (
-          <Handle
-            id={handleId}
-            key={handleId}
-            type={type === 'in' ? 'target' : 'source'}
-            position={rotDir as Position}
-            className='size-2'
-            style={{
-              [rotDir]: '-0.25rem', // compensate for p-1
-              [rAdjDir]: `${offset}%`,
-              [lAdjDir]: `${100 - offset}%`,
-              backgroundColor: type === 'in' ? '#F6E05E' : '#68D391', // Yellow for input, green for output
-              borderRadius: form === 'fluid' ? undefined : '0', // Circle for fluid, square for solid
-            }}
-          />
-        );
-      })} */}
       {factoryInterfaces &&
         Object.entries(factoryInterfaces).flatMap(([dir, handles]) =>
           handles.map(({ type, form }, index, { length }) => {
