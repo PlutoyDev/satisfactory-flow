@@ -1,6 +1,6 @@
-import { createContext, ReactNode, useContext, useEffect, useMemo, useRef } from 'react';
+import { createContext, ReactNode, useContext, useEffect, useRef } from 'react';
 import { Handle, NodeProps, Position, Node, useUpdateNodeInternals, Edge } from '@xyflow/react';
-import { FACTORY_INTERFACE_DIR, FactoryInterfaceDir, splitInterfaceId } from '../../engines/compute';
+import { ComputeResult, FACTORY_INTERFACE_DIR, FactoryInterfaceDir, joinIntoHandleId } from '../../engines/compute';
 import { FactoryBaseNodeData } from '../../engines/data';
 
 export const FACTORY_NODE_TYPES = ['item', 'recipe', 'logistic'] as const;
@@ -22,7 +22,7 @@ export const FACTORY_NODE_DEFAULT_COLORS = {
 
 interface FactoryNodeWrapperProps extends NodeProps<Node<FactoryBaseNodeData>> {
   children?: ReactNode;
-  factoryInterfaces: string[]; // Refer to engine/compute.ts for more info
+  factoryInterfaces?: ComputeResult['interfaces']; // Refer to engine/compute.ts for more info
   size: number | [number, number];
 }
 
@@ -31,18 +31,11 @@ export function FactoryNodeWrapper(props: FactoryNodeWrapperProps) {
   const { rotIdx = 0, bgColor = FACTORY_NODE_DEFAULT_COLORS[type as FactoryNodeType] } = data;
   const childrenRef = useRef<HTMLDivElement>(null);
   const updateNodeInternals = useUpdateNodeInternals();
-  const handleDirCount = useMemo(() => {
-    const handleDirCount: Record<FactoryInterfaceDir, number> = { left: 0, top: 0, right: 0, bottom: 0 };
-    for (const handleId of factoryInterfaces) {
-      handleDirCount[splitInterfaceId(handleId).dir]++;
-    }
-    return handleDirCount;
-  }, [factoryInterfaces, id]);
 
   useEffect(() => {
     // Update the node internals when the handle changes
     updateNodeInternals(id);
-  }, [id, updateNodeInternals, rotIdx, size, factoryInterfaces.join(',')]);
+  }, [id, updateNodeInternals, rotIdx, size, factoryInterfaces]);
 
   const [width, height] = typeof size === 'number' ? [size, size] : size;
   const swapWidthHeight = typeof size !== 'number' && rotIdx % 2 === 1;
@@ -66,7 +59,7 @@ export function FactoryNodeWrapper(props: FactoryNodeWrapperProps) {
           {children}
         </div>
       )}
-      {factoryInterfaces.map(handleId => {
+      {/* {factoryInterfaces.map(handleId => {
         const { dir, form, type, index: handleIndex } = splitInterfaceId(handleId);
         const offset = ((handleIndex + 1) / (handleDirCount[dir] + 1)) * 100;
         const dirIndex = FACTORY_INTERFACE_DIR.indexOf(dir);
@@ -89,7 +82,33 @@ export function FactoryNodeWrapper(props: FactoryNodeWrapperProps) {
             }}
           />
         );
-      })}
+      })} */}
+      {factoryInterfaces &&
+        Object.entries(factoryInterfaces).flatMap(([dir, handles]) =>
+          handles.map(({ type, form }, index, { length }) => {
+            const offset = ((index + 1) / (length + 1)) * 100;
+            const dirIndex = FACTORY_INTERFACE_DIR.indexOf(dir as FactoryInterfaceDir);
+            const rotDir = FACTORY_INTERFACE_DIR[(dirIndex + rotIdx) % 4];
+            const rAdjDir = FACTORY_INTERFACE_DIR[(dirIndex + rotIdx + 1) % 4];
+            const lAdjDir = FACTORY_INTERFACE_DIR[(dirIndex + rotIdx + 3) % 4];
+            return (
+              <Handle
+                id={joinIntoHandleId({ dir: dir as FactoryInterfaceDir, form, type, index: index as 0 | 1 | 2 | 3 })}
+                key={joinIntoHandleId({ dir: dir as FactoryInterfaceDir, form, type, index: index as 0 | 1 | 2 | 3 })}
+                type={type === 'in' ? 'target' : 'source'}
+                position={rotDir as Position}
+                className='size-2'
+                style={{
+                  [rotDir]: '-0.25rem', // compensate for p-1
+                  [rAdjDir]: `${offset}%`,
+                  [lAdjDir]: `${100 - offset}%`,
+                  backgroundColor: type === 'in' ? '#F6E05E' : '#68D391', // Yellow for input, green for output
+                  borderRadius: form === 'fluid' ? undefined : '0', // Circle for fluid, square for solid
+                }}
+              />
+            );
+          }),
+        )}
     </div>
   );
 }

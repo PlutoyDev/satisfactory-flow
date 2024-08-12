@@ -1,9 +1,9 @@
 import { DragEvent } from 'react';
-import { Node, Edge, Connection, OnSelectionChangeParams, ReactFlowInstance } from '@xyflow/react';
+import { Edge, Connection, OnSelectionChangeParams, ReactFlowInstance } from '@xyflow/react';
 import { atom } from 'jotai';
 import { FactoryNodeType } from '../components/rf/BaseNode';
-import { splitInterfaceId } from '../engines/compute';
-import { store, generateId, edgesAtom, edgesMapAtom, nodesMapAtom, nodesAtom, additionNodePropMapAtom } from './store';
+import { splitHandleId } from '../engines/compute';
+import { store, generateId, edgesAtom, nodesAtom, additionNodePropMapAtom } from './store';
 
 export const connectionErrorReasonAtom = atom<string | null>(null);
 export const isDraggingNodeAtom = atom(false);
@@ -19,8 +19,8 @@ export function isValidConnection(params: Connection | Edge): boolean {
     store.set(connectionErrorReasonAtom, 'Invalid Node (please submit a bug report)');
     return false;
   }
-  const sourceIntData = splitInterfaceId(sourceHandle);
-  const targetIntData = splitInterfaceId(targetHandle);
+  const sourceIntData = splitHandleId(sourceHandle);
+  const targetIntData = splitHandleId(targetHandle);
   if (sourceIntData.type === targetIntData.type) {
     store.set(connectionErrorReasonAtom, `Cannot connect ${sourceIntData.type}put to ${targetIntData.type}put`);
     return false;

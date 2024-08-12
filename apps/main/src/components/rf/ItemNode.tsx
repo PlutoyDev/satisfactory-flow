@@ -30,14 +30,14 @@ export function ItemNode(props: NodeProps<Node<FactoryItemNodeData>>) {
 
   if (!itemKey) {
     return (
-      <FactoryNodeWrapper {...props} factoryInterfaces={[]} size={defaultSize}>
+      <FactoryNodeWrapper {...props} size={defaultSize}>
         <p>Unset</p>
       </FactoryNodeWrapper>
     );
   }
   if (!item || !res) {
     return (
-      <FactoryNodeWrapper {...props} factoryInterfaces={[]} size={defaultSize}>
+      <FactoryNodeWrapper {...props} size={defaultSize}>
         <p>Item not found</p>
       </FactoryNodeWrapper>
     );

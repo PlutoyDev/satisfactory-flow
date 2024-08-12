@@ -3,9 +3,9 @@ import { useAtom } from 'jotai';
 import { computeFactoryLogisticsNode } from '../../engines/compute';
 import { FactoryLogisticNodeData, LogisticType } from '../../engines/data';
 import { docsMappedAtom, additionNodePropMapAtom, nodesMapAtom, edgesMapAtom } from '../../lib/store';
+import { OutputFilterRule } from '../form/OutputFilterRule';
 import { RotationAndColorFields } from '../form/RotationAndColor';
 import { FactoryNodeWrapper, useEditorField } from './BaseNode';
-import { OutputFilterRule } from '../form/OutputFilterRule';
 
 const defaultSize = 36;
 
@@ -25,8 +25,8 @@ export function LogisticNode(props: NodeProps<Node<FactoryLogisticNodeData>>) {
 
   if (!res) {
     return (
-      <FactoryNodeWrapper {...props} factoryInterfaces={[]} size={defaultSize}>
-        <p>Item not found</p>
+      <FactoryNodeWrapper {...props} size={defaultSize}>
+        <p className='text-xs'>Unset</p>
       </FactoryNodeWrapper>
     );
   }

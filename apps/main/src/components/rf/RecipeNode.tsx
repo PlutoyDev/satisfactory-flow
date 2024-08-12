@@ -64,7 +64,7 @@ export function RecipeNode(props: NodeProps<Node<FactoryRecipeNodeData>>) {
 
   if (!recipeKey) {
     return (
-      <FactoryNodeWrapper {...props} factoryInterfaces={[]} size={defaultSize}>
+      <FactoryNodeWrapper {...props} size={defaultSize}>
         <p>Unset</p>
       </FactoryNodeWrapper>
     );
@@ -72,7 +72,7 @@ export function RecipeNode(props: NodeProps<Node<FactoryRecipeNodeData>>) {
 
   if (!recipe || !res) {
     return (
-      <FactoryNodeWrapper {...props} factoryInterfaces={[]} size={defaultSize}>
+      <FactoryNodeWrapper {...props} size={defaultSize}>
         <p>Recipe not found</p>
       </FactoryNodeWrapper>
     );

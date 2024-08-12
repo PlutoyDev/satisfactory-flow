@@ -55,7 +55,7 @@ export type FactoryInterfaceType = (typeof FACTORY_INTERFACE_TYPE)[number];
 export const FACTORY_INTERFACE_INDEX = [0, 1, 2, 3] as const;
 export type FactoryInterfaceIndex = (typeof FACTORY_INTERFACE_INDEX)[number];
 
-export function splitInterfaceId(id: string, validate = false) {
+export function splitHandleId(id: string, validate = false) {
   const parts = id.split('-');
   if (validate && parts.length !== 4) {
     throw new Error('Invalid Interface ID');
@@ -82,11 +82,13 @@ export function splitInterfaceId(id: string, validate = false) {
   return { dir, form, type, index };
 }
 
-// Compute for machines
-export interface ItemSpeed {
-  itemKey: string;
-  /** Items per minute */
-  speedThou: number;
+export function joinIntoHandleId(a: {
+  dir: FactoryInterfaceDir;
+  form: FactoryItemForm;
+  type: FactoryInterfaceType;
+  index: FactoryInterfaceIndex;
+}) {
+  return `${a.dir}-${a.form}-${a.type}-${a.index}`;
 }
 
 export interface ComputeArgs {
@@ -100,9 +102,35 @@ export interface ComputeArgs {
   ignoreHandleIds?: string[];
 }
 
+/*
+  Interfaces are an object
+  left: [
+    {type: 'in', form: 'solid', itemSpeed?: Record<itemKey | 'any', speedThou>}, 
+    {type: 'in', form: 'solid', itemSpeed?: Record<itemKey | 'any', speedThou>}, 
+    {type: 'in', form: 'fluid', itemSpeed?: Record<itemKey | 'any', speedThou>}, 
+    {type: 'in', form: 'fluid', itemSpeed?: Record<itemKey | 'any', speedThou>},
+  ]
+  right: [
+    {type: 'out', form: 'solid', itemSpeed?: Record<itemKey | 'any', speedThou>}, 
+    {type: 'out', form: 'fluid', itemSpeed?: Record<itemKey | 'any', speedThou>},
+  ]
+*/
+
 export interface ComputeResult<BasedOnData extends Record<string, unknown> = Record<string, string>> {
-  interfaces: string[];
-  itemsSpeed: Record<string, ItemSpeed[]>;
+  // Interfaces that this node has
+  interfaces: Partial<
+    Record<
+      FactoryInterfaceDir,
+      {
+        type: FactoryInterfaceType;
+        form: FactoryItemForm;
+      }[]
+    >
+  >;
+  // HandleId to ItemKey to expect speedThou
+  expectItemsSpeed: Record<string, Record<string, number>>;
+  // HandleId to ItemKey to actual speedThou
+  actualItemsSpeed: Record<string, Record<string, number>>;
   // Data calculated based on
   basedOn: BasedOnData;
   // Use to specify that this result might be incomplete
@@ -137,18 +165,20 @@ export function computeFactoryItemNode(args: ComputeArgs): ComputeResult | null 
   }
 
   const itemForm = item.form === 'solid' ? 'solid' : 'fluid';
-  const ret: ComputeResult = { interfaces: [], itemsSpeed: {}, basedOn: nodeData };
+  const ret: ComputeResult = { interfaces: {}, expectItemsSpeed: {}, actualItemsSpeed: {}, basedOn: nodeData };
 
   if (interfaceKind === 'both' || interfaceKind === 'in') {
     const intId = `left-${itemForm}-in-0`;
-    ret.interfaces.push(intId);
-    ret.itemsSpeed[intId] = [{ itemKey, speedThou: -speedThou }];
+    ret.interfaces.left = [{ type: 'in', form: itemForm }];
+    ret.expectItemsSpeed[intId] = { [itemKey]: speedThou };
+    // TODO: Actual speed will depends on the node connected at the output if interfaceKind is both
   }
 
   if (interfaceKind === 'both' || interfaceKind === 'out') {
     const intId = `right-${itemForm}-out-0`;
-    ret.interfaces.push(intId);
-    ret.itemsSpeed[intId] = [{ itemKey, speedThou: speedThou }];
+    ret.interfaces.right = [{ type: 'out', form: itemForm }];
+    ret.expectItemsSpeed[intId] = { [itemKey]: speedThou };
+    // TODO: Actual speed will depends on the node connected at the input if interfaceKind is both
   }
 
   dispatchAdditionNodePropMap({ type: 'compute', nodeId, result: ret });
@@ -182,7 +212,7 @@ export function computeFactoryRecipeNode(args: ComputeArgs): ComputeResult | nul
     return null;
   }
 
-  const ret: ComputeResult = { interfaces: [], itemsSpeed: {}, basedOn: nodeData };
+  const ret: ComputeResult = { interfaces: {}, expectItemsSpeed: {}, actualItemsSpeed: {}, basedOn: nodeData };
   const { ingredients, products, manufactoringDuration } = recipe;
 
   const durationThou = manufactoringDuration / (clockSpeedThou / 100_00); // Duration in thousandths of a second
@@ -201,9 +231,16 @@ export function computeFactoryRecipeNode(args: ComputeArgs): ComputeResult | nul
     const itemForm = item.form === 'solid' ? 'solid' : 'fluid';
     const type = isIngredient ? 'in' : 'out';
     const intTypeIdx = IntTypeCount[type]++;
+    const dir = isIngredient ? 'left' : 'right';
     const intId = `${isIngredient ? 'left' : 'right'}-${itemForm}-${type}-${intTypeIdx}`;
-    ret.interfaces.push(intId);
-    ret.itemsSpeed[intId] = [{ itemKey, speedThou: ((isIngredient ? -amount : amount) / durationThou) * 60 }];
+    ret.interfaces[dir] ??= [];
+    ret.interfaces[dir].push({ type, form: itemForm });
+    const expectSpeedThou = ((isIngredient ? -amount : amount) / durationThou) * 60;
+    ret.expectItemsSpeed[intId] = { [itemKey]: expectSpeedThou };
+    // TODO: Actual speed will depends on the nodes connected at the input and output, which will determine its efficiency
+    // If output is demanding less than the expected, the input will be throttled
+    // If input is providing less than the expected, the output will be throttled
+    // For both input and output, the actual speed will be the minimum of the two, and the other will be adjusted accordingly
   }
 
   dispatchAdditionNodePropMap({ type: 'compute', nodeId, result: ret });
@@ -255,13 +292,12 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
     }
   }
 
-  const ret: ComputeResult = { interfaces: [], itemsSpeed: {}, basedOn: nodeData };
+  const ret: ComputeResult = { interfaces: {}, expectItemsSpeed: {}, actualItemsSpeed: {}, basedOn: nodeData };
   if (ignoreHandleIds && ignoreHandleIds.length > 0) {
     ret.ignoreHandleIds = ignoreHandleIds;
   }
 
   const remainingItemsSpeed: Map<string, number> = new Map();
-  const handleItemsSpeed: Map<string, ItemSpeed[]> = new Map();
   const handleIdToEdgeIdMap = nodeAdditionalProperty?.edges;
   // Connected in and outs
   const inHandleIds: string[] = [];
@@ -284,7 +320,8 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
 
     // Find the connected edge and the other node
     const handleId = `${dir}-${itemForm}-${intType}-0`;
-    ret.interfaces.push(handleId);
+    ret.interfaces[dir] = [{ type: intType, form: itemForm }];
+    ret.expectItemsSpeed[handleId] = intType === 'in' ? { any: -Infinity } : { any: Infinity }; // Expects to demand everything or provide everything
 
     const edgeId = handleIdToEdgeIdMap?.get(handleId);
     if (edgeId && !ignoreHandleIds?.includes(handleId)) {
@@ -312,15 +349,15 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
         console.error(`Unable to compute node ${otherNodeId}`);
         continue;
       }
-      const nodeItemSpeed = nodeComputeResult.itemsSpeed[otherHandleId];
+      const nodeItemSpeed = nodeComputeResult.actualItemsSpeed[otherHandleId] ?? nodeComputeResult.expectItemsSpeed[otherHandleId];
       if (!nodeItemSpeed) {
         console.warn(`Item speed not found for handleId ${otherHandleId} at node ${otherNodeId}`);
         continue;
       }
-      handleItemsSpeed.set(handleId, nodeItemSpeed);
-      for (const { itemKey, speedThou } of nodeItemSpeed) {
-        ret.itemsSpeed[handleId] ??= [];
-        ret.itemsSpeed[handleId].push({ itemKey, speedThou: -speedThou });
+      for (const itemKey in nodeItemSpeed) {
+        const speedThou = nodeItemSpeed[itemKey];
+        ret.actualItemsSpeed[handleId] ??= {};
+        ret.actualItemsSpeed[handleId][itemKey] = speedThou;
 
         const newValue = (remainingItemsSpeed.get(itemKey) ?? 0) + speedThou;
         if (newValue === 0) {
@@ -396,13 +433,8 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
     // TODO: Handle Overflow
     const itemSpeed = Math.floor(speedThou / handleIds.length);
     for (const handleId of handleIds) {
-      ret.itemsSpeed[handleId] ??= [];
-      const existingSpeed = ret.itemsSpeed[handleId].find(x => x.itemKey === itemKey); //TODO: Switch to map or record
-      if (existingSpeed) {
-        existingSpeed.speedThou += itemSpeed;
-      } else {
-        ret.itemsSpeed[handleId].push({ itemKey, speedThou: itemSpeed });
-      }
+      ret.actualItemsSpeed[handleId] ??= {};
+      ret.actualItemsSpeed[handleId][itemKey] += itemSpeed;
     }
   }
 
