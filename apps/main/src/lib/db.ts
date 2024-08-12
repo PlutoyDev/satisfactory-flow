@@ -48,28 +48,35 @@ interface MainDbSchema extends DBSchema {
   };
 }
 
-export const mainDb = await openDB<MainDbSchema>('main', 1, {
-  upgrade(db, oldVersion) {
-    switch (oldVersion) {
-      case 0:
-        db.createObjectStore('flows', { keyPath: 'id' });
-        db.createObjectStore('settings', { keyPath: 'key' });
-        break;
-      default:
-        console.error('Unknown version:', oldVersion);
-    }
-  },
-});
+export function openMainDb() {
+  return openDB<MainDbSchema>('main', 1, {
+    upgrade(db, oldVersion) {
+      switch (oldVersion) {
+        case 0:
+          db.createObjectStore('flows', { keyPath: 'id' });
+          db.createObjectStore('settings', { keyPath: 'key' });
+          break;
+        default:
+          console.error('Unknown version:', oldVersion);
+      }
+    },
+  });
+}
 
-export function getFlows() {
+export type MainDb = Awaited<ReturnType<typeof openMainDb>>;
+
+export async function getFlows(mainDb?: MainDb) {
+  mainDb ??= await openMainDb();
   return mainDb.getAll('flows');
 }
 
-export function setFlow(flow: FlowData) {
+export async function setFlow(flow: FlowData, mainDb?: MainDb) {
+  mainDb ??= await openMainDb();
   return mainDb.put('flows', flow);
 }
 
-export async function getSettings() {
+export async function getSettings(mainDb?: MainDb) {
+  mainDb ??= await openMainDb();
   const settingsKv = await mainDb.getAll('settings');
   return pipe(
     settingsKv,
@@ -78,7 +85,8 @@ export async function getSettings() {
   );
 }
 
-export async function setSetting<K extends keyof Settings>(key: K, value: Settings[K]) {
+export async function setSetting<K extends keyof Settings>(key: K, value: Settings[K], mainDb?: MainDb) {
+  mainDb = mainDb ?? (await openMainDb());
   return mainDb.put('settings', { key, value });
 }
 
