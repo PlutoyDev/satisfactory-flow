@@ -43,7 +43,7 @@ const LogisticMachineName = {
 } as const satisfies Record<LogisticType, string>;
 
 export function LogisticNodeEditor() {
-  const { currentValue: logisticType, setValue: setLogisticType } = useEditorField<LogisticType>('type');
+  const { currentValue: logisticType, setValue: setLogisticType } = useEditorField<LogisticType | undefined>('type');
   return (
     <>
       <div className='flex w-full items-center justify-between'>
@@ -53,9 +53,14 @@ export function LogisticNodeEditor() {
           className='select select-sm select-ghost'
           value={logisticType}
           onChange={e => {
-            setLogisticType(e.target.value as LogisticType);
+            if (e.target.value === 'unset') {
+              setLogisticType(undefined);
+            } else {
+              setLogisticType(e.target.value as LogisticType);
+            }
           }}
         >
+          <option value='unset'>Unset</option>
           {Object.entries(LogisticMachineName).map(([key, value]) => (
             <option key={key} value={key}>
               {value}
