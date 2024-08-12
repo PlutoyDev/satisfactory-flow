@@ -2,7 +2,7 @@ import { Fragment, useMemo, useRef, useState } from 'react';
 import type { Recipe } from 'docs-parser';
 import Fuse from 'fuse.js';
 import { atom, useAtom } from 'jotai';
-import { ArrowRight, ChevronUp } from 'lucide-react';
+import { ArrowRight, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ChevronUp } from 'lucide-react';
 import { DocsMapped, docsMappedAtom } from '../../lib/store';
 import { useEditorField } from '../rf/BaseNode';
 
@@ -45,6 +45,7 @@ export default function RecipeComboBox({ name = 'recipeKey' }: RecipeComboBoxPro
     () => (search ? recipeFuse.search(search).map(({ item }) => item) : Array.from(docsMapped.recipes.values())),
     [recipeFuse, search],
   );
+  const [recipePage, setRecipePage] = useState(0);
 
   const recipe = currentValue ? docsMapped.recipes.get(currentValue) : undefined;
 
@@ -68,14 +69,17 @@ export default function RecipeComboBox({ name = 'recipeKey' }: RecipeComboBoxPro
           placeholder='Search...'
           className='input input-sm input-bordered mb-1 w-full'
           value={search}
-          onChange={e => setSearch(e.target.value)}
+          onChange={e => {
+            setRecipePage(0);
+            setSearch(e.target.value);
+          }}
         />
-        <ul className='mt-1 h-48 w-full flex-nowrap overflow-y-scroll'>
-          {filteredRecipes.map(recipe => (
+        <ul className='mt-1 w-full flex-nowrap'>
+          {filteredRecipes.slice(recipePage * 10, recipePage * 10 + 10).map(recipe => (
             <button
               key={recipe.key}
               type='button'
-              className='btn btn-block flex-nowrap justify-between text-start'
+              className='btn btn-sm btn-block flex-nowrap justify-between text-start'
               onClick={() => {
                 setValue(recipe.key);
                 dropdownRef.current?.removeAttribute('open');
@@ -84,6 +88,38 @@ export default function RecipeComboBox({ name = 'recipeKey' }: RecipeComboBoxPro
               <RecipeDisplay recipe={recipe} docsMapped={docsMapped} />
             </button>
           ))}
+          <div className='flex justify-center gap-6 w-full'>
+            <button
+              className='btn btn-sm rounded-full'
+              disabled={recipePage === 0}
+              onClick={() => setRecipePage(0)}
+              style={{ visibility: recipePage !== 0 ? 'visible' : 'hidden' }}
+            >
+              <ChevronsLeft size={20} />
+            </button>
+            <button className='btn btn-sm rounded-full' disabled={recipePage === 0} onClick={() => setRecipePage(p => p - 1)}>
+              <ChevronLeft size={20} />
+            </button>
+
+            <p>
+              {recipePage + 1} / {Math.ceil(filteredRecipes.length / 10)}
+            </p>
+            <button
+              className='btn btn-sm rounded-full'
+              disabled={Math.floor(filteredRecipes.length / 10) === recipePage}
+              onClick={() => setRecipePage(p => p + 1)}
+            >
+              <ChevronRight size={20} />
+            </button>
+            <button
+              className='btn btn-sm rounded-full'
+              disabled={Math.floor(filteredRecipes.length / 10) === recipePage}
+              onClick={() => setRecipePage(Math.floor(filteredRecipes.length / 10))}
+              style={{ visibility: Math.floor(filteredRecipes.length / 10) !== recipePage ? 'visible' : 'hidden' }}
+            >
+              <ChevronsRight size={20} />
+            </button>
+          </div>
         </ul>
       </div>
     </details>
