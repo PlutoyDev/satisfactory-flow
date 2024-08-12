@@ -32,7 +32,7 @@ function FlowPage() {
 
   return (
     <div>
-      <div className='bg-base-300 navbar w-full'>
+      <div className='navbar w-full'>
         <div className='navbar-start'>
           <a href='/' className='btn btn-ghost' onClick={e => (e.preventDefault(), setSelectedFlow(null))}>
             <Home size={32} className='stroke-2' />
@@ -89,7 +89,7 @@ function FlowPage() {
             deleteKeyCode={['Delete', 'Backspace']}
             selectionKeyCode={['Shift', 'Control']}
           >
-            <Background gap={36} />
+            <Background gap={36} bgColor='#202030' />
 
             {[isDraggingNode].some(b => b) && (
               <div className='fixed bottom-0 left-0 right-0 top-16 bg-gray-400 bg-opacity-10'>

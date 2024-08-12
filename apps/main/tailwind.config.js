@@ -12,9 +12,9 @@ export default {
       {
         black: {
           // Actually blue-ish black :D
-          'base-100': '#000010',
+          'base-100': '#202030',
           'base-200': '#101020',
-          'base-300': '#202030',
+          'base-300': '#000000',
           'base-content': '#cdd6f4',
           'accent': '#fab387',
           'accent-content': '#11111b',
