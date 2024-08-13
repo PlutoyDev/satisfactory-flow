@@ -4,7 +4,7 @@ import { Atom, atom, getDefaultStore, PrimitiveAtom, SetStateAction, WritableAto
 import { atomWithLocation } from 'jotai-location';
 import { atomWithReducer } from 'jotai/utils';
 import { nanoid } from 'nanoid';
-import type { ComputeResult } from '../engines/compute';
+import { computeNode, type ComputeResult } from '../engines/compute';
 import examples from '../examples';
 import { delEdges, delNodes, FlowData, getEdges, getFlows, getNodes, openFlowDb, setEdges, setFlow, setNodes } from './db';
 
@@ -74,28 +74,30 @@ export const edgesMapAtom = atom(
   },
 );
 
-const _isSavePendingAtom = atom(false);
-const _debouncedSaveIds = new Set<string>();
-let _debouncedSaveTimeout: ReturnType<typeof setTimeout> | null = null;
+const _isDebouncePendingAtom = atom(false);
+const _debouncedIds = new Set<string>();
+let _debouncedTimeout: ReturnType<typeof setTimeout> | null = null;
 
-async function saveChanges(force?: true) {
+async function deboucedAction(force?: true) {
   const selFlow = store.get(_selectedFlowAtom);
   if (selFlow?.source !== 'db') {
-    _debouncedSaveIds.clear();
+    _debouncedIds.clear();
     return;
   }
-  if (_debouncedSaveTimeout && !force) {
+  if (_debouncedTimeout && !force) {
     return;
   }
-  store.set(_isSavePendingAtom, true);
-  _debouncedSaveTimeout = setTimeout(async () => {
+  store.set(_isDebouncePendingAtom, true);
+  _debouncedTimeout = setTimeout(async () => {
     try {
-      const ids = Array.from(_debouncedSaveIds);
+      const ids = Array.from(_debouncedIds);
       console.log('Saving changes:', ids);
-      _debouncedSaveIds.clear();
+      _debouncedIds.clear();
       const db = await openFlowDb(selFlow!.flowId);
       const nodes = store.get(nodesMapAtom);
       const edges = store.get(edgesMapAtom);
+      const anpm = store.get(additionNodePropMapAtom);
+      const docsMapped = await store.get(docsMappedAtom);
 
       const updatedNodes: Node[] = [];
       const updatedEdges: Edge[] = [];
@@ -116,8 +118,23 @@ async function saveChanges(force?: true) {
         }
       }
 
-      console.log('Saving:', { updatedNodes, deletedNodes, updatedEdges, deletedEdges });
+      // Perform computation
+      console.log('Computing nodes:', updatedNodes);
+      for (const node of updatedNodes) {
+        const result = computeNode({
+          nodeMap: nodes,
+          edgeMap: edges,
+          additionalNodePropMap: anpm,
+          nodeId: node.id,
+          docsMapped,
+        });
 
+        if (result) {
+          store.set(additionNodePropMapAtom, { nodeId: node.id, type: 'compute', result });
+        }
+      }
+
+      // Save changes
       await Promise.all([
         setNodes(db, updatedNodes),
         delNodes(db, deletedNodes),
@@ -125,8 +142,8 @@ async function saveChanges(force?: true) {
         delEdges(db, deletedEdges),
       ]).finally(() => db.close());
 
-      store.set(_isSavePendingAtom, false);
-      _debouncedSaveTimeout = null;
+      store.set(_isDebouncePendingAtom, false);
+      _debouncedTimeout = null;
     } catch (error) {
       console.error('Error saving changes:', error);
     }
@@ -184,7 +201,7 @@ export const nodesAtom = atom(
     // Reimplement of applyNodeChanges to work with Map
     const nodes = get(_nodesMapAtom);
     for (const change of changes) {
-      _debouncedSaveIds.add('node-' + ('id' in change ? change.id : change.item.id));
+      _debouncedIds.add('node-' + ('id' in change ? change.id : change.item.id));
       switch (change.type) {
         case 'add':
           nodes.set(change.item.id, change.item);
@@ -228,7 +245,7 @@ export const nodesAtom = atom(
       }
     }
     set(nodesMapAtom, nodes);
-    saveChanges();
+    deboucedAction();
   },
 );
 
@@ -238,7 +255,7 @@ export const edgesAtom = atom(
     // Reimplement of applyEdgeChanges to work with Map
     const edges = get(edgesMapAtom);
     for (const change of changes) {
-      _debouncedSaveIds.add('edge-' + ('id' in change ? change.id : change.item.id));
+      _debouncedIds.add('edge-' + ('id' in change ? change.id : change.item.id));
       switch (change.type) {
         case 'add':
           edges.set(change.item.id, change.item);
@@ -292,7 +309,7 @@ export const edgesAtom = atom(
       }
     }
     set(edgesMapAtom, edges);
-    saveChanges();
+    deboucedAction();
   },
 );
 
@@ -304,10 +321,10 @@ export const selectedFlowAtom = atom(
     set(isSwitchingFlow, true);
     const prev = get(_selectedFlowAtom);
     if (prev) {
-      if (_debouncedSaveTimeout) {
-        clearTimeout(_debouncedSaveTimeout!);
-        _debouncedSaveTimeout = null;
-        await saveChanges(true);
+      if (_debouncedTimeout) {
+        clearTimeout(_debouncedTimeout!);
+        _debouncedTimeout = null;
+        await deboucedAction(true);
       }
     }
     set(_selectedFlowAtom, update);
@@ -418,7 +435,7 @@ export type UsedAtom<A> = UnawaitUsedAtom<A> extends [infer V, infer F] ? [Await
 
 export function useAtomOutsideReact<A extends Atom<unknown>>(atom: A): UnawaitUsedAtom<A> {
   // @ts-ignore
-  return [store.get(atom) as any, (...args: any[]) => store.set(atom, args) as any] as UnawaitUsedAtom<A>;
+  return [store.get(atom) as any, (...args: any[]) => store.set(atom, ...args) as any] as UnawaitUsedAtom<A>;
 }
 
 export async function createFlow(name: string) {

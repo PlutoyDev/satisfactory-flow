@@ -1,8 +1,7 @@
 import { NodeProps, Node } from '@xyflow/react';
 import { useAtom } from 'jotai';
-import { computeFactoryLogisticsNode } from '../../engines/compute';
 import { FactoryLogisticNodeData, LogisticType } from '../../engines/data';
-import { docsMappedAtom, additionNodePropMapAtom, nodesMapAtom, edgesMapAtom } from '../../lib/store';
+import { additionNodePropMapAtom } from '../../lib/store';
 import { OutputFilterRule } from '../form/OutputFilterRule';
 import { RotationAndColorFields } from '../form/RotationAndColor';
 import { FactoryNodeWrapper, useEditorField } from './BaseNode';
@@ -10,18 +9,16 @@ import { FactoryNodeWrapper, useEditorField } from './BaseNode';
 const defaultSize = 36;
 
 export function LogisticNode(props: NodeProps<Node<FactoryLogisticNodeData>>) {
-  const [docsMapped] = useAtom(docsMappedAtom);
   const usedAPM = useAtom(additionNodePropMapAtom);
-  const [nodeMap] = useAtom(nodesMapAtom);
-  const [edgeMap] = useAtom(edgesMapAtom);
 
-  const res = computeFactoryLogisticsNode({
-    nodeId: props.id,
-    docsMapped,
-    nodeMap,
-    edgeMap,
-    usedAdditionalNodePropMapAtom: usedAPM,
-  });
+  const res = usedAPM[0].get(props.id)?.computeResult;
+  // const res = computeFactoryLogisticsNode({
+  //   nodeId: props.id,
+  //   docsMapped,
+  //   nodeMap,
+  //   edgeMap,
+  //   usedAdditionalNodePropMapAtom: usedAPM,
+  // });
 
   if (!res) {
     return (

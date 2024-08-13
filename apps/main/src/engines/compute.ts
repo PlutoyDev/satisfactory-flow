@@ -1,6 +1,6 @@
 import { Edge, Node } from '@xyflow/react';
 import { isDeepEqual, isShallowEqual } from 'remeda';
-import { type additionNodePropMapAtom, DocsMapped, UsedAtom } from '../lib/store';
+import { AdditionalNodeProperties, DocsMapped } from '../lib/store';
 import {
   FactoryItemNodeData,
   FactoryLogisticNodeData,
@@ -96,7 +96,7 @@ export interface ComputeArgs {
   docsMapped: DocsMapped;
   nodeMap: Map<string, Node>;
   edgeMap: Map<string, Edge>;
-  usedAdditionalNodePropMapAtom: UsedAtom<typeof additionNodePropMapAtom>;
+  additionalNodePropMap: Map<string, AdditionalNodeProperties>;
   startedAtNodeId?: string;
   // Do not ask the nodes connected here for their compute result
   ignoreHandleIds?: string[];
@@ -138,14 +138,8 @@ export interface ComputeResult<BasedOnData extends Record<string, unknown> = Rec
 }
 
 export function computeFactoryItemNode(args: ComputeArgs): ComputeResult | null {
-  const {
-    nodeId,
-    docsMapped,
-    nodeMap,
-    usedAdditionalNodePropMapAtom: [additionNodePropMapAtom, dispatchAdditionNodePropMap],
-    ignoreHandleIds,
-  } = args;
-  const prevResult = additionNodePropMapAtom.get(nodeId)?.computeResult as ComputeResult<ResolvedFactoryItemNodeData>;
+  const { nodeId, docsMapped, nodeMap, additionalNodePropMap, ignoreHandleIds } = args;
+  const prevResult = additionalNodePropMap.get(nodeId)?.computeResult as ComputeResult<ResolvedFactoryItemNodeData>;
 
   const nullableNodeData = nodeMap.get(nodeId)?.data as FactoryItemNodeData | undefined;
   if (!nullableNodeData) return null;
@@ -181,19 +175,12 @@ export function computeFactoryItemNode(args: ComputeArgs): ComputeResult | null 
     // TODO: Actual speed will depends on the node connected at the input if interfaceKind is both
   }
 
-  dispatchAdditionNodePropMap({ type: 'compute', nodeId, result: ret });
   return ret;
 }
 
 export function computeFactoryRecipeNode(args: ComputeArgs): ComputeResult | null {
-  const {
-    nodeId,
-    docsMapped,
-    nodeMap,
-    usedAdditionalNodePropMapAtom: [additionNodePropMapAtom, dispatchAdditionNodePropMap],
-    ignoreHandleIds,
-  } = args;
-  const prevResult = additionNodePropMapAtom.get(nodeId)?.computeResult as ComputeResult<ResolvedFactoryRecipeNodeData>;
+  const { nodeId, docsMapped, nodeMap, additionalNodePropMap, ignoreHandleIds } = args;
+  const prevResult = additionalNodePropMap.get(nodeId)?.computeResult as ComputeResult<ResolvedFactoryRecipeNodeData>;
 
   const nullableNodeData = nodeMap.get(nodeId)?.data as FactoryRecipeNodeData | undefined;
   if (!nullableNodeData) return null;
@@ -243,7 +230,6 @@ export function computeFactoryRecipeNode(args: ComputeArgs): ComputeResult | nul
     // For both input and output, the actual speed will be the minimum of the two, and the other will be adjusted accordingly
   }
 
-  dispatchAdditionNodePropMap({ type: 'compute', nodeId, result: ret });
   return ret;
 }
 
@@ -268,14 +254,8 @@ export function computeFactoryRecipeNode(args: ComputeArgs): ComputeResult | nul
   - item-${string}: Only the selected item will pass through. Its recipe has to be unlocked first for it to appear in the list.  
 */
 export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | null {
-  const {
-    nodeId,
-    nodeMap,
-    edgeMap,
-    usedAdditionalNodePropMapAtom: [additionNodePropMap, dispatchAdditionNodePropMap],
-    ignoreHandleIds,
-  } = args;
-  const nodeAdditionalProperty = additionNodePropMap.get(nodeId);
+  const { nodeId, nodeMap, edgeMap, additionalNodePropMap, ignoreHandleIds } = args;
+  const nodeAdditionalProperty = additionalNodePropMap.get(nodeId);
   const prevResult = nodeAdditionalProperty?.computeResult as ComputeResult<ResolvedFactoryLogisticNodeData>;
 
   const nullableNodeData = nodeMap.get(nodeId)?.data as FactoryLogisticNodeData | undefined;
@@ -337,7 +317,7 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
         console.error(`Invalid handleId ${otherHandleId} connected with edge ${edgeId} at node ${otherNodeId}`);
         continue;
       }
-      const otherNodeAdditionalProperty = additionNodePropMap.get(otherNodeId);
+      const otherNodeAdditionalProperty = additionalNodePropMap.get(otherNodeId);
       if (!otherNodeAdditionalProperty) {
         console.error(`Node ${otherNodeId} not found`);
         continue;
@@ -438,7 +418,6 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
     }
   }
 
-  dispatchAdditionNodePropMap({ type: 'compute', nodeId, result: ret });
   return ret;
 }
 

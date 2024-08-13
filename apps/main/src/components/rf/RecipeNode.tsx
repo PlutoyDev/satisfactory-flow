@@ -2,9 +2,8 @@ import { Fragment } from 'react';
 import { Node, NodeProps } from '@xyflow/react';
 import { useAtom } from 'jotai';
 import { ArrowRight } from 'lucide-react';
-import { computeFactoryRecipeNode } from '../../engines/compute';
 import { clockSpeedThouToPercentString, FactoryRecipeNodeData } from '../../engines/data';
-import { additionNodePropMapAtom, docsMappedAtom, edgesMapAtom, nodesMapAtom } from '../../lib/store';
+import { additionNodePropMapAtom, docsMappedAtom } from '../../lib/store';
 import NumberInput from '../form/NumberInput';
 import RecipeComboBox from '../form/RecipeComboBox';
 import { RotationAndColorFields } from '../form/RotationAndColor';
@@ -48,19 +47,18 @@ export function RecipeNode(props: NodeProps<Node<FactoryRecipeNodeData>>) {
   const { recipeKey, clockSpeedThou = 100_00_000, rotIdx = 0 } = props.data;
   const [docsMapped] = useAtom(docsMappedAtom);
   const usedAPM = useAtom(additionNodePropMapAtom);
-  const [nodeMap] = useAtom(nodesMapAtom);
-  const [edgeMap] = useAtom(edgesMapAtom);
 
   const recipe = recipeKey && docsMapped.recipes.get(recipeKey);
-  const res =
-    recipe &&
-    computeFactoryRecipeNode({
-      nodeId: props.id,
-      docsMapped,
-      nodeMap,
-      edgeMap,
-      usedAdditionalNodePropMapAtom: usedAPM,
-    });
+  const res = usedAPM[0].get(props.id)?.computeResult;
+  // const res =
+  //   recipe &&
+  //   computeFactoryRecipeNode({
+  //     nodeId: props.id,
+  //     docsMapped,
+  //     nodeMap,
+  //     edgeMap,
+  //     usedAdditionalNodePropMapAtom: usedAPM,
+  //   });
 
   if (!recipeKey) {
     return (

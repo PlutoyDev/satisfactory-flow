@@ -1,8 +1,7 @@
 import { NodeProps, Node } from '@xyflow/react';
 import { useAtom } from 'jotai';
-import { computeFactoryItemNode } from '../../engines/compute';
 import { FactoryItemNodeData, speedThouToString } from '../../engines/data';
-import { additionNodePropMapAtom, docsMappedAtom, edgesMapAtom, nodesMapAtom } from '../../lib/store';
+import { additionNodePropMapAtom, docsMappedAtom } from '../../lib/store';
 import ItemComboBox from '../form/ItemComboBox';
 import NumberInput from '../form/NumberInput';
 import { RotationAndColorFields } from '../form/RotationAndColor';
@@ -14,19 +13,19 @@ export function ItemNode(props: NodeProps<Node<FactoryItemNodeData>>) {
   const { itemKey, speedThou = 0 } = props.data;
   const [docsMapped] = useAtom(docsMappedAtom);
   const usedAPM = useAtom(additionNodePropMapAtom);
-  const [nodeMap] = useAtom(nodesMapAtom);
-  const [edgeMap] = useAtom(edgesMapAtom);
 
   const item = itemKey && docsMapped.items.get(itemKey);
-  const res =
-    item &&
-    computeFactoryItemNode({
-      nodeId: props.id,
-      docsMapped,
-      nodeMap,
-      edgeMap,
-      usedAdditionalNodePropMapAtom: usedAPM,
-    });
+  const res = usedAPM[0].get(props.id)?.computeResult;
+  console.log('ItemNode', item, res);
+  // const res =
+  // item &&
+  // computeFactoryItemNode({
+  //   nodeId: props.id,
+  //   docsMapped,
+  //   nodeMap,
+  //   edgeMap,
+  //   usedAdditionalNodePropMapAtom: usedAPM,
+  // });
 
   if (!itemKey) {
     return (
