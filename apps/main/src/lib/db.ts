@@ -1,6 +1,6 @@
 import type { Node, Edge } from '@xyflow/react';
 import { openDB, DBSchema } from 'idb';
-import { filter, map, mapToObj, pick, pipe } from 'remeda';
+import { filter, forEach, map, mapToObj, pick, pipe } from 'remeda';
 
 // IndexedDB for the app
 
@@ -199,12 +199,13 @@ export function getEdges(flowDbOrId: FlowDb | string) {
 }
 
 export function setEdges(flowDbOrId: FlowDb | string, edges: StoredEdge[]) {
+  console.log('setEdges', edges);
   return resolveFlowDbOrId(flowDbOrId, flowDb => {
     const tx = flowDb.transaction('edges', 'readwrite');
     return Promise.all(
       pipe(
         edges,
-        filter(edge => !!edge && ['id', 'type', 'data', 'source', 'target', 'sourceHandle', 'targetHandle'].every(k => k in edge)),
+        filter(edge => !!edge && ['id', 'source', 'target', 'sourceHandle', 'targetHandle'].every(k => k in edge)),
         map(edge => tx.store.put(pick(edge, ['id', 'type', 'data', 'source', 'target', 'sourceHandle', 'targetHandle'])) as Promise<any>),
       ).concat(tx.done),
     );

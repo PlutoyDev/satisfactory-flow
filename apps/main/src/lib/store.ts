@@ -91,6 +91,7 @@ async function saveChanges(force?: true) {
   _debouncedSaveTimeout = setTimeout(async () => {
     try {
       const ids = Array.from(_debouncedSaveIds);
+      console.log('Saving changes:', ids);
       _debouncedSaveIds.clear();
       const db = await openFlowDb(selFlow!.flowId);
       const nodes = store.get(nodesMapAtom);
@@ -101,7 +102,9 @@ async function saveChanges(force?: true) {
       const deletedNodes: string[] = [];
       const deletedEdges: string[] = [];
       for (const id of ids) {
-        const [type, itemId] = id.split('-') as ['node' | 'edge', string];
+        // const [type, itemId] = id.split('-') as ['node' | 'edge', string];
+        const type = id.substring(0, 4) as 'node' | 'edge';
+        const itemId = id.substring(5);
         if (type === 'node') {
           const node = nodes.get(itemId);
           if (node) updatedNodes.push(node);
@@ -112,6 +115,8 @@ async function saveChanges(force?: true) {
           else deletedEdges.push(itemId);
         }
       }
+
+      console.log('Saving:', { updatedNodes, deletedNodes, updatedEdges, deletedEdges });
 
       await Promise.all([
         setNodes(db, updatedNodes),
@@ -125,7 +130,7 @@ async function saveChanges(force?: true) {
     } catch (error) {
       console.error('Error saving changes:', error);
     }
-  }, 30000);
+  }, 5000);
 }
 
 export interface AdditionalNodeProperties {
