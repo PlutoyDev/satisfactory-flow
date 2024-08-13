@@ -102,31 +102,7 @@ export interface ComputeArgs {
   ignoreHandleIds?: string[];
 }
 
-/*
-  Interfaces are an object
-  left: [
-    {type: 'in', form: 'solid', itemSpeed?: Record<itemKey | 'any', speedThou>}, 
-    {type: 'in', form: 'solid', itemSpeed?: Record<itemKey | 'any', speedThou>}, 
-    {type: 'in', form: 'fluid', itemSpeed?: Record<itemKey | 'any', speedThou>}, 
-    {type: 'in', form: 'fluid', itemSpeed?: Record<itemKey | 'any', speedThou>},
-  ]
-  right: [
-    {type: 'out', form: 'solid', itemSpeed?: Record<itemKey | 'any', speedThou>}, 
-    {type: 'out', form: 'fluid', itemSpeed?: Record<itemKey | 'any', speedThou>},
-  ]
-*/
-
 export interface ComputeResult<BasedOnData extends Record<string, unknown> = Record<string, string>> {
-  // Interfaces that this node has
-  interfaces: Partial<
-    Record<
-      FactoryInterfaceDir,
-      {
-        type: FactoryInterfaceType;
-        form: FactoryItemForm;
-      }[]
-    >
-  >;
   // HandleId to ItemKey to expect speedThou
   expectItemsSpeed: Record<string, Record<string, number>>;
   // HandleId to ItemKey to actual speedThou
@@ -159,18 +135,16 @@ export function computeFactoryItemNode(args: ComputeArgs): ComputeResult | null 
   }
 
   const itemForm = item.form === 'solid' ? 'solid' : 'fluid';
-  const ret: ComputeResult = { interfaces: {}, expectItemsSpeed: {}, actualItemsSpeed: {}, basedOn: nodeData };
+  const ret: ComputeResult = { expectItemsSpeed: {}, actualItemsSpeed: {}, basedOn: nodeData };
 
   if (interfaceKind === 'both' || interfaceKind === 'in') {
     const intId = `left-${itemForm}-in-0`;
-    ret.interfaces.left = [{ type: 'in', form: itemForm }];
     ret.expectItemsSpeed[intId] = { [itemKey]: speedThou };
     // TODO: Actual speed will depends on the node connected at the output if interfaceKind is both
   }
 
   if (interfaceKind === 'both' || interfaceKind === 'out') {
     const intId = `right-${itemForm}-out-0`;
-    ret.interfaces.right = [{ type: 'out', form: itemForm }];
     ret.expectItemsSpeed[intId] = { [itemKey]: speedThou };
     // TODO: Actual speed will depends on the node connected at the input if interfaceKind is both
   }
@@ -199,7 +173,7 @@ export function computeFactoryRecipeNode(args: ComputeArgs): ComputeResult | nul
     return null;
   }
 
-  const ret: ComputeResult = { interfaces: {}, expectItemsSpeed: {}, actualItemsSpeed: {}, basedOn: nodeData };
+  const ret: ComputeResult = { expectItemsSpeed: {}, actualItemsSpeed: {}, basedOn: nodeData };
   const { ingredients, products, manufactoringDuration } = recipe;
 
   const durationThou = manufactoringDuration / (clockSpeedThou / 100_00); // Duration in thousandths of a second
@@ -218,10 +192,7 @@ export function computeFactoryRecipeNode(args: ComputeArgs): ComputeResult | nul
     const itemForm = item.form === 'solid' ? 'solid' : 'fluid';
     const type = isIngredient ? 'in' : 'out';
     const intTypeIdx = IntTypeCount[type]++;
-    const dir = isIngredient ? 'left' : 'right';
     const intId = `${isIngredient ? 'left' : 'right'}-${itemForm}-${type}-${intTypeIdx}`;
-    ret.interfaces[dir] ??= [];
-    ret.interfaces[dir].push({ type, form: itemForm });
     const expectSpeedThou = ((isIngredient ? -amount : amount) / durationThou) * 60;
     ret.expectItemsSpeed[intId] = { [itemKey]: expectSpeedThou };
     // TODO: Actual speed will depends on the nodes connected at the input and output, which will determine its efficiency
@@ -272,7 +243,7 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
     }
   }
 
-  const ret: ComputeResult = { interfaces: {}, expectItemsSpeed: {}, actualItemsSpeed: {}, basedOn: nodeData };
+  const ret: ComputeResult = { expectItemsSpeed: {}, actualItemsSpeed: {}, basedOn: nodeData };
   if (ignoreHandleIds && ignoreHandleIds.length > 0) {
     ret.ignoreHandleIds = ignoreHandleIds;
   }
@@ -300,7 +271,6 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
 
     // Find the connected edge and the other node
     const handleId = `${dir}-${itemForm}-${intType}-0`;
-    ret.interfaces[dir] = [{ type: intType, form: itemForm }];
     ret.expectItemsSpeed[handleId] = intType === 'in' ? { any: -Infinity } : { any: Infinity }; // Expects to demand everything or provide everything
 
     const edgeId = handleIdToEdgeIdMap?.get(handleId);

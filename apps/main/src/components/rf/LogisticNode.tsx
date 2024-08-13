@@ -1,26 +1,17 @@
+import { useMemo } from 'react';
 import { NodeProps, Node } from '@xyflow/react';
-import { useAtom } from 'jotai';
-import { FactoryLogisticNodeData, LogisticType } from '../../engines/data';
-import { additionNodePropMapAtom } from '../../lib/store';
+import { FACTORY_INTERFACE_DIR, FactoryItemForm, FactoryInterfaceType } from '../../engines/compute';
+import { FactoryLogisticNodeData, LogisticType, resolveLogisticNodeData } from '../../engines/data';
 import { OutputFilterRule } from '../form/OutputFilterRule';
 import { RotationAndColorFields } from '../form/RotationAndColor';
-import { FactoryNodeWrapper, useEditorField } from './BaseNode';
+import { FactoryInterface, FactoryNodeWrapper, useEditorField } from './BaseNode';
 
 const defaultSize = 36;
 
 export function LogisticNode(props: NodeProps<Node<FactoryLogisticNodeData>>) {
-  const usedAPM = useAtom(additionNodePropMapAtom);
+  const { type: logisticType, pipeJuncInt } = resolveLogisticNodeData(props.data);
 
-  const res = usedAPM[0].get(props.id)?.computeResult;
-  // const res = computeFactoryLogisticsNode({
-  //   nodeId: props.id,
-  //   docsMapped,
-  //   nodeMap,
-  //   edgeMap,
-  //   usedAdditionalNodePropMapAtom: usedAPM,
-  // });
-
-  if (!res) {
+  if (!logisticType) {
     return (
       <FactoryNodeWrapper {...props} size={defaultSize}>
         <p className='text-xs'>Unset</p>
@@ -28,7 +19,24 @@ export function LogisticNode(props: NodeProps<Node<FactoryLogisticNodeData>>) {
     );
   }
 
-  return <FactoryNodeWrapper {...props} factoryInterfaces={res?.interfaces} size={defaultSize} />;
+  const interfaces = useMemo(() => {
+    const interfaces: FactoryInterface = {};
+    for (const dir of FACTORY_INTERFACE_DIR) {
+      let itemForm: FactoryItemForm;
+      let intType: FactoryInterfaceType;
+      if (logisticType === 'pipeJunc') {
+        itemForm = 'fluid';
+        intType = dir === 'left' ? 'in' : (pipeJuncInt[dir] ?? 'out');
+      } else {
+        itemForm = 'solid';
+        intType = (logisticType === 'merger' ? dir !== 'right' : dir === 'left') ? 'in' : 'out';
+      }
+      interfaces[dir] = [{ type: intType, form: itemForm }];
+    }
+    return interfaces;
+  }, [logisticType, pipeJuncInt]);
+
+  return <FactoryNodeWrapper {...props} factoryInterfaces={interfaces} size={defaultSize} />;
 }
 
 const LogisticMachineName = {

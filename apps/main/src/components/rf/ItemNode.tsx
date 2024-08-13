@@ -1,31 +1,20 @@
+import { useMemo } from 'react';
 import { NodeProps, Node } from '@xyflow/react';
 import { useAtom } from 'jotai';
-import { FactoryItemNodeData, speedThouToString } from '../../engines/data';
-import { additionNodePropMapAtom, docsMappedAtom } from '../../lib/store';
+import { FactoryItemNodeData, resolveItemNodeData, speedThouToString } from '../../engines/data';
+import { docsMappedAtom } from '../../lib/store';
 import ItemComboBox from '../form/ItemComboBox';
 import NumberInput from '../form/NumberInput';
 import { RotationAndColorFields } from '../form/RotationAndColor';
-import { FactoryNodeWrapper, useEditorField } from './BaseNode';
+import { FactoryInterface, FactoryNodeWrapper, useEditorField } from './BaseNode';
 
 const defaultSize = 90;
 
 export function ItemNode(props: NodeProps<Node<FactoryItemNodeData>>) {
-  const { itemKey, speedThou = 0 } = props.data;
+  const { itemKey, interfaceKind, speedThou } = resolveItemNodeData(props.data);
   const [docsMapped] = useAtom(docsMappedAtom);
-  const usedAPM = useAtom(additionNodePropMapAtom);
 
   const item = itemKey && docsMapped.items.get(itemKey);
-  const res = usedAPM[0].get(props.id)?.computeResult;
-  console.log('ItemNode', item, res);
-  // const res =
-  // item &&
-  // computeFactoryItemNode({
-  //   nodeId: props.id,
-  //   docsMapped,
-  //   nodeMap,
-  //   edgeMap,
-  //   usedAdditionalNodePropMapAtom: usedAPM,
-  // });
 
   if (!itemKey) {
     return (
@@ -34,7 +23,7 @@ export function ItemNode(props: NodeProps<Node<FactoryItemNodeData>>) {
       </FactoryNodeWrapper>
     );
   }
-  if (!item || !res) {
+  if (!item) {
     return (
       <FactoryNodeWrapper {...props} size={defaultSize}>
         <p>Item not found</p>
@@ -42,8 +31,21 @@ export function ItemNode(props: NodeProps<Node<FactoryItemNodeData>>) {
     );
   }
 
+  const interfaces = useMemo(() => {
+    const interfaces: FactoryInterface = {};
+    const itemForm = item.form === 'solid' ? 'solid' : 'fluid';
+
+    if (interfaceKind === 'both' || interfaceKind === 'in') {
+      interfaces.left = [{ type: 'in', form: itemForm }];
+    }
+    if (interfaceKind === 'both' || interfaceKind === 'out') {
+      interfaces.right = [{ type: 'out', form: itemForm }];
+    }
+    return interfaces;
+  }, [item, interfaceKind]);
+
   return (
-    <FactoryNodeWrapper {...props} factoryInterfaces={res.interfaces} size={defaultSize}>
+    <FactoryNodeWrapper {...props} factoryInterfaces={interfaces} size={defaultSize}>
       {item.iconPath && <img src={'/extracted/' + item.iconPath} alt={item.displayName} className='h-6 w-6' />}
       <p className='whitespace-pre-wrap text-center'>
         {speedThouToString(speedThou)}

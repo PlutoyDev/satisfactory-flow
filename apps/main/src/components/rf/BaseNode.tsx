@@ -1,6 +1,6 @@
 import { createContext, ReactNode, useContext, useEffect, useRef } from 'react';
 import { Handle, NodeProps, Position, Node, useUpdateNodeInternals, Edge } from '@xyflow/react';
-import { ComputeResult, FACTORY_INTERFACE_DIR, FactoryInterfaceDir, joinIntoHandleId } from '../../engines/compute';
+import { FACTORY_INTERFACE_DIR, FactoryInterfaceDir, FactoryInterfaceType, FactoryItemForm, joinIntoHandleId } from '../../engines/compute';
 import { FactoryBaseNodeData } from '../../engines/data';
 
 export const FACTORY_NODE_TYPES = ['item', 'recipe', 'logistic'] as const;
@@ -20,9 +20,33 @@ export const FACTORY_NODE_DEFAULT_COLORS = {
   - sizes
 */
 
+/*
+  Interfaces are an object
+  left: [
+    {type: 'in', form: 'solid', itemSpeed?: Record<itemKey | 'any', speedThou>}, 
+    {type: 'in', form: 'solid', itemSpeed?: Record<itemKey | 'any', speedThou>}, 
+    {type: 'in', form: 'fluid', itemSpeed?: Record<itemKey | 'any', speedThou>}, 
+    {type: 'in', form: 'fluid', itemSpeed?: Record<itemKey | 'any', speedThou>},
+  ]
+  right: [
+    {type: 'out', form: 'solid', itemSpeed?: Record<itemKey | 'any', speedThou>}, 
+    {type: 'out', form: 'fluid', itemSpeed?: Record<itemKey | 'any', speedThou>},
+  ]
+*/
+
+export type FactoryInterface = Partial<
+  Record<
+    FactoryInterfaceDir,
+    {
+      type: FactoryInterfaceType;
+      form: FactoryItemForm;
+    }[]
+  >
+>;
+
 interface FactoryNodeWrapperProps extends NodeProps<Node<FactoryBaseNodeData>> {
   children?: ReactNode;
-  factoryInterfaces?: ComputeResult['interfaces']; // Refer to engine/compute.ts for more info
+  factoryInterfaces?: FactoryInterface; // Refer to engine/compute.ts for more info
   size: number | [number, number];
 }
 
