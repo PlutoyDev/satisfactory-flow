@@ -86,7 +86,8 @@ export function FactoryNodeWrapper(props: FactoryNodeWrapperProps) {
       {factoryInterfaces &&
         Object.entries(factoryInterfaces).flatMap(([dir, handles]) =>
           handles.map(({ type, form }, index, { length }) => {
-            const offset = ((index + 1) / (length + 1)) * 100;
+            // const offset = ((index + 1) / (length + 1)) * 100;
+            const offset = ((index * 2 + 1) / (length * 2)) * 100;
             const dirIndex = FACTORY_INTERFACE_DIR.indexOf(dir as FactoryInterfaceDir);
             const rotDir = FACTORY_INTERFACE_DIR[(dirIndex + rotIdx) % 4];
             const rAdjDir = FACTORY_INTERFACE_DIR[(dirIndex + rotIdx + 1) % 4];
@@ -99,7 +100,6 @@ export function FactoryNodeWrapper(props: FactoryNodeWrapperProps) {
                 position={rotDir as Position}
                 className='size-2'
                 style={{
-                  [rotDir]: '-0.25rem', // compensate for p-1
                   [rAdjDir]: `${offset}%`,
                   [lAdjDir]: `${100 - offset}%`,
                   backgroundColor: type === 'in' ? '#F6E05E' : '#68D391', // Yellow for input, green for output

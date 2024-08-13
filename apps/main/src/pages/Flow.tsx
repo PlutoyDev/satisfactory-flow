@@ -56,7 +56,7 @@ function FlowPage() {
           <ReactFlow
             // Viewport
             minZoom={0.05}
-            maxZoom={1}
+            maxZoom={1.5}
             snapToGrid={true}
             snapGrid={[6, 6]}
             attributionPosition='bottom-left'
@@ -89,7 +89,7 @@ function FlowPage() {
             deleteKeyCode={['Delete', 'Backspace']}
             selectionKeyCode={['Shift', 'Control']}
           >
-            <Background gap={36} bgColor='#202030' />
+            <Background gap={18} bgColor='#202030' />
 
             {[isDraggingNode].some(b => b) && (
               <div className='fixed bottom-0 left-0 right-0 top-16 bg-gray-400 bg-opacity-10'>

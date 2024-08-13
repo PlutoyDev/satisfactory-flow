@@ -6,7 +6,7 @@ import { OutputFilterRule } from '../form/OutputFilterRule';
 import { RotationAndColorFields } from '../form/RotationAndColor';
 import { FactoryInterface, FactoryNodeWrapper, useEditorField } from './BaseNode';
 
-const defaultSize = 36;
+const defaultSize = 96;
 
 export function LogisticNode(props: NodeProps<Node<FactoryLogisticNodeData>>) {
   const { type: logisticType, pipeJuncInt } = resolveLogisticNodeData(props.data);

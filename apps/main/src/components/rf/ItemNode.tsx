@@ -8,7 +8,15 @@ import NumberInput from '../form/NumberInput';
 import { RotationAndColorFields } from '../form/RotationAndColor';
 import { FactoryInterface, FactoryNodeWrapper, useEditorField } from './BaseNode';
 
-const defaultSize = 90;
+const defaultSize = 96;
+// const MachineSize = {
+//   Build_MinerMk1_C: [336, 144],
+// Build_MinerMk2_C: [336,144],
+// Build_MinerMk3_C: [336,144],
+//   Build_OilPump_C: [336, 192],
+//   Build_WaterPump_C: [480, 468],
+//   Build_FrackingSmasher_C: [480, 480],
+// } as const satisfies Record<string, [number, number]>;
 
 export function ItemNode(props: NodeProps<Node<FactoryItemNodeData>>) {
   const { itemKey, interfaceKind, speedThou } = resolveItemNodeData(props.data);
@@ -44,6 +52,17 @@ export function ItemNode(props: NodeProps<Node<FactoryItemNodeData>>) {
       </FactoryNodeWrapper>
     );
   }
+
+  // const size =
+  //   item.form === 'solid'
+  //     ? MachineSize.Build_MinerMk1_C
+  //     : item.form === 'gas'
+  //       ? MachineSize.Build_FrackingSmasher_C
+  //       : item.key === 'Desc_Water_C'
+  //         ? MachineSize.Build_WaterPump_C
+  //         : item.key === 'Desc_LiquidOil_C'
+  //           ? MachineSize.Build_OilPump_C
+  //           : defaultSize;
 
   return (
     <FactoryNodeWrapper {...props} factoryInterfaces={interfaces} size={defaultSize}>
