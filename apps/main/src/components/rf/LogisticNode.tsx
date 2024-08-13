@@ -11,15 +11,8 @@ const defaultSize = 36;
 export function LogisticNode(props: NodeProps<Node<FactoryLogisticNodeData>>) {
   const { type: logisticType, pipeJuncInt } = resolveLogisticNodeData(props.data);
 
-  if (!logisticType) {
-    return (
-      <FactoryNodeWrapper {...props} size={defaultSize}>
-        <p className='text-xs'>Unset</p>
-      </FactoryNodeWrapper>
-    );
-  }
-
   const interfaces = useMemo(() => {
+    if (!logisticType) return {};
     const interfaces: FactoryInterface = {};
     for (const dir of FACTORY_INTERFACE_DIR) {
       let itemForm: FactoryItemForm;
@@ -35,6 +28,14 @@ export function LogisticNode(props: NodeProps<Node<FactoryLogisticNodeData>>) {
     }
     return interfaces;
   }, [logisticType, pipeJuncInt]);
+
+  if (!logisticType) {
+    return (
+      <FactoryNodeWrapper {...props} size={defaultSize}>
+        <p className='text-xs'>Unset</p>
+      </FactoryNodeWrapper>
+    );
+  }
 
   return <FactoryNodeWrapper {...props} factoryInterfaces={interfaces} size={defaultSize} />;
 }

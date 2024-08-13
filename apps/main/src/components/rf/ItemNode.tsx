@@ -16,6 +16,20 @@ export function ItemNode(props: NodeProps<Node<FactoryItemNodeData>>) {
 
   const item = itemKey && docsMapped.items.get(itemKey);
 
+  const interfaces = useMemo(() => {
+    if (!item) return {};
+    const interfaces: FactoryInterface = {};
+    const itemForm = item.form === 'solid' ? 'solid' : 'fluid';
+
+    if (interfaceKind === 'both' || interfaceKind === 'in') {
+      interfaces.left = [{ type: 'in', form: itemForm }];
+    }
+    if (interfaceKind === 'both' || interfaceKind === 'out') {
+      interfaces.right = [{ type: 'out', form: itemForm }];
+    }
+    return interfaces;
+  }, [item, interfaceKind]);
+
   if (!itemKey) {
     return (
       <FactoryNodeWrapper {...props} size={defaultSize}>
@@ -30,19 +44,6 @@ export function ItemNode(props: NodeProps<Node<FactoryItemNodeData>>) {
       </FactoryNodeWrapper>
     );
   }
-
-  const interfaces = useMemo(() => {
-    const interfaces: FactoryInterface = {};
-    const itemForm = item.form === 'solid' ? 'solid' : 'fluid';
-
-    if (interfaceKind === 'both' || interfaceKind === 'in') {
-      interfaces.left = [{ type: 'in', form: itemForm }];
-    }
-    if (interfaceKind === 'both' || interfaceKind === 'out') {
-      interfaces.right = [{ type: 'out', form: itemForm }];
-    }
-    return interfaces;
-  }, [item, interfaceKind]);
 
   return (
     <FactoryNodeWrapper {...props} factoryInterfaces={interfaces} size={defaultSize}>

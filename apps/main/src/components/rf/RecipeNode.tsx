@@ -49,29 +49,12 @@ export function RecipeNode(props: NodeProps<Node<FactoryRecipeNodeData>>) {
 
   const recipe = recipeKey && docsMapped.recipes.get(recipeKey);
 
-  if (!recipeKey) {
-    return (
-      <FactoryNodeWrapper {...props} size={defaultSize}>
-        <p>Unset</p>
-      </FactoryNodeWrapper>
-    );
-  }
-
-  if (!recipe) {
-    return (
-      <FactoryNodeWrapper {...props} size={defaultSize}>
-        <p>Recipe not found</p>
-      </FactoryNodeWrapper>
-    );
-  }
-
-  const { displayName, ingredients, products } = recipe;
-  const { displayName: machineName } = docsMapped.productionMachines.get(recipe.producedIn)!;
-  const size = MachineSize[recipe.producedIn as keyof typeof MachineSize] ?? defaultSize;
   const swapSides = rotIdx % 2 === 1; // Left becomes top, right becomes bottom
   const flipSides = rotIdx / 2 >= 1; // Left becomes right, top becomes bottom
 
   const { elements, interfaces } = useMemo(() => {
+    if (!recipe) return { elements: [], interfaces: {} as FactoryInterface };
+    const { ingredients, products } = recipe;
     const elements: JSX.Element[] = [];
     const interfaces: FactoryInterface = {};
     const itemsLength = ingredients.length + products.length;
@@ -119,11 +102,30 @@ export function RecipeNode(props: NodeProps<Node<FactoryRecipeNodeData>>) {
       );
     }
     return { elements, interfaces };
-  }, [docsMapped, ingredients, products, rotIdx, swapSides, flipSides]);
+  }, [docsMapped, recipe, rotIdx, swapSides, flipSides]);
+
+  if (!recipeKey) {
+    return (
+      <FactoryNodeWrapper {...props} size={defaultSize}>
+        <p>Unset</p>
+      </FactoryNodeWrapper>
+    );
+  }
+
+  if (!recipe) {
+    return (
+      <FactoryNodeWrapper {...props} size={defaultSize}>
+        <p>Recipe not found</p>
+      </FactoryNodeWrapper>
+    );
+  }
+
+  const machineName = docsMapped.productionMachines.get(recipe.producedIn)!.displayName;
+  const size = MachineSize[recipe.producedIn as keyof typeof MachineSize] ?? defaultSize;
 
   return (
     <FactoryNodeWrapper {...props} factoryInterfaces={interfaces} size={size}>
-      <span>{displayName}</span>
+      <span>{recipe.displayName}</span>
       <div
         className='grid place-items-center gap-0.5'
         style={{
