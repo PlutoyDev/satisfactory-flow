@@ -4,7 +4,7 @@ import '@xyflow/react/dist/style.css';
 import debounce from 'debounce';
 import { useAtom } from 'jotai';
 import { FilePen, Home, Save, X } from 'lucide-react';
-import { customNodeEditors, customNodes } from '../components/rf';
+import { customEdges, customNodeEditors, customNodes } from '../components/rf';
 import { FACTORY_NODE_DEFAULT_COLORS, FACTORY_NODE_TYPES, FactoryEditorContextProvider, FactoryNodeType } from '../components/rf/BaseNode';
 import ConnectionLine from '../components/rf/ConnectionLine';
 import {
@@ -67,6 +67,7 @@ function FlowPage() {
             onNodesChange={applyNodeChanges}
             // Edge
             edges={edges}
+            edgeTypes={customEdges}
             defaultEdgeOptions={{ type: 'smoothstep' }}
             onEdgesChange={applyEdgeChanges}
             // Connection

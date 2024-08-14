@@ -45,11 +45,13 @@ export function isValidConnection(params: Connection | Edge): boolean {
 }
 
 export function addEdge(edgeParams: Edge | Connection) {
+  const edgeType = splitHandleId(edgeParams.sourceHandle!)?.form === 'solid' ? 'belt' : 'pipe';
   store.set(edgesAtom, [
     {
       type: 'add',
       item: {
         id: generateId(),
+        type: edgeType,
         source: edgeParams.source,
         target: edgeParams.target,
         sourceHandle: edgeParams.sourceHandle ?? undefined,
