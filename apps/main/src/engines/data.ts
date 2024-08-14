@@ -133,3 +133,11 @@ export interface FactoryGeneratorNodeData extends FactoryBaseNodeData {
 }
 
 export type FactoryNodeData = FactoryItemNodeData | FactoryRecipeNodeData | FactoryLogisticNodeData | FactoryGeneratorNodeData;
+
+export interface FactoryBeltOrPipeData extends Record<string, any> {
+  startLabel?: string;
+  centerLabel?: string;
+  endLabel?: string;
+  colorMode?: 'default' | 'info' | 'warning' | 'error';
+  displayOnSelect?: boolean;
+}

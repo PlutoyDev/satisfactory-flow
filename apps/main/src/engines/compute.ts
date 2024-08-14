@@ -2,6 +2,7 @@ import { Edge, Node } from '@xyflow/react';
 import { isDeepEqual, isShallowEqual } from 'remeda';
 import { AdditionalNodeProperties, DocsMapped } from '../lib/store';
 import {
+  FactoryBeltOrPipeData,
   FactoryItemNodeData,
   FactoryLogisticNodeData,
   FactoryRecipeNodeData,
@@ -406,4 +407,51 @@ export function computeNode(args: ComputeArgs) {
       console.error(`Unknown node type ${node.data.type}`);
       return null;
   }
+}
+
+type EdgeComputeArgs = Omit<ComputeArgs, 'nodeId' | 'startedAtNodeId' | 'ignoreHandleIds'> & { edgeId: string };
+
+export function computeFactoryBeltOrPieEdge(args: EdgeComputeArgs): FactoryBeltOrPipeData | undefined {
+  const { edgeId, docsMapped, edgeMap, additionalNodePropMap } = args;
+  const { source, sourceHandle, target, targetHandle } = edgeMap.get(edgeId)!;
+
+  const sourceANP = additionalNodePropMap.get(source)!;
+  const targetANP = additionalNodePropMap.get(target)!;
+
+  let startLabel: string = '';
+  let centerLabel: string = '';
+  let endLabel: string = '';
+  let colorMode: FactoryBeltOrPipeData['colorMode'] = 'default';
+  if (!sourceHandle || !targetHandle) {
+    colorMode = 'error';
+    centerLabel = 'Invalid Node (please submit a bug report)';
+  } else if (!sourceANP.computeResult || !targetANP.computeResult) {
+    return undefined;
+  } else {
+    const sourceResult = sourceANP.computeResult;
+    const targetResult = targetANP.computeResult;
+    // Has computed result
+    const sourceItemsSpeed = sourceResult.actualItemsSpeed[sourceHandle] ?? sourceResult.expectItemsSpeed[sourceHandle] ?? {};
+    const targetItemsSpeed = targetResult.actualItemsSpeed[targetHandle] ?? targetResult.expectItemsSpeed[targetHandle] ?? {};
+    console.log({ sourceItemsSpeed, targetItemsSpeed });
+    // Compare the source and target items speed and show warning if they are not equal
+    const itemKeys = new Set<string>([...Object.keys(sourceItemsSpeed), ...Object.keys(targetItemsSpeed)]);
+    for (const key of itemKeys) {
+      const item = docsMapped.items.get(key);
+      const sourceValue = sourceItemsSpeed[key];
+      const targetValue = targetItemsSpeed[key];
+      const sum = (sourceValue ?? 0) + (targetValue ?? 0); // Input is negative, output is positive, so sum should be 0 if they are equal
+      if (sum < 0) {
+        colorMode = 'warning';
+        startLabel += `Underproducing: ${item?.displayName}`;
+        endLabel += `Overconsuming: ${item?.displayName}`;
+      } else if (sum > 0) {
+        colorMode = 'warning';
+        startLabel += `Overproducing: ${item?.displayName}`;
+        endLabel += `Underconsuming: ${item?.displayName}`;
+      }
+    }
+  }
+
+  return { colorMode, centerLabel, startLabel, endLabel };
 }

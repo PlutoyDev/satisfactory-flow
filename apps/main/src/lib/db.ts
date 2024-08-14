@@ -199,7 +199,6 @@ export function getEdges(flowDbOrId: FlowDb | string) {
 }
 
 export function setEdges(flowDbOrId: FlowDb | string, edges: StoredEdge[]) {
-  console.log('setEdges', edges);
   return resolveFlowDbOrId(flowDbOrId, flowDb => {
     const tx = flowDb.transaction('edges', 'readwrite');
     return Promise.all(

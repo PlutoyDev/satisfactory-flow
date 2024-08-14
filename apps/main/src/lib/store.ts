@@ -4,7 +4,7 @@ import { Atom, atom, getDefaultStore, PrimitiveAtom, SetStateAction, WritableAto
 import { atomWithLocation } from 'jotai-location';
 import { atomWithReducer } from 'jotai/utils';
 import { nanoid } from 'nanoid';
-import { computeNode, type ComputeResult } from '../engines/compute';
+import { computeFactoryBeltOrPieEdge, computeNode, type ComputeResult } from '../engines/compute';
 import examples from '../examples';
 import { delEdges, delNodes, FlowData, getEdges, getFlows, getNodes, openFlowDb, setEdges, setFlow, setNodes } from './db';
 
@@ -91,7 +91,6 @@ async function deboucedAction(force?: true) {
   _debouncedTimeout = setTimeout(async () => {
     try {
       const ids = Array.from(_debouncedIds);
-      console.log('Saving changes:', ids);
       _debouncedIds.clear();
       const db = await openFlowDb(selFlow!.flowId);
       const nodes = store.get(nodesMapAtom);
@@ -119,7 +118,8 @@ async function deboucedAction(force?: true) {
       }
 
       // Perform computation
-      console.log('Computing nodes:', updatedNodes);
+      const newAnpm = new Map(anpm);
+      const edgeIdToCompute = new Set<string>(updatedEdges.map(edge => edge.id));
       for (const node of updatedNodes) {
         const result = computeNode({
           nodeMap: nodes,
@@ -130,8 +130,35 @@ async function deboucedAction(force?: true) {
         });
 
         if (result) {
-          store.set(additionNodePropMapAtom, { nodeId: node.id, type: 'compute', result });
+          const newAnp = { ...anpm.get(node.id), computeResult: result };
+          newAnpm.set(node.id, newAnp);
+          // Add all connected edges to compute
+          const edges = anpm.get(node.id)?.edges;
+          if (edges) {
+            for (const edgeId of edges.values()) {
+              edgeIdToCompute.add(edgeId);
+            }
+          }
         }
+      }
+
+      let saveNewEdges = false;
+      const newEdgeMap = new Map(edges);
+      for (const edgeId of edgeIdToCompute) {
+        const result = computeFactoryBeltOrPieEdge({
+          edgeId,
+          nodeMap: nodes,
+          edgeMap: edges,
+          additionalNodePropMap: newAnpm,
+          docsMapped,
+        });
+        console.log('Computed edge:', edgeId, result);
+        saveNewEdges = true;
+        newEdgeMap.set(edgeId, { ...newEdgeMap.get(edgeId)!, data: result });
+      }
+
+      if (saveNewEdges) {
+        store.set(edgesMapAtom, newEdgeMap);
       }
 
       // Save changes
