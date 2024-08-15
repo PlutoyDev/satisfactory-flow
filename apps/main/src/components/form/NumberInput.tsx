@@ -57,7 +57,7 @@ export default function NumberInput({ name, defaultValue, step, unit, minValue =
         <input
           type='number'
           className='w-16'
-          value={unit === '%' ? clockSpeedThouToPercentString(localValue) : speedThouToString(localValue)}
+          value={unit === '%' ? clockSpeedThouToPercentString(localValue) : speedThouToString(localValue, false)}
           onChange={e => setValue(e.target.value)}
         />
         {unit}

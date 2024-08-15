@@ -49,11 +49,10 @@ export function resolveItemNodeData(data: FactoryItemNodeData | Record<string, u
   return data as ResolvedFactoryItemNodeData;
 }
 
-export function speedThouToString(speedThou: number) {
-  return (speedThou / 1000)
-    .toFixed(3)
-    .replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-    .replace(/\.?0*$/, '');
+export function speedThouToString(speedThou: number, addComma = true) {
+  let speed = (speedThou / 1000).toFixed(3);
+  if (addComma) speed = speed.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return speed.replace(/\.?0*$/, '');
 }
 
 export function parseSpeedThou(speedStr: string) {
@@ -80,10 +79,7 @@ export function resolveRecipeNodeData(data: FactoryRecipeNodeData | Record<strin
 }
 
 export function clockSpeedThouToPercentString(clockSpeedThou: number) {
-  return (clockSpeedThou / 100_000)
-    .toFixed(3)
-    .replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-    .replace(/\.?0*$/, '');
+  return (clockSpeedThou / 100_000).toFixed(3).replace(/\.?0*$/, '');
 }
 
 export function parseClockSpeedThouFromPercentString(clockSpeedStr: string) {
