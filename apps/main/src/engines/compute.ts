@@ -12,6 +12,7 @@ import {
   resolveItemNodeData,
   resolveLogisticNodeData,
   resolveRecipeNodeData,
+  speedThouToString,
 } from './data';
 
 /*
@@ -422,11 +423,14 @@ export function computeFactoryBeltOrPieEdge(args: EdgeComputeArgs): FactoryBeltO
   let startLabel: string = '';
   let centerLabel: string = '';
   let endLabel: string = '';
+  let displayOnSelect: boolean = false;
   let colorMode: FactoryBeltOrPipeData['colorMode'] = 'default';
   if (!sourceHandle || !targetHandle) {
     colorMode = 'error';
     centerLabel = 'Invalid Node (please submit a bug report)';
   } else if (!sourceANP.computeResult || !targetANP.computeResult) {
+    if (!sourceANP.computeResult) console.warn(`Source Node ${source} has no compute result`);
+    if (!targetANP.computeResult) console.warn(`Target Node ${target} has no compute result`);
     return undefined;
   } else {
     const sourceResult = sourceANP.computeResult;
@@ -444,15 +448,19 @@ export function computeFactoryBeltOrPieEdge(args: EdgeComputeArgs): FactoryBeltO
       const sum = (sourceValue ?? 0) + (targetValue ?? 0); // Input is negative, output is positive, so sum should be 0 if they are equal
       if (sum < 0) {
         colorMode = 'warning';
-        startLabel += `Underproducing: ${item?.displayName}`;
-        endLabel += `Overconsuming: ${item?.displayName}`;
+        startLabel += `Underproducing: ${item?.displayName} by ${-speedThouToString(sum)}/min`;
+        endLabel += `Overconsuming: ${item?.displayName} by ${-speedThouToString(sum)}/min`;
       } else if (sum > 0) {
         colorMode = 'warning';
-        startLabel += `Overproducing: ${item?.displayName}`;
-        endLabel += `Underconsuming: ${item?.displayName}`;
+        startLabel += `Overproducing: ${item?.displayName} by ${speedThouToString(sum)}/min`;
+        endLabel += `Underconsuming: ${item?.displayName} by ${speedThouToString(sum)}/min`;
+      } else {
+        centerLabel += `Balanced: ${speedThouToString(sourceValue)}/min of ${item?.displayName}`;
+        displayOnSelect = true;
+        colorMode ??= 'info';
       }
     }
   }
 
-  return { colorMode, centerLabel, startLabel, endLabel };
+  return { colorMode, centerLabel, startLabel, endLabel, displayOnSelect };
 }
