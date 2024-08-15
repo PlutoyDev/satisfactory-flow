@@ -169,8 +169,11 @@ function PropertyEditorPanel() {
   // if (!selNodeOrEdge) {
   //   return null;
   // }
-  const [nodesMap, setNodesMap] = useAtom(nodesMapAtom);
-  const [edgesMap, setEdgesMap] = useAtom(edgesMapAtom);
+  const [nodesMap] = useAtom(nodesMapAtom);
+  const [edgesMap] = useAtom(edgesMapAtom);
+  const [, applyNodeChanges] = useAtom(nodesAtom);
+  const [, applyEdgeChanges] = useAtom(edgesAtom);
+
   const [selectedIds] = useAtom(selectedIdsAtom);
 
   let selNodeOrEdge: Node | Edge | undefined = undefined;
@@ -219,9 +222,9 @@ function PropertyEditorPanel() {
         const newValue = { ...prevValue, data: newData };
         // const newValue = typeof update === 'function' ? update(name ? prevValue.data[name] : prevValue.data) : { ...prevValue, data: name ? { ...prevValue.data, [name]: update } : { ...prevValue.data, ...update } };
         if (selectedType === 'node') {
-          setNodesMap(new Map(nodesMap.set(selectedIds[0], newValue as Node)));
+          applyNodeChanges([{ type: 'replace', id: selectedIds[0], item: newValue as Node }]);
         } else if (selectedType === 'edge') {
-          setEdgesMap(new Map(edgesMap.set(selectedIds[0], newValue as Edge)));
+          applyEdgeChanges([{ type: 'replace', id: selectedIds[0], item: newValue as Edge }]);
         }
       };
 
@@ -231,7 +234,7 @@ function PropertyEditorPanel() {
         return setValue;
       }
     },
-    [selNodeOrEdge, setNodesMap, setEdgesMap],
+    [selNodeOrEdge, selectedType, selectedIds, applyNodeChanges, applyEdgeChanges],
   );
 
   if (selectedIds.length !== 1 || !selNodeOrEdge || !selectedType) {
