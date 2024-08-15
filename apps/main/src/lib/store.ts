@@ -80,20 +80,15 @@ const _debouncedIds = new Set<string>();
 let _debouncedTimeout: ReturnType<typeof setTimeout> | null = null;
 
 async function deboucedAction(force?: true) {
-  const selFlow = store.get(_selectedFlowAtom);
-  if (selFlow?.source !== 'db') {
-    _debouncedIds.clear();
-    return;
-  }
   if (_debouncedTimeout && !force) {
     return;
   }
   store.set(_isDebouncePendingAtom, true);
   _debouncedTimeout = setTimeout(async () => {
+    console.log('Debounced action');
     try {
       const ids = Array.from(_debouncedIds);
       _debouncedIds.clear();
-      const db = await openFlowDb(selFlow!.flowId);
       const nodes = store.get(nodesMapAtom);
       const edges = store.get(edgesMapAtom);
       const anpm = store.get(_additionNodePropMapAtom);
@@ -167,13 +162,17 @@ async function deboucedAction(force?: true) {
         store.set(edgesMapAtom, newEdgeMap);
       }
 
-      // Save changes
-      await Promise.all([
-        setNodes(db, updatedNodes),
-        delNodes(db, deletedNodes),
-        setEdges(db, updatedEdges),
-        delEdges(db, deletedEdges),
-      ]).finally(() => db.close());
+      const selFlow = store.get(_selectedFlowAtom);
+      if (selFlow?.source === 'db') {
+        const db = await openFlowDb(selFlow!.flowId);
+        // Save changes
+        await Promise.all([
+          setNodes(db, updatedNodes),
+          delNodes(db, deletedNodes),
+          setEdges(db, updatedEdges),
+          delEdges(db, deletedEdges),
+        ]).finally(() => db.close());
+      }
 
       store.set(_isDebouncePendingAtom, false);
       _debouncedTimeout = null;
