@@ -2,7 +2,6 @@ import { Node, Edge, NodeChange, EdgeChange } from '@xyflow/react';
 import type { ParsedOutput } from 'docs-parser';
 import { Atom, atom, getDefaultStore, PrimitiveAtom, SetStateAction, WritableAtom } from 'jotai';
 import { atomWithLocation } from 'jotai-location';
-import { atomWithReducer } from 'jotai/utils';
 import { nanoid } from 'nanoid';
 import { computeFactoryBeltOrPieEdge, computeNode, type ComputeResult } from '../engines/compute';
 import examples from '../examples';
@@ -52,9 +51,36 @@ interface SelectedFlow {
 
 const _selectedFlowAtom = atom<SelectedFlow | null>(null);
 
-const _nodesMapAtom = atom<Map<string, Node>>(new Map());
+export interface ExtendedNode extends Node {
+  /** Handle ID to Edge ID mapping */
+  edges?: Map<string, string>;
+  /** Compute result */
+  computeResult?: ComputeResult;
+}
+
+export interface NodeAddEdgeChange {
+  id: string;
+  type: 'addEdge';
+  handleId: string;
+  edgeId: string;
+}
+
+export interface NodeRemoveEdgeChange {
+  id: string;
+  type: 'removeEdge';
+  handleId: string;
+}
+
+export interface NodeComputeChange {
+  id: string;
+  type: 'compute';
+  result: ComputeResult | null;
+}
+
+export type ExtendedNodeChange = NodeChange | NodeAddEdgeChange | NodeRemoveEdgeChange | NodeComputeChange;
+
+const _nodesMapAtom = atom<Map<string, ExtendedNode>>(new Map());
 const _edgesMapAtom = atom<Map<string, Edge>>(new Map());
-const _additionNodePropMapAtom = atom<Map<string, AdditionalNodeProperties>>(new Map());
 
 const _nodesArrayAtom = atom<Node[]>([]); // Used for rendering
 const _edgesArrayAtom = atom<Edge[]>([]); // Used for rendering
@@ -80,7 +106,7 @@ const _debouncedIds = new Set<string>();
 let _debouncedTimeout: ReturnType<typeof setTimeout> | null = null;
 
 async function deboucedAction(force?: true) {
-  if (_debouncedTimeout && !force) {
+  if ((_debouncedIds.size || _debouncedTimeout) && !force) {
     return;
   }
   store.set(_isDebouncePendingAtom, true);
@@ -91,8 +117,6 @@ async function deboucedAction(force?: true) {
       _debouncedIds.clear();
       const nodes = store.get(nodesMapAtom);
       const edges = store.get(edgesMapAtom);
-      const anpm = store.get(_additionNodePropMapAtom);
-      const docsMapped = await store.get(docsMappedAtom);
 
       const updatedNodes: Node[] = [];
       const updatedEdges: Edge[] = [];
@@ -114,52 +138,6 @@ async function deboucedAction(force?: true) {
             edgeIdToCompute.add(itemId);
           } else deletedEdges.push(itemId);
         }
-      }
-
-      // Perform computation
-      const newAnpm = new Map(anpm);
-      // const edgeIdToCompute = new Set<string>(updatedEdges.map(edge => edge.id));
-      for (const node of updatedNodes) {
-        const result = computeNode({
-          nodeMap: nodes,
-          edgeMap: edges,
-          additionalNodePropMap: anpm,
-          nodeId: node.id,
-          docsMapped,
-        });
-
-        if (result) {
-          const newAnp = { ...anpm.get(node.id), computeResult: result };
-          newAnpm.set(node.id, newAnp);
-          // Add all connected edges to compute
-          const edges = anpm.get(node.id)?.edges;
-          if (edges) {
-            for (const edgeId of edges.values()) {
-              console.log('Add edge to compute:', edgeId);
-              edgeIdToCompute.add(edgeId);
-            }
-          }
-        }
-      }
-      store.set(_additionNodePropMapAtom, newAnpm);
-
-      let saveNewEdges = false;
-      const newEdgeMap = new Map(edges);
-      for (const edgeId of edgeIdToCompute) {
-        const result = computeFactoryBeltOrPieEdge({
-          edgeId,
-          nodeMap: nodes,
-          edgeMap: edges,
-          additionalNodePropMap: newAnpm,
-          docsMapped,
-        });
-        console.log('Computed edge:', edgeId, result);
-        saveNewEdges = true;
-        newEdgeMap.set(edgeId, { ...newEdgeMap.get(edgeId)!, data: result });
-      }
-
-      if (saveNewEdges) {
-        store.set(edgesMapAtom, newEdgeMap);
       }
 
       const selFlow = store.get(_selectedFlowAtom);
@@ -194,54 +172,25 @@ type AdditionalNodePropertiesAction = { nodeId: string } & (
   | { type: 'compute'; result?: ComputeResult }
 );
 
-export const additionNodePropMapAtom = atom(
-  get => get(_additionNodePropMapAtom),
-  (get, set, action: AdditionalNodePropertiesAction) => {
-    const id = action.nodeId;
-    const value = get(_additionNodePropMapAtom);
-    const node = value.get(id) ?? {};
-    switch (action.type) {
-      case 'edge':
-        node.edges ??= new Map();
-        if (action.edgeId && action.handleId) {
-          node.edges.set(action.handleId, action.edgeId);
-        } else {
-          node.edges.delete(action.handleId);
-        }
-        delete node.computeResult; // Invalidate compute result when edge changes
-        break;
-      case 'compute':
-        if (action.result) {
-          node.computeResult = action.result;
-        } else {
-          delete node.computeResult;
-        }
-        break;
-      case 'remove':
-        const newMap = new Map(value);
-        newMap.delete(id);
-        return newMap;
-    }
-    set(_additionNodePropMapAtom, new Map(value).set(id, node));
-  },
-);
-
 export const nodesAtom = atom(
   get => get(_nodesArrayAtom),
-  (get, set, changes: NodeChange[]) => {
+  (get, set, changes: ExtendedNodeChange[]) => {
     // Reimplement of applyNodeChanges to work with Map
     const nodes = get(_nodesMapAtom);
     for (const change of changes) {
-      _debouncedIds.add('node-' + ('id' in change ? change.id : change.item.id));
+      // _debouncedIds.add('node-' + ('id' in change ? change.id : change.item.id));
       switch (change.type) {
         case 'add':
           nodes.set(change.item.id, change.item);
+          _debouncedIds.add('node-' + change.item.id);
           break;
         case 'remove':
           nodes.delete(change.id);
+          _debouncedIds.add('node-' + change.id);
           break;
         case 'replace':
           nodes.set(change.id, change.item);
+          _debouncedIds.add('node-' + change.id);
           break;
         default: {
           const node = nodes.get(change.id);
@@ -271,6 +220,20 @@ export const nodesAtom = atom(
               }
               nodes.set(change.id, { ...node });
               break;
+            case 'addEdge':
+              node.edges ??= new Map();
+              node.edges.set(change.handleId, change.edgeId);
+              break;
+            case 'removeEdge':
+              node.edges?.delete(change.handleId);
+              break;
+            case 'compute':
+              if (change.result) {
+                node.computeResult = change.result;
+              } else {
+                delete node.computeResult;
+              }
+              break;
           }
         }
       }
@@ -286,22 +249,14 @@ export const edgesAtom = atom(
     // Reimplement of applyEdgeChanges to work with Map
     const edges = get(edgesMapAtom);
     for (const change of changes) {
-      _debouncedIds.add('edge-' + ('id' in change ? change.id : change.item.id));
       switch (change.type) {
         case 'add':
           edges.set(change.item.id, change.item);
-          set(additionNodePropMapAtom, {
-            nodeId: change.item.source,
-            type: 'edge',
-            handleId: change.item.sourceHandle ?? 'output',
-            edgeId: change.item.id,
-          });
-          set(additionNodePropMapAtom, {
-            nodeId: change.item.target,
-            type: 'edge',
-            handleId: change.item.targetHandle ?? 'input',
-            edgeId: change.item.id,
-          });
+          set(nodesAtom, [
+            { type: 'addEdge', id: change.item.source, handleId: change.item.sourceHandle ?? 'output', edgeId: change.item.id },
+            { type: 'addEdge', id: change.item.target, handleId: change.item.targetHandle ?? 'input', edgeId: change.item.id },
+          ]);
+          _debouncedIds.add('edge-' + change.item.id);
           break;
         case 'replace':
         case 'remove': {
@@ -311,23 +266,18 @@ export const edgesAtom = atom(
           }
           if (change.type === 'remove') {
             edges.delete(change.id);
-            set(additionNodePropMapAtom, { nodeId: edge.source, type: 'edge', handleId: edge.sourceHandle ?? 'output' });
-            set(additionNodePropMapAtom, { nodeId: edge.target, type: 'edge', handleId: edge.targetHandle ?? 'input' });
+            set(nodesAtom, [
+              { type: 'removeEdge', id: edge.source, handleId: edge.sourceHandle ?? 'output' },
+              { type: 'removeEdge', id: edge.target, handleId: edge.targetHandle ?? 'input' },
+            ]);
           } else if (change.type === 'replace') {
             edges.set(change.item.id, change.item);
-            set(additionNodePropMapAtom, {
-              nodeId: edge.source,
-              type: 'edge',
-              handleId: change.item.sourceHandle ?? 'output',
-              edgeId: change.item.id,
-            });
-            set(additionNodePropMapAtom, {
-              nodeId: edge.source,
-              type: 'edge',
-              handleId: change.item.targetHandle ?? 'input',
-              edgeId: change.item.id,
-            });
+            set(nodesAtom, [
+              { type: 'addEdge', id: change.item.source, handleId: change.item.sourceHandle ?? 'output', edgeId: change.item.id },
+              { type: 'addEdge', id: change.item.target, handleId: change.item.targetHandle ?? 'input', edgeId: change.item.id },
+            ]);
           }
+          _debouncedIds.add('edge-' + change.id);
           break;
         }
         case 'select': {
@@ -376,27 +326,15 @@ export const selectedFlowAtom = atom(
           }
         }
 
-        const nodesMap = new Map(nodes.map(node => [node.id, node]));
+        const nodesMap = new Map(nodes.map(node => [node.id, { ...node, edges: new Map() }] as [string, ExtendedNode]));
         const edgesMap = new Map(
           edges.map(edge => {
             const sourceNode = nodesMap.get(edge.source);
-            if (sourceNode) {
-              set(additionNodePropMapAtom, {
-                nodeId: edge.source,
-                type: 'edge',
-                handleId: edge.sourceHandle ?? 'output',
-                edgeId: edge.id,
-              });
-            }
+            if (sourceNode) sourceNode.edges!.set(edge.sourceHandle ?? 'output', edge.id);
+
             const targetNode = nodesMap.get(edge.target);
-            if (targetNode) {
-              set(additionNodePropMapAtom, {
-                nodeId: edge.target,
-                type: 'edge',
-                handleId: edge.targetHandle ?? 'input',
-                edgeId: edge.id,
-              });
-            }
+            if (targetNode) targetNode.edges!.set(edge.targetHandle ?? 'input', edge.id);
+
             return [edge.id, edge];
           }),
         );

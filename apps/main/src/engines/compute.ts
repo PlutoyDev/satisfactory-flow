@@ -442,6 +442,7 @@ export function computeFactoryBeltOrPieEdge(args: EdgeComputeArgs): FactoryBeltO
     // Compare the source and target items speed and show warning if they are not equal
     const itemKeys = new Set<string>([...Object.keys(sourceItemsSpeed), ...Object.keys(targetItemsSpeed)]);
     for (const key of itemKeys) {
+      if (key === 'any') continue;
       const item = docsMapped.items.get(key);
       const sourceValue = sourceItemsSpeed[key];
       const targetValue = targetItemsSpeed[key];

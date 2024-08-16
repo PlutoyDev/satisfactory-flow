@@ -3,7 +3,7 @@ import { Edge, Connection, OnSelectionChangeParams, ReactFlowInstance } from '@x
 import { atom } from 'jotai';
 import { FactoryNodeType } from '../components/rf/BaseNode';
 import { splitHandleId } from '../engines/compute';
-import { store, generateId, edgesAtom, nodesAtom, additionNodePropMapAtom } from './store';
+import { store, generateId, edgesAtom, nodesAtom, nodesMapAtom } from './store';
 
 export const connectionErrorReasonAtom = atom<string | null>(null);
 export const isDraggingNodeAtom = atom(false);
@@ -29,12 +29,12 @@ export function isValidConnection(params: Connection | Edge): boolean {
     store.set(connectionErrorReasonAtom, `Cannot connect ${sourceIntData.form} to ${targetIntData.form}`);
     return false;
   }
-  const sourceNodeAdditionalProp = store.get(additionNodePropMapAtom).get(source);
+  const sourceNodeAdditionalProp = store.get(nodesMapAtom).get(source);
   if (sourceNodeAdditionalProp?.edges?.has(sourceHandle)) {
     store.set(connectionErrorReasonAtom, `Source already connected`);
     return false;
   }
-  const targetNodeAdditionalProp = store.get(additionNodePropMapAtom).get(target);
+  const targetNodeAdditionalProp = store.get(nodesMapAtom).get(target);
   if (targetNodeAdditionalProp?.edges?.has(targetHandle)) {
     store.set(connectionErrorReasonAtom, `Target already connected`);
     return false;
