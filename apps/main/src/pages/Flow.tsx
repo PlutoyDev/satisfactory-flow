@@ -65,11 +65,13 @@ function FlowPage() {
             nodeTypes={customNodes}
             nodeOrigin={[0.5, 0.5]}
             onNodesChange={applyNodeChanges}
+            elevateNodesOnSelect={true}
             // Edge
             edges={edges}
             edgeTypes={customEdges}
             defaultEdgeOptions={{ type: 'smoothstep' }}
             onEdgesChange={applyEdgeChanges}
+            elevateEdgesOnSelect={true}
             // Connection
             connectionRadius={36}
             connectionMode={ConnectionMode.Loose}

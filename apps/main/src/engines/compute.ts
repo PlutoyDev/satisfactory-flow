@@ -423,8 +423,8 @@ export function computeFactoryBeltOrPieEdge(args: EdgeComputeArgs): FactoryBeltO
   let startLabel: string = '';
   let centerLabel: string = '';
   let endLabel: string = '';
-  let displayOnSelect: boolean = false;
-  let colorMode: FactoryBeltOrPipeData['colorMode'] = 'default';
+  let displayOnSelect: boolean | undefined = undefined;
+  let colorMode: FactoryBeltOrPipeData['colorMode'] | undefined = undefined;
   if (!sourceHandle || !targetHandle) {
     colorMode = 'error';
     centerLabel = 'Invalid Node (please submit a bug report)';
@@ -456,8 +456,7 @@ export function computeFactoryBeltOrPieEdge(args: EdgeComputeArgs): FactoryBeltO
         endLabel += `Underconsuming: ${item?.displayName} by ${speedThouToString(sum)}/min`;
       } else {
         centerLabel += `Balanced: ${speedThouToString(sourceValue)}/min of ${item?.displayName}`;
-        displayOnSelect = true;
-        colorMode ??= 'info';
+        displayOnSelect ??= true;
       }
     }
   }
