@@ -56,7 +56,7 @@ export function speedThouToString(speedThou: number, addComma = true) {
 }
 
 export function parseSpeedThou(speedStr: string) {
-  return parseFloat(speedStr.replaceAll(/,/g, '')) * 1000;
+  return Math.floor(parseFloat(speedStr.replaceAll(/,/g, '')) * 1000);
 }
 
 export interface FactoryRecipeNodeData extends FactoryBaseNodeData {
@@ -83,7 +83,7 @@ export function clockSpeedThouToPercentString(clockSpeedThou: number) {
 }
 
 export function parseClockSpeedThouFromPercentString(clockSpeedStr: string) {
-  return parseFloat(clockSpeedStr.replaceAll(/,/g, '')) * 1_00_000;
+  return Math.floor(parseFloat(clockSpeedStr.replaceAll(/,/g, '')) * 1_00_000);
 }
 
 // export const LOGISTIC_DIR = ['left', 'right', 'center'] as const;

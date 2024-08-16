@@ -197,7 +197,7 @@ export function computeFactoryRecipeNode(args: ComputeArgs): ComputeResult | nul
     const intId = `${isIngredient ? 'left' : 'right'}-${itemForm}-${type}-${intTypeIdx}`;
     // Fluids are stored are stored as "liters" in recipe but when dealing with speed its usually done in m³ / min
     const expectSpeedThou = (((isIngredient ? -amount : amount) / durationThou) * 60) / (itemForm === 'solid' ? 1 : 1000);
-    ret.expectItemsSpeed[intId] = { [itemKey]: expectSpeedThou };
+    ret.expectItemsSpeed[intId] = { [itemKey]: Math.floor(expectSpeedThou) };
     // TODO: Actual speed will depends on the nodes connected at the input and output, which will determine its efficiency
     // If output is demanding less than the expected, the input will be throttled
     // If input is providing less than the expected, the output will be throttled
