@@ -1,6 +1,6 @@
 import { Edge, Node } from '@xyflow/react';
 import { isDeepEqual, isShallowEqual } from 'remeda';
-import { AdditionalNodeProperties, DocsMapped } from '../lib/store';
+import { DocsMapped, ExtendedNode } from '../lib/store';
 import {
   FactoryBeltOrPipeData,
   FactoryItemNodeData,
@@ -96,9 +96,8 @@ export function joinIntoHandleId(a: {
 export interface ComputeArgs {
   nodeId: string;
   docsMapped: DocsMapped;
-  nodeMap: Map<string, Node>;
+  nodeMap: Map<string, ExtendedNode>;
   edgeMap: Map<string, Edge>;
-  additionalNodePropMap: Map<string, AdditionalNodeProperties>;
   startedAtNodeId?: string;
   // Do not ask the nodes connected here for their compute result
   ignoreHandleIds?: string[];
@@ -116,8 +115,8 @@ export interface ComputeResult<BasedOnData extends Record<string, unknown> = Rec
 }
 
 export function computeFactoryItemNode(args: ComputeArgs): ComputeResult | null {
-  const { nodeId, docsMapped, nodeMap, additionalNodePropMap, ignoreHandleIds } = args;
-  const prevResult = additionalNodePropMap.get(nodeId)?.computeResult as ComputeResult<ResolvedFactoryItemNodeData>;
+  const { nodeId, docsMapped, nodeMap, ignoreHandleIds } = args;
+  const prevResult = nodeMap.get(nodeId)?.computeResult as ComputeResult<ResolvedFactoryItemNodeData>;
 
   const nullableNodeData = nodeMap.get(nodeId)?.data as FactoryItemNodeData | undefined;
   if (!nullableNodeData) return null;
@@ -155,8 +154,8 @@ export function computeFactoryItemNode(args: ComputeArgs): ComputeResult | null 
 }
 
 export function computeFactoryRecipeNode(args: ComputeArgs): ComputeResult | null {
-  const { nodeId, docsMapped, nodeMap, additionalNodePropMap, ignoreHandleIds } = args;
-  const prevResult = additionalNodePropMap.get(nodeId)?.computeResult as ComputeResult<ResolvedFactoryRecipeNodeData>;
+  const { nodeId, docsMapped, nodeMap, ignoreHandleIds } = args;
+  const prevResult = nodeMap.get(nodeId)?.computeResult as ComputeResult<ResolvedFactoryRecipeNodeData>;
 
   const nullableNodeData = nodeMap.get(nodeId)?.data as FactoryRecipeNodeData | undefined;
   if (!nullableNodeData) return null;
@@ -228,8 +227,8 @@ export function computeFactoryRecipeNode(args: ComputeArgs): ComputeResult | nul
   - item-${string}: Only the selected item will pass through. Its recipe has to be unlocked first for it to appear in the list.  
 */
 export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | null {
-  const { nodeId, nodeMap, edgeMap, additionalNodePropMap, ignoreHandleIds } = args;
-  const nodeAdditionalProperty = additionalNodePropMap.get(nodeId);
+  const { nodeId, nodeMap, edgeMap, ignoreHandleIds } = args;
+  const nodeAdditionalProperty = nodeMap.get(nodeId);
   const prevResult = nodeAdditionalProperty?.computeResult as ComputeResult<ResolvedFactoryLogisticNodeData>;
 
   const nullableNodeData = nodeMap.get(nodeId)?.data as FactoryLogisticNodeData | undefined;
@@ -290,7 +289,7 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
         console.error(`Invalid handleId ${otherHandleId} connected with edge ${edgeId} at node ${otherNodeId}`);
         continue;
       }
-      const otherNodeAdditionalProperty = additionalNodePropMap.get(otherNodeId);
+      const otherNodeAdditionalProperty = nodeMap.get(otherNodeId);
       if (!otherNodeAdditionalProperty) {
         console.error(`Node ${otherNodeId} not found`);
         continue;
@@ -414,11 +413,11 @@ export function computeNode(args: ComputeArgs) {
 type EdgeComputeArgs = Omit<ComputeArgs, 'nodeId' | 'startedAtNodeId' | 'ignoreHandleIds'> & { edgeId: string };
 
 export function computeFactoryBeltOrPieEdge(args: EdgeComputeArgs): FactoryBeltOrPipeData | undefined {
-  const { edgeId, docsMapped, edgeMap, additionalNodePropMap } = args;
+  const { edgeId, docsMapped, nodeMap, edgeMap } = args;
   const { source, sourceHandle, target, targetHandle } = edgeMap.get(edgeId)!;
 
-  const sourceANP = additionalNodePropMap.get(source)!;
-  const targetANP = additionalNodePropMap.get(target)!;
+  const sourceANP = nodeMap.get(source)!;
+  const targetANP = nodeMap.get(target)!;
 
   let startLabel: string = '';
   let centerLabel: string = '';
@@ -438,7 +437,6 @@ export function computeFactoryBeltOrPieEdge(args: EdgeComputeArgs): FactoryBeltO
     // Has computed result
     const sourceItemsSpeed = sourceResult.actualItemsSpeed[sourceHandle] ?? sourceResult.expectItemsSpeed[sourceHandle] ?? {};
     const targetItemsSpeed = targetResult.actualItemsSpeed[targetHandle] ?? targetResult.expectItemsSpeed[targetHandle] ?? {};
-    console.log({ sourceItemsSpeed, targetItemsSpeed });
     // Compare the source and target items speed and show warning if they are not equal
     const itemKeys = new Set<string>([...Object.keys(sourceItemsSpeed), ...Object.keys(targetItemsSpeed)]);
     for (const key of itemKeys) {
@@ -463,4 +461,43 @@ export function computeFactoryBeltOrPieEdge(args: EdgeComputeArgs): FactoryBeltO
   }
 
   return { colorMode, centerLabel, startLabel, endLabel, displayOnSelect };
+}
+
+export interface ComputeFactoryGraphArgs {
+  /** ID can be edge or node */
+  docsMapped: DocsMapped;
+  nodeMap: Map<string, ExtendedNode>;
+  edgeMap: Map<string, Edge>;
+}
+
+export function computeFactoryGraph(arg: ComputeFactoryGraphArgs) {
+  console.log('Computing Factory Graph');
+  // Right now, it recomputes all nodes
+  const { docsMapped, nodeMap, edgeMap } = arg;
+
+  // Order of computation: Item, Recipe, Logistics Node then Edges
+  const recipeNodes = new Set<ExtendedNode>();
+  const logisticNodes = new Set<ExtendedNode>();
+  for (const [nodeId, node] of nodeMap) {
+    if (node.type === 'recipe') {
+      recipeNodes.add(node);
+    } else if (node.type === 'logistic') {
+      logisticNodes.add(node);
+    }
+    const result = computeFactoryItemNode({ nodeId, docsMapped, nodeMap, edgeMap });
+    if (result) node.computeResult = result;
+  }
+  for (const node of recipeNodes) {
+    const result = computeFactoryRecipeNode({ nodeId: node.id, docsMapped, nodeMap, edgeMap });
+    if (result) node.computeResult = result;
+  }
+  for (const node of logisticNodes) {
+    const result = computeFactoryLogisticsNode({ nodeId: node.id, docsMapped, nodeMap, edgeMap });
+    if (result) node.computeResult = result;
+  }
+
+  for (const [edgeId, edge] of edgeMap) {
+    const result = computeFactoryBeltOrPieEdge({ edgeId, docsMapped, nodeMap, edgeMap });
+    if (result) edge.data = result;
+  }
 }

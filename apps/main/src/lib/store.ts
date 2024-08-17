@@ -3,7 +3,7 @@ import type { ParsedOutput } from 'docs-parser';
 import { Atom, atom, getDefaultStore, PrimitiveAtom, SetStateAction, WritableAtom } from 'jotai';
 import { atomWithLocation } from 'jotai-location';
 import { nanoid } from 'nanoid';
-import { computeFactoryBeltOrPieEdge, computeNode, type ComputeResult } from '../engines/compute';
+import { computeFactoryBeltOrPieEdge, computeFactoryGraph, computeNode, type ComputeResult } from '../engines/compute';
 import examples from '../examples';
 import { delEdges, delNodes, FlowData, getEdges, getFlows, getNodes, openFlowDb, setEdges, setFlow, setNodes } from './db';
 
@@ -106,7 +106,8 @@ const _debouncedIds = new Set<string>();
 let _debouncedTimeout: ReturnType<typeof setTimeout> | null = null;
 
 async function deboucedAction(force?: true) {
-  if ((_debouncedIds.size || _debouncedTimeout) && !force) {
+  if ((!_debouncedIds.size || _debouncedTimeout) && !force) {
+    console.log('debounced action (ignored):', _debouncedIds.size, _debouncedTimeout, force);
     return;
   }
   store.set(_isDebouncePendingAtom, true);
@@ -117,12 +118,12 @@ async function deboucedAction(force?: true) {
       _debouncedIds.clear();
       const nodes = store.get(nodesMapAtom);
       const edges = store.get(edgesMapAtom);
+      const docsMapped = await store.get(docsMappedAtom);
 
       const updatedNodes: Node[] = [];
       const updatedEdges: Edge[] = [];
       const deletedNodes: string[] = [];
       const deletedEdges: string[] = [];
-      const edgeIdToCompute = new Set<string>();
       for (const id of ids) {
         // const [type, itemId] = id.split('-') as ['node' | 'edge', string];
         const type = id.substring(0, 4) as 'node' | 'edge';
@@ -133,12 +134,14 @@ async function deboucedAction(force?: true) {
           else deletedNodes.push(itemId);
         } else if (type === 'edge') {
           const edge = edges.get(itemId);
-          if (edge) {
-            updatedEdges.push(edge);
-            edgeIdToCompute.add(itemId);
-          } else deletedEdges.push(itemId);
+          if (edge) updatedEdges.push(edge);
+          else deletedEdges.push(itemId);
         }
       }
+
+      computeFactoryGraph({ docsMapped, nodeMap: nodes, edgeMap: edges });
+      store.set(nodesMapAtom, new Map(nodes));
+      store.set(edgesMapAtom, new Map(edges));
 
       const selFlow = store.get(_selectedFlowAtom);
       if (selFlow?.source === 'db') {
