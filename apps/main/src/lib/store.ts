@@ -160,18 +160,6 @@ async function deboucedAction(force?: true) {
   }, 2000);
 }
 
-export interface AdditionalNodeProperties {
-  // Separate from Node to add additional properties
-  edges?: Map<string, string>; // Map of handleId to edgeId
-  computeResult?: ComputeResult; // Store the result of compute function
-}
-
-type AdditionalNodePropertiesAction = { nodeId: string } & (
-  | { type: 'remove' }
-  | { type: 'edge'; handleId: string; edgeId?: string }
-  | { type: 'compute'; result?: ComputeResult }
-);
-
 export const nodesAtom = atom(
   get => get(_nodesArrayAtom),
   (get, set, changes: ExtendedNodeChange[]) => {
