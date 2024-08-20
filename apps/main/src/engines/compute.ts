@@ -309,7 +309,7 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
       for (const itemKey in nodeItemSpeed) {
         const speedThou = nodeItemSpeed[itemKey];
         ret.actualItemsSpeed[handleId] ??= {};
-        ret.actualItemsSpeed[handleId][itemKey] = speedThou;
+        ret.actualItemsSpeed[handleId][itemKey] = -speedThou;
 
         const newValue = (remainingItemsSpeed.get(itemKey) ?? 0) + speedThou;
         if (newValue === 0) {
@@ -485,19 +485,19 @@ export function computeFactoryGraph(arg: ComputeFactoryGraphArgs) {
       logisticNodes.add(node);
     }
     const result = computeFactoryItemNode({ nodeId, docsMapped, nodeMap, edgeMap });
-    if (result) node.computeResult = result;
+    if (result) nodeMap.set(nodeId, { ...node, computeResult: result });
   }
   for (const node of recipeNodes) {
     const result = computeFactoryRecipeNode({ nodeId: node.id, docsMapped, nodeMap, edgeMap });
-    if (result) node.computeResult = result;
+    if (result) nodeMap.set(node.id, { ...node, computeResult: result });
   }
   for (const node of logisticNodes) {
     const result = computeFactoryLogisticsNode({ nodeId: node.id, docsMapped, nodeMap, edgeMap });
-    if (result) node.computeResult = result;
+    if (result) nodeMap.set(node.id, { ...node, computeResult: result });
   }
 
   for (const [edgeId, edge] of edgeMap) {
     const result = computeFactoryBeltOrPieEdge({ edgeId, docsMapped, nodeMap, edgeMap });
-    if (result) edge.data = result;
+    if (result) edgeMap.set(edgeId, { ...edge, data: result });
   }
 }
