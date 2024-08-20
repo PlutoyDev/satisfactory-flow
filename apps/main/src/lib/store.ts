@@ -343,6 +343,7 @@ export const selectedFlowAtom = atom(
       set(locationAtom, { pathname: '/' });
     }
     set(isSwitchingFlow, false);
+    deboucedAction(true);
   },
 );
 
@@ -367,7 +368,6 @@ export const selectedFlowDataAtom = atom(
         flow.name = update.name;
         flow.description = update.description;
         set(_flowsAtom, new Map(get(_flowsAtom).entries()));
-        deboucedAction(true);
       }
     } else {
       console.error('Cannot update example flow data');
