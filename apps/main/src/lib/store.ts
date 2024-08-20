@@ -367,6 +367,7 @@ export const selectedFlowDataAtom = atom(
         flow.name = update.name;
         flow.description = update.description;
         set(_flowsAtom, new Map(get(_flowsAtom).entries()));
+        deboucedAction(true);
       }
     } else {
       console.error('Cannot update example flow data');
