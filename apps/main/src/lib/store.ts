@@ -187,6 +187,7 @@ export const nodesAtom = atom(
               break;
             case 'position':
               nodes.set(change.id, { ...node, position: change.position ?? node.position, dragging: change.dragging ?? node.dragging });
+              _debouncedIds.add('node-' + change.id);
               break;
             case 'dimensions':
               if (typeof change.dimensions !== 'undefined') {
