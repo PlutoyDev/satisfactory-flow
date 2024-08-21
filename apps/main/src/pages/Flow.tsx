@@ -268,7 +268,8 @@ function PropertyEditorPanel() {
         selectedType={selectedType}
       >
         <div className='bg-base-300 rounded-box min-w-64 px-3 py-1'>
-          <h2 className='text-lg font-semibold'>Properties</h2>
+          <h2 className='text-lg font-semibold inline'>Properties</h2>
+          <p className='float-right text-xs text-gray-500 mt-2'>{selectedIds[0]}</p>
           <div className='divider m-0 mb-2 h-1' />
           <div className='flex flex-col gap-y-2'>{typeof Editor === 'function' ? <Editor /> : Editor}</div>
         </div>
