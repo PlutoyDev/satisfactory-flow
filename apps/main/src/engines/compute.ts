@@ -1,4 +1,5 @@
 import { Edge } from '@xyflow/react';
+import { clone } from 'remeda';
 import { DocsMapped, ExtendedNode } from '../lib/store';
 import {
   FactoryBeltOrPipeData,
@@ -131,7 +132,7 @@ export function computeFactoryItemNode(args: ComputeArgs): ComputeResult | null 
 
   if (interfaceKind === 'both' || interfaceKind === 'in') {
     const intId = `left-${itemForm}-in-0`;
-    ret.expectItemsSpeed[intId] = { [itemKey]: speedThou };
+    ret.expectItemsSpeed[intId] = { [itemKey]: -speedThou };
     // TODO: Actual speed will depends on the node connected at the output if interfaceKind is both
   }
 
@@ -251,49 +252,46 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
 
     // Find the connected edge and the other node
     const handleId = `${dir}-${itemForm}-${intType}-0`;
-    ret.expectItemsSpeed[handleId] = intType === 'in' ? { any: -Infinity } : { any: Infinity }; // Expects to demand everything or provide everything
+    ret.expectItemsSpeed[handleId] = intType === 'in' ? { any: 0 } : { any: 0 }; // Expects to demand everything or provide everything
 
     const edgeId = handleIdToEdgeIdMap?.get(handleId);
-    if (edgeId && !ignoreHandleIds?.includes(handleId)) {
+    if (edgeId) {
       // Connected to an edge with id ${edgeId}
-      const edge = edgeMap.get(edgeId);
-      if (!edge) {
-        console.error(`Edge ${edgeId} not found`);
-        continue;
-      }
-      const otherNodeId = intType === 'in' ? edge.source : edge.target;
-      const otherHandleId = intType === 'in' ? edge.sourceHandle : edge.targetHandle;
-      if (!otherHandleId) {
-        console.error(`Invalid handleId ${otherHandleId} connected with edge ${edgeId} at node ${otherNodeId}`);
-        continue;
-      }
-      const otherNodeAdditionalProperty = nodeMap.get(otherNodeId);
-      if (!otherNodeAdditionalProperty) {
-        console.error(`Node ${otherNodeId} not found`);
-        continue;
-      }
-      const nodeComputeResult =
-        nodesComputeResult.get(otherNodeId) ??
-        computeNode({ startedAtNodeId: otherNodeId, ...args, nodeId: otherNodeId, ignoreHandleIds: [otherHandleId] });
-      if (!nodeComputeResult) {
-        console.error(`Unable to compute node ${otherNodeId}`);
-        continue;
-      }
-      const nodeItemSpeed = nodeComputeResult.actualItemsSpeed[otherHandleId] ?? nodeComputeResult.expectItemsSpeed[otherHandleId];
-      if (!nodeItemSpeed) {
-        console.warn(`Item speed not found for handleId ${otherHandleId} at node ${otherNodeId}`);
-        continue;
-      }
-      for (const itemKey in nodeItemSpeed) {
-        const speedThou = nodeItemSpeed[itemKey];
-        ret.actualItemsSpeed[handleId] ??= {};
-        ret.actualItemsSpeed[handleId][itemKey] = -speedThou;
+      try {
+        if (ignoreHandleIds?.includes(handleId)) throw `log: Ignoring handleId ${handleId}`;
+        const edge = edgeMap.get(edgeId);
+        if (!edge) throw `error: Edge ${edgeId} not found`;
+        const otherNodeId = intType === 'in' ? edge.source : edge.target;
+        const otherHandleId = intType === 'in' ? edge.sourceHandle : edge.targetHandle;
+        if (!otherHandleId) throw `error: HandleId not found for edge ${edgeId}`;
+        const nodeComputeResult =
+          nodesComputeResult.get(otherNodeId) ??
+          computeNode({ startedAtNodeId: nodeId, ...args, nodeId: otherNodeId, ignoreHandleIds: [otherHandleId] });
+        if (!nodeComputeResult) throw `error: Unable to compute node ${otherNodeId}`;
+        // nodesComputeResult.set(otherNodeId, nodeComputeResult);
 
-        const newValue = (remainingItemsSpeed.get(itemKey) ?? 0) + speedThou;
-        if (newValue === 0) {
-          remainingItemsSpeed.delete(itemKey);
-        } else {
-          remainingItemsSpeed.set(itemKey, newValue);
+        const nodeItemSpeed = nodeComputeResult.actualItemsSpeed[otherHandleId] ?? nodeComputeResult.expectItemsSpeed[otherHandleId];
+        if (!nodeItemSpeed) throw `error: Item speed not found for handleId ${otherHandleId} at node ${otherNodeId}`;
+
+        for (const itemKey in nodeItemSpeed) {
+          const speedThou = nodeItemSpeed[itemKey] ?? 0;
+          if (itemKey === 'any') {
+            continue;
+          }
+          ret.actualItemsSpeed[handleId] ??= {};
+          ret.actualItemsSpeed[handleId][itemKey] = -speedThou;
+
+          const newValue = (remainingItemsSpeed.get(itemKey) ?? 0) + speedThou;
+          if (newValue === 0) {
+            remainingItemsSpeed.delete(itemKey);
+          } else {
+            remainingItemsSpeed.set(itemKey, newValue);
+          }
+        }
+      } catch (e) {
+        if (e && typeof e === 'string') {
+          if (e.startsWith('log:')) console.log(e.slice(4));
+          else if (e.startsWith('error:')) console.error(e.slice(7));
         }
       }
 
@@ -305,14 +303,13 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
         if (logisticType === 'splitterSmart' || logisticType === 'splitterPro') {
           // Need do split based on the rules here
           const rules = smartProRules[dir] ?? ['none'];
-          if (rules[0] === 'none') continue; // Don't distribute to this node
           if (rules[0] === 'any') {
             anyOutHandleIds.push(handleId);
           } else if (rules[0] === 'overflow') {
             overflowOutHandleIds.push(handleId);
           } else if (rules[0] === 'anyUndefined') {
             anyUndefinedOutHandleIds.push(handleId);
-          } else {
+          } else if (rules[0] !== 'none') {
             for (const rule of rules) {
               if (!rule.startsWith('item-')) {
                 console.error(`Invalid rule ${rule} for node ${nodeId}`);
@@ -336,35 +333,44 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
   // Distribute remaining items based on the rules
   for (const [itemKey, speedThou] of remainingItemsSpeed) {
     if (speedThou === 0) continue;
-    let handleIds: string[]; // Handle Ids to distribute the item to
+    let positiveHandleIds: string[]; // Handle Ids to distribute the item to
+    let negativeHandleIds: string[]; // Handle Ids to take the item from
     if (speedThou < 0) {
       // if negative speedThou, it means the item is being consumed more than what is provided
-      handleIds = inHandleIds.length > 0 ? inHandleIds : outHandleIds;
+      positiveHandleIds = inHandleIds;
+      negativeHandleIds = outHandleIds;
     } else {
       if (itemKey in specificItemOutHandleIds) {
         // If the item has been specified to go to a specific output
-        handleIds = specificItemOutHandleIds[itemKey];
-        handleIds.push(...anyOutHandleIds); //If there are any out, it will be distributed to any out also
+        positiveHandleIds = specificItemOutHandleIds[itemKey];
+        positiveHandleIds.push(...anyOutHandleIds); //If there are any out, it will be distributed to any out also
       } else if (hasSpecificItemOutAndAnyUndefinedOut) {
         // If the item isn't specified to go to a specific output.
         // But this node has specific item out and any undefined out
         // So it needs to be distributed to anyUndefined output
-        handleIds = anyUndefinedOutHandleIds;
-        handleIds.push(...anyOutHandleIds); //If there are any out, it will be distributed to any out also
+        positiveHandleIds = anyUndefinedOutHandleIds;
+        positiveHandleIds.push(...anyOutHandleIds); //If there are any out, it will be distributed to any out also
       } else {
-        handleIds = anyOutHandleIds;
+        positiveHandleIds = anyOutHandleIds;
       }
-      if (handleIds.length === 0) {
-        // if no handleId to distribute to, floor the speedThou in the negHandleIds
-        handleIds = inHandleIds;
-      }
+      negativeHandleIds = inHandleIds;
     }
 
     // TODO: Handle Overflow
-    const itemSpeed = Math.floor(speedThou / handleIds.length);
-    for (const handleId of handleIds) {
-      ret.actualItemsSpeed[handleId] ??= {};
-      ret.actualItemsSpeed[handleId][itemKey] += itemSpeed;
+    if (positiveHandleIds.length > 0) {
+      const distrubutedPositiveItemSpeed = Math.floor(speedThou / positiveHandleIds.length);
+      for (const handleId of positiveHandleIds) {
+        ret.actualItemsSpeed[handleId] ??= {};
+        ret.actualItemsSpeed[handleId][itemKey] = (ret.actualItemsSpeed[handleId][itemKey] ?? 0) + distrubutedPositiveItemSpeed;
+      }
+    }
+
+    if (negativeHandleIds.length > 0) {
+      const distrubutedNegativeItemSpeed = Math.floor(speedThou / negativeHandleIds.length);
+      for (const handleId of negativeHandleIds) {
+        ret.actualItemsSpeed[handleId] ??= {};
+        ret.actualItemsSpeed[handleId][itemKey] = (ret.actualItemsSpeed[handleId][itemKey] ?? 0) + distrubutedNegativeItemSpeed;
+      }
     }
   }
 
