@@ -9,7 +9,7 @@ const getLabelStyle = (position: Position | 'center', x: number, y: number, sele
     zIndex: selected ? 1000 : undefined,
   };
   if (position === 'left') {
-    properties.transform += ' translate(-100%, 0)';
+    properties.transform += ' translate(-100%, -100%)';
   }
   if (position === 'top') {
     properties.transform += ' rotate(-90deg)';
