@@ -93,6 +93,17 @@ export const edgesMapAtom = atom(
   },
 );
 
+interface GenerateHistoryActionArgs {
+  itemType: 'node' | 'edge';
+  itemId: string;
+  prev: Node | Edge;
+  next: Node | Edge;
+}
+
+// function genHistoryAction({ itemType, itemId, prev, next }: GenerateHistoryActionArgs): HistoryAction
+
+// const historyAtom = atom<HistoryAction[]>([]);
+
 const _isDebouncePendingAtom = atom(false);
 const _debouncedIds = new Set<string>();
 let _debouncedTimeout: ReturnType<typeof setTimeout> | null = null;

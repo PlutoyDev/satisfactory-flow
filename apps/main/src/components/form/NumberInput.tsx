@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { Minus, Plus } from 'lucide-react';
-import { clockSpeedThouToPercentString, parseClockSpeedThouFromPercentString, parseSpeedThou, speedThouToString } from '../../engines/data';
+import { clockSpeedThouToPercentString, parseClockSpeedThouFromPercentString, parseSpeedThou, speedThouToString } from '../../lib/data';
 import { useEditorField } from '../rf/BaseNode';
 
 interface NumberInputProps {

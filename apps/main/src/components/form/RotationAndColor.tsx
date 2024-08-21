@@ -1,5 +1,5 @@
 import { RotateCw, RotateCcw } from 'lucide-react';
-import { FactoryBaseNodeData } from '../../engines/data';
+import { FactoryBaseNodeData } from '../../lib/data';
 import { FACTORY_NODE_DEFAULT_COLORS, useEditorField } from '../rf/BaseNode';
 
 export function RotationAndColorFields() {

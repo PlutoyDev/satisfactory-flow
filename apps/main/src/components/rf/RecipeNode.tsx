@@ -2,7 +2,7 @@ import { Fragment, useMemo } from 'react';
 import { Node, NodeProps } from '@xyflow/react';
 import { useAtom } from 'jotai';
 import { ArrowRight } from 'lucide-react';
-import { clockSpeedThouToPercentString, FactoryRecipeNodeData, resolveRecipeNodeData } from '../../engines/data';
+import { clockSpeedThouToPercentString, FactoryRecipeNodeData, resolveRecipeNodeData } from '../../lib/data';
 import { docsMappedAtom } from '../../lib/store';
 import NumberInput from '../form/NumberInput';
 import RecipeComboBox from '../form/RecipeComboBox';

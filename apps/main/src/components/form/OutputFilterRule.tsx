@@ -4,7 +4,7 @@ import { useAtom } from 'jotai';
 import { ChevronDown, Plus, X } from 'lucide-react';
 import { isDeepEqual, set } from 'remeda';
 import { FactoryInterfaceDir } from '../../engines/compute';
-import { FactoryLogisticNodeData, LogisticSmartProRules, LogisticType } from '../../engines/data';
+import { FactoryLogisticNodeData, LogisticSmartProRules, LogisticType } from '../../lib/data';
 import { docsMappedAtom } from '../../lib/store';
 import { useEditorField } from '../rf/BaseNode';
 

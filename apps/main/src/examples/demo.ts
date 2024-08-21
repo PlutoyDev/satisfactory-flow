@@ -1,5 +1,5 @@
 import { Edge, Node } from '@xyflow/react';
-import { FactoryItemNodeData, FactoryLogisticNodeData, FactoryRecipeNodeData } from '../engines/data';
+import { FactoryItemNodeData, FactoryLogisticNodeData, FactoryRecipeNodeData } from '../lib/data';
 
 export default {
   nodes: [

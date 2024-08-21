@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { NodeProps, Node } from '@xyflow/react';
 import { useAtom } from 'jotai';
-import { FactoryItemNodeData, resolveItemNodeData, speedThouToString } from '../../engines/data';
+import { FactoryItemNodeData, resolveItemNodeData, speedThouToString } from '../../lib/data';
 import { docsMappedAtom } from '../../lib/store';
 import ItemComboBox from '../form/ItemComboBox';
 import NumberInput from '../form/NumberInput';

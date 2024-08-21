@@ -1,6 +1,5 @@
 import { Edge } from '@xyflow/react';
 import { clone } from 'remeda';
-import { DocsMapped, ExtendedNode } from '../lib/store';
 import {
   FactoryBeltOrPipeData,
   FactoryItemNodeData,
@@ -10,7 +9,8 @@ import {
   resolveLogisticNodeData,
   resolveRecipeNodeData,
   speedThouToString,
-} from './data';
+} from '../lib/data';
+import { DocsMapped, ExtendedNode } from '../lib/store';
 
 /*
 Will be Modified from: 

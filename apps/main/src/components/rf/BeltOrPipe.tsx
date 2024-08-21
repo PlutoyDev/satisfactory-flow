@@ -1,6 +1,6 @@
 import { CSSProperties } from 'react';
 import { BaseEdge, Edge, EdgeLabelRenderer, EdgeProps, getSmoothStepPath, Position } from '@xyflow/react';
-import { FactoryBeltOrPipeData } from '../../engines/data';
+import { FactoryBeltOrPipeData } from '../../lib/data';
 
 const getLabelStyle = (position: Position | 'center', x: number, y: number, selected: boolean = false): CSSProperties => {
   const properties: CSSProperties = {

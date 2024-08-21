@@ -1,4 +1,4 @@
-import type { FactoryInterfaceDir } from './compute';
+import type { FactoryInterfaceDir } from '../engines/compute';
 
 /*
 Data type using for computation
