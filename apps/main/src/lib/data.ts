@@ -1,4 +1,10 @@
 /*
+Main data properties of nodes and edges that are stored, versioned, or transferred
+*/
+import { Node, Edge, Viewport } from '@xyflow/react';
+import { pick } from 'remeda';
+
+/*
 Data type using for computation
 
 Base Node Data:
@@ -199,4 +205,21 @@ export function joinIntoHandleId(a: {
   index: FactoryInterfaceIndex;
 }) {
   return `${a.dir}-${a.form}-${a.type}-${a.index}`;
+}
+
+export type MainNodeProp = Pick<Node, 'id' | 'type' | 'data' | 'position'>;
+export type MainEdgeProp = Pick<Edge, 'id' | 'type' | 'data' | 'source' | 'target' | 'sourceHandle' | 'targetHandle'>;
+
+export type FlowProperties = {
+  viewportX?: number;
+  viewportY?: number;
+  viewportZoom?: number;
+};
+
+export function pickMainNodeProp(node: Node): MainNodeProp {
+  return pick(node, ['id', 'type', 'data', 'position']);
+}
+
+export function pickMainEdgeProp(edge: Edge): MainEdgeProp {
+  return pick(edge, ['id', 'type', 'data', 'source', 'target', 'sourceHandle', 'targetHandle']);
 }

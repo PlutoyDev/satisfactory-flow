@@ -1,6 +1,7 @@
 import type { Node, Edge } from '@xyflow/react';
 import { openDB, DBSchema } from 'idb';
-import { filter, forEach, map, mapToObj, pick, pipe } from 'remeda';
+import { filter, map, mapToObj, pick, pipe } from 'remeda';
+import { MainNodeProp, MainEdgeProp, FlowProperties } from './data';
 
 // IndexedDB for the app
 
@@ -90,23 +91,14 @@ export async function setSetting<K extends keyof Settings>(key: K, value: Settin
   return mainDb.put('settings', { key, value });
 }
 
-export type StoredNode = Pick<Node, 'id' | 'type' | 'data' | 'position'>;
-export type StoredEdge = Pick<Edge, 'id' | 'type' | 'data' | 'source' | 'target' | 'sourceHandle' | 'targetHandle'>;
-
-export type FlowProperties = {
-  viewportX?: number;
-  viewportY?: number;
-  viewportZoom?: number;
-};
-
 interface FlowDbSchema extends DBSchema {
   nodes: {
     key: string;
-    value: StoredNode;
+    value: MainNodeProp;
   };
   edges: {
     key: string;
-    value: StoredEdge;
+    value: MainEdgeProp;
   };
   properties: {
     key: keyof FlowProperties;
@@ -172,7 +164,7 @@ export function getNodes(flowDbOrId: FlowDb | string) {
   return resolveFlowDbOrId(flowDbOrId, flowDb => flowDb.getAll('nodes'));
 }
 
-export function setNodes(flowDbOrId: FlowDb | string, nodes: (StoredNode | Node)[]) {
+export function setNodes(flowDbOrId: FlowDb | string, nodes: (MainNodeProp | Node)[]) {
   return resolveFlowDbOrId(flowDbOrId, flowDb => {
     const tx = flowDb.transaction('nodes', 'readwrite');
     // const promises = nodes.map(node => tx.store.put(pick(node, ['id', 'type', 'data', 'position'])));
@@ -198,7 +190,7 @@ export function getEdges(flowDbOrId: FlowDb | string) {
   return resolveFlowDbOrId(flowDbOrId, flowDb => flowDb.getAll('edges'));
 }
 
-export function setEdges(flowDbOrId: FlowDb | string, edges: StoredEdge[]) {
+export function setEdges(flowDbOrId: FlowDb | string, edges: (MainEdgeProp | Edge)[]) {
   return resolveFlowDbOrId(flowDbOrId, flowDb => {
     const tx = flowDb.transaction('edges', 'readwrite');
     return Promise.all(
