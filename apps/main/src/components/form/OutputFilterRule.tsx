@@ -2,9 +2,8 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'rea
 import Fuse from 'fuse.js';
 import { useAtom } from 'jotai';
 import { ChevronDown, Plus, X } from 'lucide-react';
-import { isDeepEqual, set } from 'remeda';
-import { FactoryInterfaceDir } from '../../engines/compute';
-import { FactoryLogisticNodeData, LogisticSmartProRules, LogisticType } from '../../lib/data';
+import { isDeepEqual } from 'remeda';
+import { FactoryInterfaceDir, FactoryLogisticNodeData, LogisticSmartProRules, LogisticType } from '../../lib/data';
 import { docsMappedAtom } from '../../lib/store';
 import { useEditorField } from '../rf/BaseNode';
 

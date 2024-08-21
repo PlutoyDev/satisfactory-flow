@@ -1,6 +1,6 @@
 import { createContext, ReactNode, useContext, useEffect, useRef } from 'react';
 import { Handle, NodeProps, Position, Node, useUpdateNodeInternals, Edge } from '@xyflow/react';
-import { FACTORY_INTERFACE_DIR, FactoryInterfaceDir, FactoryInterfaceType, FactoryItemForm, joinIntoHandleId } from '../../engines/compute';
+import { FACTORY_INTERFACE_DIR, FactoryInterfaceDir, FactoryInterfaceType, FactoryItemForm, joinIntoHandleId } from '../../lib/data';
 import { FactoryBaseNodeData } from '../../lib/data';
 
 export const FACTORY_NODE_TYPES = ['item', 'recipe', 'logistic'] as const;

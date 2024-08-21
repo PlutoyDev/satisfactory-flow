@@ -1,7 +1,13 @@
 import { useMemo } from 'react';
 import { NodeProps, Node } from '@xyflow/react';
-import { FACTORY_INTERFACE_DIR, FactoryItemForm, FactoryInterfaceType } from '../../engines/compute';
-import { FactoryLogisticNodeData, LogisticType, resolveLogisticNodeData } from '../../lib/data';
+import {
+  type FactoryItemForm,
+  type FactoryInterfaceType,
+  FACTORY_INTERFACE_DIR,
+  LogisticType,
+  type FactoryLogisticNodeData,
+  resolveLogisticNodeData,
+} from '../../lib/data';
 import { OutputFilterRule } from '../form/OutputFilterRule';
 import { RotationAndColorFields } from '../form/RotationAndColor';
 import { FactoryInterface, FactoryNodeWrapper, useEditorField } from './BaseNode';

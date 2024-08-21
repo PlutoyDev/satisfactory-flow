@@ -1,5 +1,3 @@
-import type { FactoryInterfaceDir } from '../engines/compute';
-
 /*
 Data type using for computation
 
@@ -26,6 +24,11 @@ Logistic Node Data extends Base Node Data:
 Generators Node Data extends Base Node Data:
 - generatorKey: string (key from docsJson)
 - clockSpeedThou: number (thousandth of clock speed)
+
+---
+Due to floating point precision, all computations will be done in integers by multiplying floats by 1000 and then dividing by 1000 at the end.
+Any variable that is "mimicking" a float will be suffixed with "Thou" (short for thousandth) ie clockSpeedThou, itemRateThou, etc.
+FYI: the "Thou" suffix is pronounced "th-ow" (like "thousandth" but without the "sandth"), and it came from thousandth of an inch (thou) in engineering. (I'm just bad at naming things)
 */
 
 type RequireSome<T, K extends keyof T> = T & Required<Pick<T, K>>;
@@ -136,4 +139,64 @@ export interface FactoryBeltOrPipeData extends Record<string, any> {
   endLabel?: string;
   colorMode?: 'default' | 'info' | 'warning' | 'error';
   displayOnSelect?: boolean;
+}
+
+/*
+"Interfaces", refering to input/output are represented as a combination of 
+- direction (left, top, right, bottom)
+- itemForm (solid, fluid)
+- type (in, out)
+- index (0, 1, 2, 3)
+
+Interfaces are represented as a lowercase string joined by a hyphen, e.g. "left-solid-in-0". 
+They also correspond as the handleId of the node.
+
+Each "machine" will have a compute function that will take node and edge data and return:
+- interfaces (`${direction}-${itemForm}-${type}-${index}`)
+- itemRate (items per minute)
+*/
+
+export const FACTORY_INTERFACE_DIR = ['left', 'top', 'right', 'bottom'] as const;
+export type FactoryInterfaceDir = (typeof FACTORY_INTERFACE_DIR)[number];
+export const FACTORY_INTERFACE_ITEM_FORM = ['solid', 'fluid'] as const;
+export type FactoryItemForm = (typeof FACTORY_INTERFACE_ITEM_FORM)[number];
+export const FACTORY_INTERFACE_TYPE = ['in', 'out'] as const;
+export type FactoryInterfaceType = (typeof FACTORY_INTERFACE_TYPE)[number];
+export const FACTORY_INTERFACE_INDEX = [0, 1, 2, 3] as const;
+export type FactoryInterfaceIndex = (typeof FACTORY_INTERFACE_INDEX)[number];
+
+export function splitHandleId(id: string, validate = false) {
+  const parts = id.split('-');
+  if (validate && parts.length !== 4) {
+    throw new Error('Invalid Interface ID');
+  }
+  const [dir, form, type, indexStr] = parts as [FactoryInterfaceDir, FactoryItemForm, FactoryInterfaceType, '0' | '1' | '2' | '3'];
+  const index = parseInt(indexStr) as FactoryInterfaceIndex;
+  if (isNaN(index)) {
+    throw new Error('Invalid Interface Index');
+  }
+  if (validate) {
+    if (!FACTORY_INTERFACE_DIR.includes(dir)) {
+      throw new Error('Invalid Interface Direction');
+    }
+    if (!FACTORY_INTERFACE_ITEM_FORM.includes(form)) {
+      throw new Error('Invalid Interface Item Form');
+    }
+    if (!FACTORY_INTERFACE_TYPE.includes(type)) {
+      throw new Error('Invalid Interface Type');
+    }
+    if (!FACTORY_INTERFACE_INDEX.includes(index)) {
+      throw new Error('Invalid Interface Index');
+    }
+  }
+  return { dir, form, type, index };
+}
+
+export function joinIntoHandleId(a: {
+  dir: FactoryInterfaceDir;
+  form: FactoryItemForm;
+  type: FactoryInterfaceType;
+  index: FactoryInterfaceIndex;
+}) {
+  return `${a.dir}-${a.form}-${a.type}-${a.index}`;
 }
