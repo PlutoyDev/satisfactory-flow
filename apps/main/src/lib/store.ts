@@ -3,7 +3,7 @@ import type { ParsedOutput } from 'docs-parser';
 import { Atom, atom, getDefaultStore, PrimitiveAtom, SetStateAction, WritableAtom } from 'jotai';
 import { atomWithLocation } from 'jotai-location';
 import { nanoid } from 'nanoid';
-import { computeFactoryBeltOrPieEdge, computeFactoryGraph, computeNode, type ComputeResult } from '../engines/compute';
+import { computeFactoryGraph } from '../engines/compute';
 import examples from '../examples';
 import { delEdges, delNodes, FlowData, getEdges, getFlows, getNodes, openFlowDb, setEdges, setFlow, setNodes } from './db';
 
@@ -54,8 +54,6 @@ const _selectedFlowAtom = atom<SelectedFlow | null>(null);
 export interface ExtendedNode extends Node {
   /** Handle ID to Edge ID mapping */
   edges?: Map<string, string>;
-  /** Compute result */
-  computeResult?: ComputeResult;
 }
 
 export interface NodeAddEdgeChange {
@@ -71,13 +69,7 @@ export interface NodeRemoveEdgeChange {
   handleId: string;
 }
 
-export interface NodeComputeChange {
-  id: string;
-  type: 'compute';
-  result: ComputeResult | null;
-}
-
-export type ExtendedNodeChange = NodeChange | NodeAddEdgeChange | NodeRemoveEdgeChange | NodeComputeChange;
+export type ExtendedNodeChange = NodeChange | NodeAddEdgeChange | NodeRemoveEdgeChange;
 
 const _nodesMapAtom = atom<Map<string, ExtendedNode>>(new Map());
 const _edgesMapAtom = atom<Map<string, Edge>>(new Map());
@@ -217,13 +209,6 @@ export const nodesAtom = atom(
               break;
             case 'removeEdge':
               node.edges?.delete(change.handleId);
-              break;
-            case 'compute':
-              if (change.result) {
-                node.computeResult = change.result;
-              } else {
-                delete node.computeResult;
-              }
               break;
           }
         }
