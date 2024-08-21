@@ -95,7 +95,7 @@ export interface ComputeArgs {
   docsMapped: DocsMapped;
   nodeMap: Map<string, ExtendedNode>;
   edgeMap: Map<string, Edge>;
-  startedAtNodeId?: string;
+  visitedNode?: string[];
   // Do not ask the nodes connected here for their compute result
   ignoreHandleIds?: string[];
   nodesComputeResult: Map<string, ComputeResult>;
@@ -213,7 +213,11 @@ export function computeFactoryRecipeNode(args: ComputeArgs): ComputeResult | nul
   - item-${string}: Only the selected item will pass through. Its recipe has to be unlocked first for it to appear in the list.  
 */
 export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | null {
-  const { nodeId, nodeMap, edgeMap, ignoreHandleIds, nodesComputeResult } = args;
+  const { visitedNode = [], nodeId, nodeMap, edgeMap, ignoreHandleIds, nodesComputeResult } = args;
+  if (visitedNode.includes(nodeId)) {
+    console.error(`Circular dependency detected at node ${nodeId}`);
+    return null;
+  }
   const nodeAdditionalProperty = nodeMap.get(nodeId);
 
   const nullableNodeData = nodeMap.get(nodeId)?.data as FactoryLogisticNodeData | undefined;
@@ -258,7 +262,7 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
     if (edgeId) {
       // Connected to an edge with id ${edgeId}
       try {
-        if (ignoreHandleIds?.includes(handleId)) throw `log: Ignoring handleId ${handleId}`;
+        if (ignoreHandleIds?.includes(handleId)) throw null;
         const edge = edgeMap.get(edgeId);
         if (!edge) throw `error: Edge ${edgeId} not found`;
         const otherNodeId = intType === 'in' ? edge.source : edge.target;
@@ -266,7 +270,7 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
         if (!otherHandleId) throw `error: HandleId not found for edge ${edgeId}`;
         const nodeComputeResult =
           nodesComputeResult.get(otherNodeId) ??
-          computeNode({ startedAtNodeId: nodeId, ...args, nodeId: otherNodeId, ignoreHandleIds: [otherHandleId] });
+          computeNode({ ...args, nodeId: otherNodeId, ignoreHandleIds: [otherHandleId], visitedNode: [nodeId, ...visitedNode] });
         if (!nodeComputeResult) throw `error: Unable to compute node ${otherNodeId}`;
         // nodesComputeResult.set(otherNodeId, nodeComputeResult);
 
