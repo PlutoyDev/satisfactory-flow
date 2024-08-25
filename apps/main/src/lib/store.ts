@@ -349,7 +349,6 @@ export const nodesAtom = atom(
               nodes.set(change.id, { ...node, selected: change.selected });
               break;
             case 'position':
-              console.log('position:', node.position, change.position, node.dragging, change.dragging);
               if (!node.dragging && change.dragging) {
                 // When dragging starts, save the current position
                 currentHistoryEvent.push({ type: 'change', itemType: 'node', itemId: change.id, patch: { position: node.position } });
