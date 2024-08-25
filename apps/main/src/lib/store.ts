@@ -206,7 +206,7 @@ export const alignYs = new Map<number, Set<string>>(); // Map of Y position to N
 
 function getAlignmentValue(value: number, size: number) {
   const half = size / 2;
-  return [value - half, value, value + half];
+  return [value, value - half, value + half];
 }
 
 function addAlignmentXYs(node: Node) {
@@ -309,6 +309,7 @@ export const nodesAtom = atom(
     const historyEvents = get(_undoHistoryAtom);
     const currentHistoryEvent: HistoryEvent = [];
     const nodes = get(_nodesMapAtom);
+    let alignmentValue: { x: number | undefined; y: number | undefined } = { x: undefined, y: undefined };
     for (const change of changes) {
       // _debouncedIds.add('node-' + ('id' in change ? change.id : change.item.id));
       switch (change.type) {
@@ -360,10 +361,8 @@ export const nodesAtom = atom(
                 set(alignmentAtom, { x: undefined, y: undefined });
               } else {
                 if (change.position && node.measured) {
-                  set(alignmentAtom, {
-                    x: getAlignmentValue(change.position.x, node.measured.width!).find(x => alignXs.has(x)),
-                    y: getAlignmentValue(change.position.y, node.measured.height!).find(y => alignYs.has(y)),
-                  });
+                  alignmentValue.x ??= getAlignmentValue(change.position.x, node.measured.width!).find(x => alignXs.has(x));
+                  alignmentValue.y ??= getAlignmentValue(change.position.y, node.measured.height!).find(y => alignYs.has(y));
                 }
               }
               nodes.set(change.id, { ...node, position: change.position ?? node.position, dragging: change.dragging ?? node.dragging });
@@ -395,6 +394,9 @@ export const nodesAtom = atom(
           }
         }
       }
+    }
+    if (alignmentValue.x !== undefined || alignmentValue.y !== undefined) {
+      set(alignmentAtom, alignmentValue);
     }
     if (currentHistoryEvent.length) {
       set(_undoHistoryAtom, [...historyEvents, currentHistoryEvent]);
