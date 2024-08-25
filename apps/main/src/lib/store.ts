@@ -1,9 +1,9 @@
 import { Node, Edge, NodeChange, EdgeChange } from '@xyflow/react';
 import type { ParsedOutput } from 'docs-parser';
-import { Atom, atom, getDefaultStore, PrimitiveAtom, SetStateAction, useAtom, WritableAtom } from 'jotai';
+import { Atom, atom, getDefaultStore, PrimitiveAtom, SetStateAction, WritableAtom } from 'jotai';
 import { atomWithLocation } from 'jotai-location';
 import { nanoid } from 'nanoid';
-import { computeFactoryGraph } from '../engines/compute';
+import { computeFactoryGraph } from '../engines/itemSpeed';
 import examples from '../examples';
 import {
   MainNodeProp,
