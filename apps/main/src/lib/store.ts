@@ -201,6 +201,42 @@ export const historyActionAtom = atom(
   },
 );
 
+export const alignXs = new Map<number, Set<string>>(); // Map of X position to Node IDs
+export const alignYs = new Map<number, Set<string>>(); // Map of Y position to Node IDs
+
+function addAlignmentXYs(node: Node) {
+  // Each node has 3xs and 3ys for alignment (start, center, end)
+  if (!node.measured || !node.measured.width || !node.measured.height) return;
+  const x = node.position.x;
+  const y = node.position.y;
+  const xs = [x, x + node.measured.width / 2, x + node.measured.width];
+  const ys = [y, y + node.measured.height / 2, y + node.measured.height];
+  for (const x of xs) {
+    if (!alignXs.has(x)) alignXs.set(x, new Set());
+    alignXs.get(x)!.add(node.id);
+  }
+  for (const y of ys) {
+    if (!alignYs.has(y)) alignYs.set(y, new Set());
+    alignYs.get(y)!.add(node.id);
+  }
+}
+
+function removeAlignmentXYs(node: Node) {
+  if (!node.measured || !node.measured.width || !node.measured.height) return;
+  const x = node.position.x;
+  const y = node.position.y;
+  const xs = [x, x + node.measured.width / 2, x + node.measured.width];
+  const ys = [y, y + node.measured.height / 2, y + node.measured.height];
+  for (const x of xs) {
+    if (alignXs.get(x)?.size === 1) alignXs.delete(x);
+    else alignXs.get(x)?.delete(node.id);
+  }
+  for (const y of ys) {
+    if (alignYs.get(y)?.size === 1) alignYs.delete(y);
+    else alignYs.get(y)?.delete(node.id);
+  }
+}
+
 const _isDebouncePendingAtom = atom(false);
 const _debouncedIds = new Set<string>();
 let _debouncedTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -313,6 +349,11 @@ export const nodesAtom = atom(
               if (!node.dragging && change.dragging) {
                 // When dragging starts, save the current position
                 currentHistoryEvent.push({ type: 'change', itemType: 'node', itemId: change.id, patch: { position: node.position } });
+                removeAlignmentXYs(node);
+              }
+              if (node.dragging && !change.dragging) {
+                // When dragging ends
+                addAlignmentXYs(node);
               }
               nodes.set(change.id, { ...node, position: change.position ?? node.position, dragging: change.dragging ?? node.dragging });
               _debouncedIds.add('node-' + change.id);
@@ -322,6 +363,7 @@ export const nodesAtom = atom(
                 node.measured ??= {};
                 node.measured.width = change.dimensions.width;
                 node.measured.height = change.dimensions.height;
+                addAlignmentXYs(node);
                 if (change.setAttributes) {
                   node.width = change.dimensions.width;
                   node.height = change.dimensions.height;

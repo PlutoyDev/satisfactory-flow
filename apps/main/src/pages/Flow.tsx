@@ -16,7 +16,16 @@ import {
   reactflowInstanceAtom,
   selectedIdsAtom,
 } from '../lib/rfListeners';
-import { edgesAtom, edgesMapAtom, historyActionAtom, nodesAtom, nodesMapAtom, selectedFlowAtom, selectedFlowDataAtom } from '../lib/store';
+import {
+  alignXs,
+  edgesAtom,
+  edgesMapAtom,
+  historyActionAtom,
+  nodesAtom,
+  nodesMapAtom,
+  selectedFlowAtom,
+  selectedFlowDataAtom,
+} from '../lib/store';
 
 function FlowPage() {
   const [isDraggingNode] = useAtom(isDraggingNodeAtom);
@@ -114,6 +123,17 @@ function FlowPage() {
                 <button className='btn btn-ghost' disabled={!redoable} onClick={() => applyHistoryAction('redo')}>
                   <Redo />
                 </button>
+              </div>
+            </Panel>
+            <Panel position='top-left'>
+              <div className='flex-col'>
+                {Array.from(alignXs).map(([key, value]) => {
+                  return (
+                    <p>
+                      {key}: {Array.from(value).join(', ')}
+                    </p>
+                  );
+                })}
               </div>
             </Panel>
           </ReactFlow>
