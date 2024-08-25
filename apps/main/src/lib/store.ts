@@ -145,6 +145,7 @@ export const historyActionAtom = atom(
     const edges = new Map(get(edgesMapAtom));
     const reverseEvent: HistoryEvent = [];
     for (const op of lastEvent) {
+      _debouncedIds.add(`${op.itemType}-${op.itemId}`);
       if (op.type === 'add') {
         if (op.itemType === 'node') {
           const node = nodes.get(op.itemId);
@@ -196,6 +197,7 @@ export const historyActionAtom = atom(
       set(_undoHistoryAtom, [...undoHistory, reverseEvent]);
       set(_redoHistoryAtom, redoHistory.slice(0, redoHistory.length - 1));
     }
+    deboucedAction();
   },
 );
 
