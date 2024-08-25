@@ -296,6 +296,7 @@ function PropertyEditorPanel() {
   return (
     <Panel position='bottom-right'>
       <FactoryEditorContextProvider
+        key={selectedIds[0]}
         getValue={getValue}
         createSetValue={createSetValue}
         nodeOrEdge={selNodeOrEdge}
