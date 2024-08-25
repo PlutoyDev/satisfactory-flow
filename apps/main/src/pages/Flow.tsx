@@ -17,7 +17,7 @@ import {
   selectedIdsAtom,
 } from '../lib/rfListeners';
 import {
-  alignXs,
+  alignmentAtom,
   edgesAtom,
   edgesMapAtom,
   historyActionAtom,
@@ -29,12 +29,13 @@ import {
 
 function FlowPage() {
   const [isDraggingNode] = useAtom(isDraggingNodeAtom);
-  const [, setReactFlowInstance] = useAtom(reactflowInstanceAtom);
+  const [rfInstance, setReactFlowInstance] = useAtom(reactflowInstanceAtom);
   const [selectedFlow, setSelectedFlow] = useAtom(selectedFlowAtom);
   const [selFlowData, setSelFlowData] = useAtom(selectedFlowDataAtom);
   const [nodes, applyNodeChanges] = useAtom(nodesAtom);
   const [edges, applyEdgeChanges] = useAtom(edgesAtom);
   const [{ undoable, redoable }, applyHistoryAction] = useAtom(historyActionAtom);
+  const [{ x: alignLineX, y: alignLineY }] = useAtom(alignmentAtom);
 
   if (!selectedFlow) {
     return <div>404 Not Found</div>;
@@ -125,17 +126,19 @@ function FlowPage() {
                 </button>
               </div>
             </Panel>
-            <Panel position='top-left'>
-              <div className='flex-col'>
-                {Array.from(alignXs).map(([key, value]) => {
-                  return (
-                    <p>
-                      {key}: {Array.from(value).join(', ')}
-                    </p>
-                  );
-                })}
-              </div>
-            </Panel>
+            {/* Drawing the alignment line on screen */}
+            {rfInstance && alignLineX && (
+              <div
+                className='fixed pointer-events-none border-l border-success border-dashed'
+                style={{ left: rfInstance.flowToScreenPosition({ x: alignLineX, y: rfInstance.getViewport().y }).x, top: 0, bottom: 0 }}
+              />
+            )}
+            {rfInstance && alignLineY && (
+              <div
+                className='fixed pointer-events-none border-t border-success border-dashed'
+                style={{ top: rfInstance.flowToScreenPosition({ x: rfInstance.getViewport().x, y: alignLineY }).y, left: 0, right: 0 }}
+              />
+            )}
           </ReactFlow>
         </Suspense>
       </div>

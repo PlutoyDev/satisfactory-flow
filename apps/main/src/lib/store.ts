@@ -204,13 +204,16 @@ export const historyActionAtom = atom(
 export const alignXs = new Map<number, Set<string>>(); // Map of X position to Node IDs
 export const alignYs = new Map<number, Set<string>>(); // Map of Y position to Node IDs
 
+function getAlignmentValue(value: number, size: number) {
+  const half = size / 2;
+  return [value - half, value, value + half];
+}
+
 function addAlignmentXYs(node: Node) {
   // Each node has 3xs and 3ys for alignment (start, center, end)
   if (!node.measured || !node.measured.width || !node.measured.height) return;
-  const x = node.position.x;
-  const y = node.position.y;
-  const xs = [x, x + node.measured.width / 2, x + node.measured.width];
-  const ys = [y, y + node.measured.height / 2, y + node.measured.height];
+  const xs = getAlignmentValue(node.position.x, node.measured.width);
+  const ys = getAlignmentValue(node.position.y, node.measured.height);
   for (const x of xs) {
     if (!alignXs.has(x)) alignXs.set(x, new Set());
     alignXs.get(x)!.add(node.id);
@@ -223,10 +226,8 @@ function addAlignmentXYs(node: Node) {
 
 function removeAlignmentXYs(node: Node) {
   if (!node.measured || !node.measured.width || !node.measured.height) return;
-  const x = node.position.x;
-  const y = node.position.y;
-  const xs = [x, x + node.measured.width / 2, x + node.measured.width];
-  const ys = [y, y + node.measured.height / 2, y + node.measured.height];
+  const xs = getAlignmentValue(node.position.x, node.measured.width);
+  const ys = getAlignmentValue(node.position.y, node.measured.height);
   for (const x of xs) {
     if (alignXs.get(x)?.size === 1) alignXs.delete(x);
     else alignXs.get(x)?.delete(node.id);
@@ -236,6 +237,8 @@ function removeAlignmentXYs(node: Node) {
     else alignYs.get(y)?.delete(node.id);
   }
 }
+
+export const alignmentAtom = atom<{ x: number | undefined; y: number | undefined }>({ x: undefined, y: undefined });
 
 const _isDebouncePendingAtom = atom(false);
 const _debouncedIds = new Set<string>();
@@ -354,6 +357,14 @@ export const nodesAtom = atom(
               if (node.dragging && !change.dragging) {
                 // When dragging ends
                 addAlignmentXYs(node);
+                set(alignmentAtom, { x: undefined, y: undefined });
+              } else {
+                if (change.position && node.measured) {
+                  set(alignmentAtom, {
+                    x: getAlignmentValue(change.position.x, node.measured.width!).find(x => alignXs.has(x)),
+                    y: getAlignmentValue(change.position.y, node.measured.height!).find(y => alignYs.has(y)),
+                  });
+                }
               }
               nodes.set(change.id, { ...node, position: change.position ?? node.position, dragging: change.dragging ?? node.dragging });
               _debouncedIds.add('node-' + change.id);
