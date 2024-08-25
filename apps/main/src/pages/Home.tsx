@@ -7,7 +7,7 @@ function NavigateToFlowButton({ flowName, flowId, source }: { flowName: string; 
   const [, setSelectedFlow] = useAtom(selectedFlowAtom);
   return (
     <a
-      className='btn btn-sm'
+      className='btn btn-sm btn-outline rounded-badge'
       href={`/flows/${source}/${flowId}`}
       onClick={e => {
         e.preventDefault();
@@ -71,7 +71,7 @@ function HomePage() {
             </div>
           </div>
           <p className='mt-4 text-lg'>Or create a new flow:</p>
-          <button className='btn mx-4 w-full' onClick={() => setCreatingFlow(true)}>
+          <button className='btn mx-4 w-full btn-outline' onClick={() => setCreatingFlow(true)}>
             New Flow
           </button>
         </>
