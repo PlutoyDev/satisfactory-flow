@@ -16,7 +16,7 @@ import {
   reactflowInstanceAtom,
   selectedIdsAtom,
 } from '../lib/rfListeners';
-import { edgesAtom, edgesMapAtom, nodesAtom, nodesMapAtom, selectedFlowAtom, selectedFlowDataAtom } from '../lib/store';
+import { _undoHistoryAtom, edgesAtom, edgesMapAtom, nodesAtom, nodesMapAtom, selectedFlowAtom, selectedFlowDataAtom } from '../lib/store';
 
 function FlowPage() {
   const [isDraggingNode] = useAtom(isDraggingNodeAtom);
@@ -25,6 +25,7 @@ function FlowPage() {
   const [selFlowData, setSelFlowData] = useAtom(selectedFlowDataAtom);
   const [nodes, applyNodeChanges] = useAtom(nodesAtom);
   const [edges, applyEdgeChanges] = useAtom(edgesAtom);
+  const [history] = useAtom(_undoHistoryAtom);
 
   if (!selectedFlow) {
     return <div>404 Not Found</div>;
@@ -105,6 +106,9 @@ function FlowPage() {
             )}
             <NodeSelectionPanel />
             <PropertyEditorPanel />
+            <Panel position='top-left'>
+              <pre className='text-xs'>{JSON.stringify(history.slice(-4), null, 2)}</pre>
+            </Panel>
           </ReactFlow>
         </Suspense>
       </div>

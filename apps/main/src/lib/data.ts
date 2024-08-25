@@ -1,7 +1,7 @@
 /*
 Main data properties of nodes and edges that are stored, versioned, or transferred
 */
-import { Node, Edge, Viewport } from '@xyflow/react';
+import { Node, Edge } from '@xyflow/react';
 import { pick } from 'remeda';
 
 /*
@@ -220,6 +220,64 @@ export function pickMainNodeProp(node: Node): MainNodeProp {
   return pick(node, ['id', 'type', 'data', 'position']);
 }
 
+export function diffMainNodeProp(node1: Node, node2: Node) {
+  // "type" will always be the same, there's no way to change it in the UI
+  const { data: data1, position: position1 } = node1;
+  const { data: data2, position: position2 } = node2;
+  const patch: Record<string, any> = {};
+  for (const key in data1) {
+    if (data1[key] !== data2[key]) {
+      patch['data.' + key] = data1[key];
+    }
+  }
+  if (position1.x !== position2.x || position1.y !== position2.y) patch.position = position1;
+  return patch;
+}
+
+export function applyMainNodePropPatch(node: Node, patch: Record<string, any>) {
+  for (const key in patch) {
+    const keys = key.split('.');
+    if (keys[0] === 'data') {
+      node.data[keys[1]] = patch[key];
+    } else if (keys[0] === 'position') {
+      // @ts-ignore
+      node.position[keys[1]] = patch[key];
+    }
+  }
+}
+
 export function pickMainEdgeProp(edge: Edge): MainEdgeProp {
   return pick(edge, ['id', 'type', 'data', 'source', 'target', 'sourceHandle', 'targetHandle']);
+}
+
+export function diffMainEdgeProp(edge1: Edge, edge2: Edge) {
+  // "type" will always be the same, there's no way to change it in the UI
+  const { data: data1, source: source1, target: target1, sourceHandle: sourceHandle1, targetHandle: targetHandle1 } = edge1;
+  const { data: data2, source: source2, target: target2, sourceHandle: sourceHandle2, targetHandle: targetHandle2 } = edge2;
+  const patch: Record<string, any> = {};
+  if (data1 !== data2 && data1 && data2) {
+    for (const key in data1) {
+      if (data1[key] !== data2[key]) {
+        patch['data.' + key] = data1[key];
+      }
+    }
+  }
+  if (source1 !== source2) patch.source = source1;
+  if (target1 !== target2) patch.target = target1;
+  if (sourceHandle1 !== sourceHandle2) patch.sourceHandle = sourceHandle1;
+  if (targetHandle1 !== targetHandle2) patch.targetHandle = targetHandle1;
+  return patch;
+}
+
+export function applyMainEdgePropPatch(edge: Edge, patch: Record<string, any>) {
+  for (const key in patch) {
+    const keys = key.split('.');
+    if (keys[0] === 'data') {
+      edge.data ??= {};
+      edge.data[keys[1]] = patch[key];
+    } else if (['source', 'target', 'sourceHandle', 'targetHandle'].includes(keys[0])) {
+      // @ts-ignore
+      edge[keys[0]] = patch[key];
+    }
+  }
 }
