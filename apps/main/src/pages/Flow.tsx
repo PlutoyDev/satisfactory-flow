@@ -1,4 +1,4 @@
-import { Suspense, useCallback } from 'react';
+import { Suspense, useCallback, useState } from 'react';
 import { Background, ConnectionMode, Edge, Node, Panel, ReactFlow } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import debounce from 'debounce';
@@ -32,6 +32,7 @@ function FlowPage() {
   const [rfInstance, setReactFlowInstance] = useAtom(reactflowInstanceAtom);
   const [selectedFlow, setSelectedFlow] = useAtom(selectedFlowAtom);
   const [selFlowData, setSelFlowData] = useAtom(selectedFlowDataAtom);
+  const [isRenaming, setRenaming] = useState(false);
   const [nodes, applyNodeChanges] = useAtom(nodesAtom);
   const [edges, applyEdgeChanges] = useAtom(edgesAtom);
   const [{ undoable, redoable }, applyHistoryAction] = useAtom(historyActionAtom);
@@ -50,9 +51,8 @@ function FlowPage() {
           </a>
         </div>
         <div className='navbar-center'>
-          <h2 className='text-xl font-semibold'>{selFlowData?.name}</h2>
-          <button className='btn btn-ghost btn-xs mr-2' disabled={selectedFlow.source !== 'db'}>
-            {/* TODO: Implment edit flow name button */}
+          <h2 className='text-xl font-semibold '>{selFlowData?.name}</h2>
+          <button className='btn btn-ghost btn-xs mr-2' disabled={selectedFlow.source !== 'db'} onClick={() => setRenaming(true)}>
             <FilePen size={24} />
           </button>
         </div>
@@ -139,6 +139,50 @@ function FlowPage() {
                 style={{ top: rfInstance.flowToScreenPosition({ x: rfInstance.getViewport().x, y: alignLineY }).y, left: 0, right: 0 }}
               />
             )}
+            {
+              // Renaming dialog
+              isRenaming && (
+                <>
+                  {/* Overlay */}
+                  <div className='fixed bg-base-300 bg-opacity-80 w-full h-full top-0 left-0 z-40' onClick={() => setRenaming(false)} />
+                  {/* Dialog */}
+                  <div className='fixed bg-base-300 bg-opacity-90 rounded-box w-96 p-4 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50'>
+                    <h2 className='text-lg font-semibold'>Rename Flow</h2>
+                    <input
+                      type='text'
+                      className='input input-sm mt-2 w-full'
+                      defaultValue={selFlowData?.name}
+                      autoFocus
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') {
+                          setSelFlowData({ ...selFlowData, name: (e.target as HTMLInputElement).value });
+                          setRenaming(false);
+                        }
+                      }}
+                    />
+                    <div className='flex justify-end mt-2'>
+                      <button
+                        className='btn btn-sm btn-error'
+                        onClick={() => {
+                          setRenaming(false);
+                        }}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        className='btn btn-sm btn-accent ml-2'
+                        onClick={() => {
+                          setSelFlowData({ ...selFlowData, name: (document.querySelector('.input') as HTMLInputElement).value });
+                          setRenaming(false);
+                        }}
+                      >
+                        Rename
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )
+            }
           </ReactFlow>
         </Suspense>
       </div>

@@ -548,6 +548,7 @@ export const selectedFlowDataAtom = atom(
       if (flow) {
         flow.name = update.name;
         flow.description = update.description;
+        setFlow(flow);
         set(_flowsAtom, new Map(get(_flowsAtom).entries()));
       }
     } else {
