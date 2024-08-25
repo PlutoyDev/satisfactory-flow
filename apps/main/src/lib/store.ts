@@ -5,7 +5,15 @@ import { atomWithLocation } from 'jotai-location';
 import { nanoid } from 'nanoid';
 import { computeFactoryGraph } from '../engines/compute';
 import examples from '../examples';
-import { MainNodeProp, MainEdgeProp, pickMainNodeProp, diffMainNodeProp, pickMainEdgeProp } from './data';
+import {
+  MainNodeProp,
+  MainEdgeProp,
+  pickMainNodeProp,
+  diffMainNodeProp,
+  pickMainEdgeProp,
+  applyMainEdgePropPatch,
+  applyMainNodePropPatch,
+} from './data';
 import { delEdges, delNodes, FlowData, getEdges, getFlows, getNodes, openFlowDb, setEdges, setFlow, setNodes } from './db';
 
 // Application Store using Jotai
@@ -117,8 +125,79 @@ interface ChangeItemOperation {
 type Operation = AddItemOperation | RemoveItemOperation | ChangeItemOperation;
 type HistoryEvent = Operation[];
 
-export const _undoHistoryAtom = atom<HistoryEvent[]>([]);
-export const _redoHistoryAtom = atom<HistoryEvent[]>([]);
+const _undoHistoryAtom = atom<HistoryEvent[]>([]);
+const _redoHistoryAtom = atom<HistoryEvent[]>([]);
+
+export const historyActionAtom = atom(
+  get => {
+    return { undoable: get(_undoHistoryAtom).length > 0, redoable: get(_redoHistoryAtom).length > 0 };
+  },
+  (get, set, action: 'undo' | 'redo') => {
+    const undoHistory = get(_undoHistoryAtom);
+    const redoHistory = get(_redoHistoryAtom);
+    if ((action === 'undo' && !undoHistory.length) || (action === 'redo' && !redoHistory.length)) {
+      // Not possible to undo or redo
+      return;
+    }
+
+    const lastEvent = action === 'undo' ? undoHistory[undoHistory.length - 1] : redoHistory[redoHistory.length - 1];
+    const nodes = new Map(get(nodesMapAtom));
+    const edges = new Map(get(edgesMapAtom));
+    const reverseEvent: HistoryEvent = [];
+    for (const op of lastEvent) {
+      if (op.type === 'add') {
+        if (op.itemType === 'node') {
+          const node = nodes.get(op.itemId);
+          if (node) {
+            reverseEvent.push({ type: 'remove', itemType: op.itemType, itemId: op.itemId, item: pickMainNodeProp(node) });
+            nodes.delete(op.itemId);
+          }
+        } else if (op.itemType === 'edge') {
+          const edge = edges.get(op.itemId);
+          if (edge) {
+            reverseEvent.push({ type: 'remove', itemType: op.itemType, itemId: op.itemId, item: pickMainEdgeProp(edge) });
+            edges.delete(op.itemId);
+          }
+        }
+      } else if (op.type === 'remove') {
+        if (op.itemType === 'node') {
+          nodes.set(op.itemId, op.item as ExtendedNode);
+        } else if (op.itemType === 'edge') {
+          edges.set(op.itemId, op.item as Edge);
+          nodes.get((op.item as Edge).source)?.edges?.set((op.item as Edge).sourceHandle ?? 'output', op.itemId);
+          nodes.get((op.item as Edge).target)?.edges?.set((op.item as Edge).targetHandle ?? 'input', op.itemId);
+        }
+        reverseEvent.push({ type: 'add', itemType: op.itemType, itemId: op.itemId });
+      } else if (op.type === 'change') {
+        if (op.itemType === 'node') {
+          const node = { ...nodes.get(op.itemId)! };
+          if (node) {
+            const reversePatch = applyMainNodePropPatch(node, op.patch);
+            reverseEvent.push({ type: 'change', itemType: op.itemType, itemId: op.itemId, patch: reversePatch });
+          }
+          nodes.set(op.itemId, node);
+        } else if (op.itemType === 'edge') {
+          const edge = { ...edges.get(op.itemId)! };
+          if (edge) {
+            const reversePatch = applyMainEdgePropPatch(edge, op.patch);
+            reverseEvent.push({ type: 'change', itemType: op.itemType, itemId: op.itemId, patch: reversePatch });
+          }
+          edges.set(op.itemId, edge);
+        }
+      }
+    }
+    set(nodesMapAtom, nodes);
+    set(edgesMapAtom, edges);
+
+    if (action === 'undo') {
+      set(_undoHistoryAtom, undoHistory.slice(0, undoHistory.length - 1));
+      set(_redoHistoryAtom, [...redoHistory, reverseEvent]);
+    } else {
+      set(_undoHistoryAtom, [...undoHistory, reverseEvent]);
+      set(_redoHistoryAtom, redoHistory.slice(0, redoHistory.length - 1));
+    }
+  },
+);
 
 const _isDebouncePendingAtom = atom(false);
 const _debouncedIds = new Set<string>();
@@ -264,6 +343,7 @@ export const nodesAtom = atom(
     }
     if (currentHistoryEvent.length) {
       set(_undoHistoryAtom, [...historyEvents, currentHistoryEvent]);
+      set(_redoHistoryAtom, []); // Clear redo history
     }
     set(nodesMapAtom, nodes);
     deboucedAction();
@@ -323,6 +403,7 @@ export const edgesAtom = atom(
     }
     if (currentHistoryEvent.length) {
       set(_undoHistoryAtom, [...historyEvents, currentHistoryEvent]);
+      set(_redoHistoryAtom, []); // Clear redo history
     }
     set(edgesMapAtom, edges);
     deboucedAction();

@@ -3,7 +3,7 @@ import { Background, ConnectionMode, Edge, Node, Panel, ReactFlow } from '@xyflo
 import '@xyflow/react/dist/style.css';
 import debounce from 'debounce';
 import { useAtom } from 'jotai';
-import { FilePen, Home, Save, X } from 'lucide-react';
+import { FilePen, Home, Redo, Save, Undo, X } from 'lucide-react';
 import { customEdges, customNodeEditors, customNodes } from '../components/rf';
 import { FACTORY_NODE_DEFAULT_COLORS, FACTORY_NODE_TYPES, FactoryEditorContextProvider, FactoryNodeType } from '../components/rf/BaseNode';
 import ConnectionLine from '../components/rf/ConnectionLine';
@@ -16,7 +16,7 @@ import {
   reactflowInstanceAtom,
   selectedIdsAtom,
 } from '../lib/rfListeners';
-import { _undoHistoryAtom, edgesAtom, edgesMapAtom, nodesAtom, nodesMapAtom, selectedFlowAtom, selectedFlowDataAtom } from '../lib/store';
+import { edgesAtom, edgesMapAtom, historyActionAtom, nodesAtom, nodesMapAtom, selectedFlowAtom, selectedFlowDataAtom } from '../lib/store';
 
 function FlowPage() {
   const [isDraggingNode] = useAtom(isDraggingNodeAtom);
@@ -25,7 +25,7 @@ function FlowPage() {
   const [selFlowData, setSelFlowData] = useAtom(selectedFlowDataAtom);
   const [nodes, applyNodeChanges] = useAtom(nodesAtom);
   const [edges, applyEdgeChanges] = useAtom(edgesAtom);
-  const [history] = useAtom(_undoHistoryAtom);
+  const [{ undoable, redoable }, applyHistoryAction] = useAtom(historyActionAtom);
 
   if (!selectedFlow) {
     return <div>404 Not Found</div>;
@@ -106,8 +106,15 @@ function FlowPage() {
             )}
             <NodeSelectionPanel />
             <PropertyEditorPanel />
-            <Panel position='top-left'>
-              <pre className='text-xs'>{JSON.stringify(history.slice(-4), null, 2)}</pre>
+            <Panel position='top-center'>
+              <div className='flex flex-row'>
+                <button className='btn btn-ghost' disabled={!undoable} onClick={() => applyHistoryAction('undo')}>
+                  <Undo />
+                </button>
+                <button className='btn btn-ghost' disabled={!redoable} onClick={() => applyHistoryAction('redo')}>
+                  <Redo />
+                </button>
+              </div>
             </Panel>
           </ReactFlow>
         </Suspense>

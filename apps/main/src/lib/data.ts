@@ -235,15 +235,23 @@ export function diffMainNodeProp(node1: Node, node2: Node) {
 }
 
 export function applyMainNodePropPatch(node: Node, patch: Record<string, any>) {
+  const reversePatch: Record<string, any> = {};
   for (const key in patch) {
     const keys = key.split('.');
     if (keys[0] === 'data') {
-      node.data[keys[1]] = patch[key];
+      reversePatch['data.' + keys[1]] = node.data[keys[1]];
+      if (patch[key] === undefined) {
+        delete node.data?.[keys[1]];
+      } else {
+        node.data ??= {};
+        node.data[keys[1]] = patch[key];
+      }
     } else if (keys[0] === 'position') {
-      // @ts-ignore
-      node.position[keys[1]] = patch[key];
+      reversePatch[key] = { x: node.position.x, y: node.position.y };
+      node.position = patch[key];
     }
   }
+  return reversePatch;
 }
 
 export function pickMainEdgeProp(edge: Edge): MainEdgeProp {
@@ -270,14 +278,21 @@ export function diffMainEdgeProp(edge1: Edge, edge2: Edge) {
 }
 
 export function applyMainEdgePropPatch(edge: Edge, patch: Record<string, any>) {
+  const reversePatch: Record<string, any> = {};
   for (const key in patch) {
     const keys = key.split('.');
     if (keys[0] === 'data') {
-      edge.data ??= {};
-      edge.data[keys[1]] = patch[key];
+      reversePatch['data.' + keys[1]] = edge.data?.[keys[1]];
+      if (patch[key] === undefined) {
+        delete edge.data?.[keys[1]];
+      } else {
+        edge.data ??= {};
+        edge.data[keys[1]] = patch[key];
+      }
     } else if (['source', 'target', 'sourceHandle', 'targetHandle'].includes(keys[0])) {
       // @ts-ignore
       edge[keys[0]] = patch[key];
     }
   }
+  return reversePatch;
 }
