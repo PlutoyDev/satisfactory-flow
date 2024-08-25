@@ -1,6 +1,6 @@
-import { Node, Edge, NodeChange, EdgeChange, XYPosition } from '@xyflow/react';
+import { Node, Edge, NodeChange, EdgeChange } from '@xyflow/react';
 import type { ParsedOutput } from 'docs-parser';
-import { Atom, atom, getDefaultStore, PrimitiveAtom, SetStateAction, WritableAtom } from 'jotai';
+import { Atom, atom, getDefaultStore, PrimitiveAtom, SetStateAction, useAtom, WritableAtom } from 'jotai';
 import { atomWithLocation } from 'jotai-location';
 import { nanoid } from 'nanoid';
 import { computeFactoryGraph } from '../engines/compute';
@@ -94,30 +94,31 @@ export const edgesMapAtom = atom(
   },
 );
 
-interface AddItemHistory {
+interface AddItemOperation {
   type: 'add';
   itemType: 'node' | 'edge';
   itemId: string;
 }
 
-interface RemoveItemHistory {
+interface RemoveItemOperation {
   type: 'remove';
   itemType: 'node' | 'edge';
   itemId: string;
   item: MainNodeProp | MainEdgeProp;
 }
 
-interface ChangeItemHistory {
+interface ChangeItemOperation {
   type: 'change';
   itemType: 'node' | 'edge';
   itemId: string;
   patch: Record<string, any>;
 }
 
-type HistoryAction = AddItemHistory | RemoveItemHistory | ChangeItemHistory;
+type Operation = AddItemOperation | RemoveItemOperation | ChangeItemOperation;
+type HistoryEvent = Operation[];
 
-export const _undoHistoryAtom = atom<HistoryAction[][]>([]);
-const _redoHistoryAtom = atom<HistoryAction[][]>([]);
+export const _undoHistoryAtom = atom<HistoryEvent[]>([]);
+export const _redoHistoryAtom = atom<HistoryEvent[]>([]);
 
 const _isDebouncePendingAtom = atom(false);
 const _debouncedIds = new Set<string>();
@@ -185,37 +186,33 @@ export const nodesAtom = atom(
   get => get(_nodesArrayAtom),
   (get, set, changes: ExtendedNodeChange[]) => {
     // Reimplement of applyNodeChanges to work with Map
-    const historyActions = [...get(_undoHistoryAtom)];
+    const historyEvents = get(_undoHistoryAtom);
+    const currentHistoryEvent: HistoryEvent = [];
     const nodes = get(_nodesMapAtom);
     for (const change of changes) {
       // _debouncedIds.add('node-' + ('id' in change ? change.id : change.item.id));
       switch (change.type) {
         case 'add':
-          historyActions.push([{ type: 'add', itemType: 'node', itemId: change.item.id }]);
+          currentHistoryEvent.push({ type: 'add', itemType: 'node', itemId: change.item.id });
           nodes.set(change.item.id, change.item);
           _debouncedIds.add('node-' + change.item.id);
           break;
         case 'remove':
-          historyActions.push([{ type: 'remove', itemType: 'node', itemId: change.id, item: pickMainNodeProp(nodes.get(change.id)!) }]);
+          currentHistoryEvent.push({ type: 'remove', itemType: 'node', itemId: change.id, item: pickMainNodeProp(nodes.get(change.id)!) });
           nodes.delete(change.id);
           _debouncedIds.add('node-' + change.id);
           break;
         case 'replace':
           const prev = nodes.get(change.id)!;
           const patch = diffMainNodeProp(prev, change.item);
-          const prevAction = historyActions[historyActions.length - 1];
-          const prevFAction = prevAction && prevAction[0];
-          if (
-            prevAction?.length !== 1 || // previous action has multiple changes
-            prevFAction.itemType !== 'node' || // previous action is not for a node
-            prevFAction.type !== 'change' || // previous action is not a change
-            prevFAction.itemId !== change.id || // previous action is not for the same node
-            Object.keys(patch).length !== 1 || // multiple properties has changed
-            Object.keys(prevFAction.patch).length !== 1 || // previous action has multiple properties has changed
-            Object.keys(prevFAction.patch)[0] !== Object.keys(patch)[0] // previous action has different property changed
-          ) {
-            // The condition above will only be false when the same property is changed multiple times like itemSpeed, clockSpeed, etc.
-            historyActions.push([{ type: 'change', itemType: 'node', itemId: change.id, patch }]);
+          const prevHistoryEvent = historyEvents[historyEvents.length - 1];
+          // Seach for the last change event for the same node
+          const matchingOperation = prevHistoryEvent?.find(
+            op => op.type === 'change' && op.itemType === 'node' && op.itemId === change.id,
+          ) as ChangeItemOperation | undefined;
+          if (!matchingOperation || Object.keys(patch).some(key => !(key in matchingOperation.patch))) {
+            // If there is no previous change event for the same node or the patch is applied for a different property
+            currentHistoryEvent.push({ type: 'change', itemType: 'node', itemId: change.id, patch });
           }
           nodes.set(change.id, change.item);
           _debouncedIds.add('node-' + change.id);
@@ -231,22 +228,13 @@ export const nodesAtom = atom(
               nodes.set(change.id, { ...node, selected: change.selected });
               break;
             case 'position':
-              if (change.position) {
-                const prevAction = historyActions[historyActions.length - 1];
-                const prevFAction = prevAction && prevAction[0];
-                if (
-                  prevAction?.length !== 1 || // previous action has multiple changes
-                  prevFAction.itemType !== 'node' || // previous action is not for a node
-                  prevFAction.type !== 'change' || // previous action is not a change
-                  prevFAction.itemId !== change.id || // previous action is not for the same node
-                  Object.keys(prevFAction.patch).length !== 1 || // previous action has multiple properties has changed
-                  Object.keys(prevFAction.patch)[0] !== 'position' // previous change action is not for position
-                ) {
-                  historyActions.push([{ type: 'change', itemType: 'node', itemId: change.id, patch: { position: change.position } }]);
-                }
-                nodes.set(change.id, { ...node, position: change.position ?? node.position, dragging: change.dragging ?? node.dragging });
-                _debouncedIds.add('node-' + change.id);
+              console.log('position:', node.position, change.position, node.dragging, change.dragging);
+              if (!node.dragging && change.dragging) {
+                // When dragging starts, save the current position
+                currentHistoryEvent.push({ type: 'change', itemType: 'node', itemId: change.id, patch: { position: node.position } });
               }
+              nodes.set(change.id, { ...node, position: change.position ?? node.position, dragging: change.dragging ?? node.dragging });
+              _debouncedIds.add('node-' + change.id);
               break;
             case 'dimensions':
               if (typeof change.dimensions !== 'undefined') {
@@ -274,7 +262,9 @@ export const nodesAtom = atom(
         }
       }
     }
-    set(_undoHistoryAtom, historyActions);
+    if (currentHistoryEvent.length) {
+      set(_undoHistoryAtom, [...historyEvents, currentHistoryEvent]);
+    }
     set(nodesMapAtom, nodes);
     deboucedAction();
   },
@@ -284,12 +274,13 @@ export const edgesAtom = atom(
   get => get(_edgesArrayAtom),
   (get, set, changes: EdgeChange<Edge>[]) => {
     // Reimplement of applyEdgeChanges to work with Map
-    const historyActions = [...get(_undoHistoryAtom)];
+    const historyEvents = get(_undoHistoryAtom);
+    const currentHistoryEvent: HistoryEvent = [];
     const edges = get(edgesMapAtom);
     for (const change of changes) {
       switch (change.type) {
         case 'add':
-          historyActions.push([{ type: 'add', itemType: 'edge', itemId: change.item.id }]);
+          currentHistoryEvent.push({ type: 'add', itemType: 'edge', itemId: change.item.id });
           edges.set(change.item.id, change.item);
           set(nodesAtom, [
             { type: 'addEdge', id: change.item.source, handleId: change.item.sourceHandle ?? 'output', edgeId: change.item.id },
@@ -300,11 +291,10 @@ export const edgesAtom = atom(
         case 'replace':
         case 'remove': {
           const edge = edges.get(change.id);
-          const actions: HistoryAction[] = [];
           if (!edge) {
             break;
           }
-          actions.push({ type: 'remove', itemType: 'edge', itemId: change.id, item: pickMainEdgeProp(edge) });
+          currentHistoryEvent.push({ type: 'remove', itemType: 'edge', itemId: change.id, item: pickMainEdgeProp(edge) });
           if (change.type === 'remove') {
             edges.delete(change.id);
             set(nodesAtom, [
@@ -312,14 +302,13 @@ export const edgesAtom = atom(
               { type: 'removeEdge', id: edge.target, handleId: edge.targetHandle ?? 'input' },
             ]);
           } else if (change.type === 'replace') {
-            actions.push({ type: 'add', itemType: 'edge', itemId: change.item.id });
+            currentHistoryEvent.push({ type: 'add', itemType: 'edge', itemId: change.item.id });
             edges.set(change.item.id, change.item);
             set(nodesAtom, [
               { type: 'addEdge', id: change.item.source, handleId: change.item.sourceHandle ?? 'output', edgeId: change.item.id },
               { type: 'addEdge', id: change.item.target, handleId: change.item.targetHandle ?? 'input', edgeId: change.item.id },
             ]);
           }
-          historyActions.push(actions);
           _debouncedIds.add('edge-' + change.id);
           break;
         }
@@ -331,6 +320,9 @@ export const edgesAtom = atom(
           break;
         }
       }
+    }
+    if (currentHistoryEvent.length) {
+      set(_undoHistoryAtom, [...historyEvents, currentHistoryEvent]);
     }
     set(edgesMapAtom, edges);
     deboucedAction();
