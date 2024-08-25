@@ -309,6 +309,7 @@ export const nodesAtom = atom(
     const historyEvents = get(_undoHistoryAtom);
     const currentHistoryEvent: HistoryEvent = [];
     const nodes = get(_nodesMapAtom);
+    let needSetAlignment = false;
     let alignmentValue: { x: number | undefined; y: number | undefined } = { x: undefined, y: undefined };
     for (const change of changes) {
       // _debouncedIds.add('node-' + ('id' in change ? change.id : change.item.id));
@@ -358,11 +359,10 @@ export const nodesAtom = atom(
                 // When dragging ends
                 addAlignmentXYs(node);
                 set(alignmentAtom, { x: undefined, y: undefined });
-              } else {
-                if (change.position && node.measured) {
-                  alignmentValue.x ??= getAlignmentValue(change.position.x, node.measured.width!).find(x => alignXs.has(x));
-                  alignmentValue.y ??= getAlignmentValue(change.position.y, node.measured.height!).find(y => alignYs.has(y));
-                }
+              } else if (change.position && node.measured) {
+                alignmentValue.x ??= getAlignmentValue(change.position.x, node.measured.width!).find(x => alignXs.has(x));
+                alignmentValue.y ??= getAlignmentValue(change.position.y, node.measured.height!).find(y => alignYs.has(y));
+                needSetAlignment = true;
               }
               nodes.set(change.id, { ...node, position: change.position ?? node.position, dragging: change.dragging ?? node.dragging });
               _debouncedIds.add('node-' + change.id);
@@ -394,8 +394,8 @@ export const nodesAtom = atom(
         }
       }
     }
-    if (alignmentValue.x !== undefined || alignmentValue.y !== undefined) {
-      set(alignmentAtom, alignmentValue);
+    if (needSetAlignment) {
+      set(alignmentAtom, { x: alignmentValue.x, y: alignmentValue.y });
     }
     if (currentHistoryEvent.length) {
       set(_undoHistoryAtom, [...historyEvents, currentHistoryEvent]);
