@@ -565,12 +565,14 @@ export const selectedFlowDataAtom = atom(
   get => {
     const selectedFlow = get(selectedFlowAtom);
     if (selectedFlow) {
-      if (selectedFlow.source === 'db') {
-        return get(_flowsAtom).get(selectedFlow.flowId) as Pick<FlowInfo, 'name' | 'description'> | undefined;
+      if (selectedFlow.source === 'db' || selectedFlow.source === 'import') {
+        return get(_flowsAtom).get(selectedFlow.flowId);
       } else if (selectedFlow.source === 'example') {
-        return examples.get(selectedFlow.flowId) as Pick<FlowInfo, 'name' | 'description'> | undefined;
-      } else if (selectedFlow.source === 'import') {
-        return get(_flowsAtom).get(selectedFlow.flowId) as Pick<FlowInfo, 'name' | 'description'> | undefined;
+        return {
+          ...examples.get(selectedFlow.flowId)!,
+          updated: new Date(0),
+          created: new Date(0),
+        } satisfies FlowInfo;
       }
     } else {
       return null;

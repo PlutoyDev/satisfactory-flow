@@ -1,12 +1,13 @@
-import { Suspense, useCallback, useState } from 'react';
-import { Background, ConnectionMode, Edge, Node, Panel, ReactFlow } from '@xyflow/react';
+import { Suspense, useCallback, useMemo, useRef, useState } from 'react';
+import { Background, ConnectionMode, Edge, Node, Panel, ReactFlow, useReactFlow } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import debounce from 'debounce';
 import { useAtom } from 'jotai';
-import { FilePen, Home, OctagonX, Redo, Save, Undo, X } from 'lucide-react';
+import { ArrowRightFromLine, FilePen, Home, OctagonX, Redo, Save, Undo, X } from 'lucide-react';
 import { customEdges, customNodeEditors, customNodes } from '../components/rf';
 import { FACTORY_NODE_DEFAULT_COLORS, FACTORY_NODE_TYPES, FactoryEditorContextProvider, FactoryNodeType } from '../components/rf/BaseNode';
 import ConnectionLine from '../components/rf/ConnectionLine';
+import { MainEdgeProp, MainNodeProp, stringifyFlowData } from '../lib/data';
 import {
   addEdge,
   isDraggingNodeAtom,
@@ -39,6 +40,7 @@ function FlowPage() {
   const [edges, applyEdgeChanges] = useAtom(edgesAtom);
   const [{ undoable, redoable }, applyHistoryAction] = useAtom(historyActionAtom);
   const [{ x: alignLineX, y: alignLineY }] = useAtom(alignmentAtom);
+  const [isExporting, setExporting] = useState<boolean>(false);
 
   if (!selectedFlow) {
     return <div>404 Not Found</div>;
@@ -59,6 +61,9 @@ function FlowPage() {
           </button>
         </div>
         <div className='navbar-end'>
+          <button className='btn btn-ghost' onClick={() => setExporting(true)}>
+            <ArrowRightFromLine />
+          </button>
           <button className='btn btn-ghost'>
             <Save size={32} className='stroke-2' />
           </button>
@@ -144,46 +149,19 @@ function FlowPage() {
             {
               // Renaming dialog
               isRenaming && (
-                <>
-                  {/* Overlay */}
-                  <div className='fixed bg-base-300 bg-opacity-80 w-full h-full top-0 left-0 z-40' onClick={() => setRenaming(false)} />
-                  {/* Dialog */}
-                  <div className='fixed bg-base-300 bg-opacity-90 rounded-box w-96 p-4 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50'>
-                    <h2 className='text-lg font-semibold'>Rename Flow</h2>
-                    <input
-                      type='text'
-                      className='input input-sm mt-2 w-full'
-                      defaultValue={selFlowData?.name}
-                      autoFocus
-                      onKeyDown={e => {
-                        if (e.key === 'Enter') {
-                          setSelFlowData({ ...selFlowData, name: (e.target as HTMLInputElement).value });
-                          setRenaming(false);
-                        }
-                      }}
-                    />
-                    <div className='flex justify-end mt-2'>
-                      <button
-                        className='btn btn-sm btn-error'
-                        onClick={() => {
-                          setRenaming(false);
-                        }}
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        className='btn btn-sm btn-accent ml-2'
-                        onClick={() => {
-                          setSelFlowData({ ...selFlowData, name: (document.querySelector('.input') as HTMLInputElement).value });
-                          setRenaming(false);
-                        }}
-                      >
-                        Rename
-                      </button>
-                    </div>
-                  </div>
-                </>
+                <RenameDialog
+                  name={selFlowData?.name ?? ''}
+                  onRename={newName => {
+                    setSelFlowData({ ...selFlowData, name: newName });
+                    setRenaming(false);
+                  }}
+                  onCancel={() => setRenaming(false)}
+                />
               )
+            }
+            {
+              // Export dialog
+              isExporting && <ExportDialog nodes={nodes} edges={edges} close={() => setExporting(false)} />
             }
           </ReactFlow>
         </Suspense>
@@ -367,6 +345,134 @@ function PropertyEditorPanel() {
         </div>
       </FactoryEditorContextProvider>
     </Panel>
+  );
+}
+
+function RenameDialog({ name, onRename, onCancel }: { name: string; onRename: (name: string) => void; onCancel: () => void }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  return (
+    <>
+      {/* Overlay */}
+      <div className='fixed bg-base-300 bg-opacity-80 w-full h-full top-0 left-0 z-40' onClick={() => onCancel()} />
+      {/* Dialog */}
+      <div className='fixed bg-base-300 bg-opacity-90 rounded-box w-96 p-4 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50'>
+        <h2 className='text-lg font-semibold'>Rename Flow</h2>
+        <input
+          ref={inputRef}
+          type='text'
+          className='input input-sm mt-2 w-full'
+          defaultValue={name}
+          autoFocus
+          onKeyDown={e => {
+            if (e.key === 'Enter') {
+              const newName = (inputRef.current as HTMLInputElement).value;
+              if (newName) onRename(newName);
+            }
+          }}
+        />
+        <div className='flex justify-end mt-2'>
+          <button className='btn btn-sm btn-error' onClick={() => onCancel()}>
+            Cancel
+          </button>
+          <button
+            className='btn btn-sm btn-accent ml-2'
+            onClick={() => {
+              const newName = (inputRef.current as HTMLInputElement).value;
+              if (newName) onRename(newName);
+            }}
+          >
+            Rename
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function ExportDialog({ nodes, edges, close }: { nodes: Node[]; edges: Edge[]; close: () => void }) {
+  const rfInstance = useReactFlow();
+  const viewport = rfInstance?.getViewport();
+  const [selFlowData] = useAtom(selectedFlowDataAtom);
+  const [prettify, setPrettify] = useState(false);
+  const [statusText, setStatusText] = useState<string | null>(null);
+  const stringifiedFlowData = useMemo(
+    () =>
+      selFlowData &&
+      stringifyFlowData(
+        {
+          info: selFlowData,
+          nodes: nodes as MainNodeProp[],
+          edges: edges as MainEdgeProp[],
+          properties: {
+            viewportX: viewport?.x,
+            viewportY: viewport?.y,
+            viewportZoom: viewport?.zoom,
+          },
+        },
+        { spaced: prettify },
+      ),
+    [nodes, edges, selFlowData, viewport],
+  );
+
+  if (!stringifiedFlowData) {
+    return null;
+  }
+
+  return (
+    <>
+      {/* Overlay */}
+      <div className='fixed bg-base-300 bg-opacity-80 w-full h-full top-0 left-0 z-40' onClick={() => close()} />
+      {/* Dialog */}
+      <div className='fixed bg-base-300 bg-opacity-90 rounded-box w-[40rem] p-4 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50'>
+        <h2 className='text-lg font-semibold'>Export Flow</h2>
+
+        <div className='form-control'>
+          <label className='label cursor-pointer'>
+            <span className='label-text'>Prettify JSON</span>
+            <input
+              type='checkbox'
+              className='toggle checked:toggle-accent'
+              checked={prettify}
+              onChange={e => setPrettify(e.target.checked)}
+            />
+          </label>
+        </div>
+        <textarea readOnly className='textarea mt-2 w-full h-80' value={stringifiedFlowData} onFocus={e => e.currentTarget.select()} />
+        {statusText && (
+          <div role='alert' className='alert'>
+            <span ref={() => setTimeout(() => setStatusText(''), 5000)} className='text-sm text-accent'>
+              {statusText}
+            </span>
+          </div>
+        )}
+        <div className='flex justify-end mt-2 gap-x-4'>
+          <button
+            className='btn btn-sm btn-accent'
+            onClick={() => navigator.clipboard.writeText(stringifiedFlowData).then(() => setStatusText('Copied!'))}
+          >
+            Copy
+          </button>
+          <button
+            className='btn btn-sm btn-accent'
+            onClick={() => {
+              const blob = new Blob([stringifiedFlowData], { type: 'application/json' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `${selFlowData?.name}.json`;
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+          >
+            Save
+          </button>
+          <button className='btn btn-sm btn-error' onClick={() => close()}>
+            Close
+          </button>
+        </div>
+      </div>
+    </>
   );
 }
 

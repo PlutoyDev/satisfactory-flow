@@ -309,7 +309,7 @@ export function applyMainNodePropPatch(node: Node, patch: Record<string, any>) {
 }
 
 export function pickMainEdgeProp(edge: Edge): MainEdgeProp {
-  return pick(edge, ['id', 'type', 'data', 'source', 'target', 'sourceHandle', 'targetHandle']) as MainEdgeProp;
+  return pick(edge, ['id', 'type', 'source', 'target', 'sourceHandle', 'targetHandle']) as MainEdgeProp;
 }
 
 export function validateMainEdgeProp(edge: unknown): MainEdgeProp {
@@ -383,8 +383,8 @@ export function stringifyFlowData({ info, nodes, edges, properties }: FullFlowDa
     {
       version: FLOW_DATA_VERSION,
       info: { ...info, created: info.created.getTime(), updated: info.updated.getTime() },
-      nodes,
-      edges,
+      nodes: nodes.map(pickMainNodeProp),
+      edges: edges.map(pickMainEdgeProp),
       properties,
     },
     null,
