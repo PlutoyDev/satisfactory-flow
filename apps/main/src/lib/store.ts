@@ -100,6 +100,7 @@ const _edgesArrayAtom = atom<Edge[]>([]); // Used for rendering
 export const nodesMapAtom = atom(
   get => get(_nodesMapAtom),
   (_get, set, nodes: Map<string, Node>) => {
+    console.log('Setting nodes:', nodes);
     set(_nodesMapAtom, nodes);
     set(_nodesArrayAtom, Array.from(nodes.values()));
   },
@@ -596,7 +597,7 @@ export const selectedFlowDataAtom = atom(
 
 selectedFlowAtom.onMount = set => {
   const [flows, source, flowId] = location.pathname.split('/').slice(1);
-  if (flows === 'flows' && flowSource.includes(source as FlowSource) && flowId) {
+  if (flows === 'flows' && flowSource.includes(source as FlowSource) && source !== 'import' && flowId) {
     set({ flowId, source: source as FlowSource });
   }
 };
