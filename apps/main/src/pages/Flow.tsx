@@ -12,7 +12,9 @@ import {
   addEdge,
   isDraggingNodeAtom,
   isValidConnection,
+  onCopy,
   onDrop,
+  onPaste,
   onSelectionChange,
   reactflowInstanceAtom,
   selectedIdsAtom,
@@ -109,6 +111,9 @@ function FlowPage() {
             // Keyboard Props
             deleteKeyCode={['Delete', 'Backspace']}
             selectionKeyCode={['Shift', 'Control']}
+            // Clipboard
+            onCopy={onCopy}
+            onPaste={onPaste}
           >
             <Background gap={18} bgColor='#202030' />
 

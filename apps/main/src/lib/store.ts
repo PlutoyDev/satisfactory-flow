@@ -135,7 +135,7 @@ interface ChangeItemOperation {
 }
 
 type Operation = AddItemOperation | RemoveItemOperation | ChangeItemOperation;
-type HistoryEvent = Operation[];
+export type HistoryEvent = Operation[];
 
 const _undoHistoryAtom = atom<HistoryEvent[]>([]);
 const _redoHistoryAtom = atom<HistoryEvent[]>([]);
@@ -218,6 +218,11 @@ export const historyActionAtom = atom(
     deboucedAction();
   },
 );
+
+export function pushHistoryEvent(event: HistoryEvent) {
+  store.set(_undoHistoryAtom, [...store.get(_undoHistoryAtom), event]);
+  store.set(_redoHistoryAtom, []); // Clear redo history
+}
 
 export const alignXs = new Map<number, Set<string>>(); // Map of X position to Node IDs
 export const alignYs = new Map<number, Set<string>>(); // Map of Y position to Node IDs
