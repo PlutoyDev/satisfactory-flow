@@ -167,6 +167,7 @@ export const historyActionAtom = atom(
           const node = nodes.get(op.itemId);
           if (node) {
             reverseEvent.push({ type: 'remove', itemType: op.itemType, itemId: op.itemId, item: pickMainNodeProp(node) });
+            removeAlignmentXYs(node);
             nodes.delete(op.itemId);
           }
         } else if (op.itemType === 'edge') {
@@ -179,6 +180,7 @@ export const historyActionAtom = atom(
       } else if (op.type === 'remove') {
         if (op.itemType === 'node') {
           nodes.set(op.itemId, op.item as ExtendedNode);
+          addAlignmentXYs(op.item as Node);
         } else if (op.itemType === 'edge') {
           edges.set(op.itemId, op.item as Edge);
           nodes.get((op.item as Edge).source)?.edges?.set((op.item as Edge).sourceHandle ?? 'output', op.itemId);
@@ -342,6 +344,7 @@ export const nodesAtom = atom(
           break;
         case 'remove':
           currentHistoryEvent.push({ type: 'remove', itemType: 'node', itemId: change.id, item: pickMainNodeProp(nodes.get(change.id)!) });
+          removeAlignmentXYs(nodes.get(change.id)!);
           nodes.delete(change.id);
           _debouncedIds.add('node-' + change.id);
           break;
