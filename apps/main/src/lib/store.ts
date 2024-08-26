@@ -14,6 +14,7 @@ import {
   pickMainEdgeProp,
   applyMainEdgePropPatch,
   applyMainNodePropPatch,
+  ExportFlowData,
 } from './data';
 import { delEdges, delNodes, getEdges, getFlows, getNodes, openFlowDb, setEdges, setFlow, setNodes } from './db';
 
@@ -59,9 +60,9 @@ _flowsAtom.onMount = set =>
   void getFlows()
     .then(flows => new Map(flows.map(flow => [flow.id, flow])))
     .then(set);
-export const flowsAtom = atom(get => Array.from(get(_flowsAtom).values()));
+export const flowsAtom = atom(get => Array.from(get(_flowsAtom).values()).filter(flow => !flow.id.startsWith('imported-')));
 
-const flowSource = ['db', 'example'] as const;
+const flowSource = ['db', 'example', 'import'] as const;
 type FlowSource = (typeof flowSource)[number];
 interface SelectedFlow {
   flowId: string;
@@ -494,7 +495,7 @@ export const isSwitchingFlow = atom(false);
 export const switchFlowError = atom<string | null>(null);
 export const selectedFlowAtom = atom(
   get => get(_selectedFlowAtom),
-  async (get, set, update: SelectedFlow | null) => {
+  async (get, set, update: SelectedFlow | null, data?: ExportFlowData) => {
     set(isSwitchingFlow, true);
     const prev = get(_selectedFlowAtom);
     if (prev) {
@@ -519,6 +520,13 @@ export const selectedFlowAtom = atom(
           if (data) {
             nodes = data.default.nodes;
             edges = data.default.edges;
+          }
+        } else if (update.source === 'import' && data) {
+          nodes = data.nodes;
+          edges = data.edges;
+          const flowInfos = get(_flowsAtom);
+          if (!flowInfos.has(update.flowId)) {
+            set(_flowsAtom, new Map([...flowInfos, [update.flowId, { ...data.info, id: 'imported-' + update.flowId }]]));
           }
         }
 
@@ -560,6 +568,8 @@ export const selectedFlowDataAtom = atom(
         return get(_flowsAtom).get(selectedFlow.flowId) as Pick<FlowInfo, 'name' | 'description'> | undefined;
       } else if (selectedFlow.source === 'example') {
         return examples.get(selectedFlow.flowId) as Pick<FlowInfo, 'name' | 'description'> | undefined;
+      } else if (selectedFlow.source === 'import') {
+        return get(_flowsAtom).get(selectedFlow.flowId) as Pick<FlowInfo, 'name' | 'description'> | undefined;
       }
     } else {
       return null;
