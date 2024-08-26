@@ -24,6 +24,17 @@ export const store = getDefaultStore();
 
 export const locationAtom = atomWithLocation();
 
+export const errorsAtom = atom(new Set<string>());
+
+export function addError(error: string, hideErrorAfter = 5000) {
+  store.set(errorsAtom, new Set([...store.get(errorsAtom), error]));
+  setTimeout(() => {
+    const newErrors = new Set([...store.get(errorsAtom)]);
+    newErrors.delete(error);
+    store.set(errorsAtom, newErrors);
+  }, hideErrorAfter);
+}
+
 // Read only atom to fetch parsedDocs.json and map it to a Map
 export type DocsMapped = { [key in keyof ParsedOutput]: ParsedOutput[key] extends Record<string, infer U> ? Map<string, U> : never };
 
@@ -37,7 +48,7 @@ export const docsMappedAtom = atom(async () => {
     }
     return mapped;
   } catch (error) {
-    // TODO: Handle error
+    addError('Error loading parsedDocs.json');
     console.error('Error handling parsedDocs.json:', error);
     throw error;
   }
@@ -129,6 +140,10 @@ const _redoHistoryAtom = atom<HistoryEvent[]>([]);
 
 export const historyActionAtom = atom(
   get => {
+    if (get(_selectedFlowAtom)?.source !== 'db') {
+      // Not possible to undo or redo
+      return { undoable: false, redoable: false };
+    }
     return { undoable: get(_undoHistoryAtom).length > 0, redoable: get(_redoHistoryAtom).length > 0 };
   },
   (get, set, action: 'undo' | 'redo') => {
@@ -304,6 +319,11 @@ async function deboucedAction(force?: true) {
 export const nodesAtom = atom(
   get => get(_nodesArrayAtom),
   (get, set, changes: ExtendedNodeChange[]) => {
+    const selectedFlow = get(_selectedFlowAtom);
+    if (selectedFlow?.source !== 'db' && changes[0].type !== 'select' && changes[0].type !== 'dimensions') {
+      addError('Cannot modify this flow');
+      return;
+    }
     // Reimplement of applyNodeChanges to work with Map
     const historyEvents = get(_undoHistoryAtom);
     const currentHistoryEvent: HistoryEvent = [];
@@ -408,6 +428,11 @@ export const nodesAtom = atom(
 export const edgesAtom = atom(
   get => get(_edgesArrayAtom),
   (get, set, changes: EdgeChange<Edge>[]) => {
+    const selectedFlow = get(_selectedFlowAtom);
+    if (selectedFlow?.source !== 'db' && changes[0]?.type !== 'select') {
+      addError('Cannot modify this flow');
+      return;
+    }
     // Reimplement of applyEdgeChanges to work with Map
     const historyEvents = get(_undoHistoryAtom);
     const currentHistoryEvent: HistoryEvent = [];

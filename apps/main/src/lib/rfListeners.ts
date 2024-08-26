@@ -3,13 +3,18 @@ import { Edge, Connection, OnSelectionChangeParams, ReactFlowInstance } from '@x
 import { atom } from 'jotai';
 import { FactoryNodeType } from '../components/rf/BaseNode';
 import { generateId, splitHandleId } from './data';
-import { store, edgesAtom, nodesAtom, nodesMapAtom } from './store';
+import { store, edgesAtom, nodesAtom, nodesMapAtom, selectedFlowAtom } from './store';
 
 export const connectionErrorReasonAtom = atom<string | null>(null);
 export const isDraggingNodeAtom = atom(false);
 export const reactflowInstanceAtom = atom<ReactFlowInstance | null>(null);
 
 export function isValidConnection(params: Connection | Edge): boolean {
+  const selectedFlow = store.get(selectedFlowAtom);
+  if (selectedFlow?.source !== 'db') {
+    store.set(connectionErrorReasonAtom, 'Cannot modify this flow');
+    return false;
+  }
   const { source, sourceHandle, target, targetHandle } = params;
   if (source === target) {
     store.set(connectionErrorReasonAtom, 'Cannot connect a node to itself');

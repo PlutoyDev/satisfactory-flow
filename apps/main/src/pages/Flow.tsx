@@ -3,7 +3,7 @@ import { Background, ConnectionMode, Edge, Node, Panel, ReactFlow } from '@xyflo
 import '@xyflow/react/dist/style.css';
 import debounce from 'debounce';
 import { useAtom } from 'jotai';
-import { FilePen, Home, Redo, Save, Undo, X } from 'lucide-react';
+import { FilePen, Home, OctagonX, Redo, Save, Undo, X } from 'lucide-react';
 import { customEdges, customNodeEditors, customNodes } from '../components/rf';
 import { FACTORY_NODE_DEFAULT_COLORS, FACTORY_NODE_TYPES, FactoryEditorContextProvider, FactoryNodeType } from '../components/rf/BaseNode';
 import ConnectionLine from '../components/rf/ConnectionLine';
@@ -20,6 +20,7 @@ import {
   alignmentAtom,
   edgesAtom,
   edgesMapAtom,
+  errorsAtom,
   historyActionAtom,
   nodesAtom,
   nodesMapAtom,
@@ -28,6 +29,7 @@ import {
 } from '../lib/store';
 
 function FlowPage() {
+  const [errors] = useAtom(errorsAtom);
   const [isDraggingNode] = useAtom(isDraggingNodeAtom);
   const [rfInstance, setReactFlowInstance] = useAtom(reactflowInstanceAtom);
   const [selectedFlow, setSelectedFlow] = useAtom(selectedFlowAtom);
@@ -186,6 +188,17 @@ function FlowPage() {
           </ReactFlow>
         </Suspense>
       </div>
+      {/* Error Display */}
+      {errors.size > 0 && (
+        <div className='fixed top-16 left-0 bg-transparent flex flex-col gap-y-2 p-2 right-1/2'>
+          {Array.from(errors).map((error, id) => (
+            <div key={id} className='alert alert-error'>
+              <OctagonX />
+              <p>{error}</p>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
