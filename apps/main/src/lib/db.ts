@@ -1,7 +1,7 @@
 import type { Node, Edge } from '@xyflow/react';
 import { openDB, DBSchema } from 'idb';
-import { filter, map, mapToObj, pick, pipe } from 'remeda';
-import { MainNodeProp, MainEdgeProp, FlowProperties, FlowInfo } from './data';
+import { filter, map, mapToObj, pipe } from 'remeda';
+import { MainNodeProp, MainEdgeProp, FlowProperties, FlowInfo, pickMainNodeProp, pickMainEdgeProp } from './data';
 
 // IndexedDB for the app
 
@@ -164,7 +164,7 @@ export function setNodes(flowDbOrId: FlowDb | string, nodes: (MainNodeProp | Nod
       pipe(
         nodes,
         filter(node => !!node && ['id', 'type', 'data', 'position'].every(k => k in node)),
-        map(node => tx.store.put(pick(node, ['id', 'type', 'data', 'position'])) as Promise<any>),
+        map(node => tx.store.put(pickMainNodeProp(node)) as Promise<any>),
       ).concat(tx.done),
     );
   });
@@ -189,7 +189,7 @@ export function setEdges(flowDbOrId: FlowDb | string, edges: (MainEdgeProp | Edg
       pipe(
         edges,
         filter(edge => !!edge && ['id', 'source', 'target', 'sourceHandle', 'targetHandle'].every(k => k in edge)),
-        map(edge => tx.store.put(pick(edge, ['id', 'type', 'data', 'source', 'target', 'sourceHandle', 'targetHandle'])) as Promise<any>),
+        map(edge => tx.store.put(pickMainEdgeProp(edge)) as Promise<any>),
       ).concat(tx.done),
     );
   });

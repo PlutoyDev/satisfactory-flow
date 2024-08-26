@@ -2,7 +2,9 @@
 Main data properties of nodes and edges that are stored, versioned, or transferred
 */
 import { Node, Edge } from '@xyflow/react';
+import { nanoid } from 'nanoid';
 import { pick } from 'remeda';
+import { z } from 'zod';
 
 /*
 Data type using for computation
@@ -207,25 +209,68 @@ export function joinIntoHandleId(a: {
   return `${a.dir}-${a.form}-${a.type}-${a.index}`;
 }
 
-export interface FlowInfo {
-  id: string;
-  name: string;
-  description?: string;
-  updated: Date;
-  created: Date;
-}
+/*
+Flow data schema, types, and migrations
+Latest version: 1
 
-export type MainNodeProp = Pick<Node, 'id' | 'type' | 'data' | 'position'>;
-export type MainEdgeProp = Pick<Edge, 'id' | 'type' | 'data' | 'source' | 'target' | 'sourceHandle' | 'targetHandle'>;
+Versioning plans: 
+- When breaking changes* are made, the 3 main schema will be moved to data-legacy.ts to maintain compatibility with older data.
+- A migration function will created to convert the old data to the new schema in data-legacy.ts file.
+- both import and db read will need to do version check and run the migration if needed.
+- Update the schema in this file, and increment the version number.
 
-export type FlowProperties = {
-  viewportX?: number;
-  viewportY?: number;
-  viewportZoom?: number;
-};
+What classifies as a breaking change:
+- Reactflow library changes that affect the data structure
+- TODO: Add breaking change criteria (there might not be any -\_(o.o)_/-)
+*/
+
+export const FLOW_DATA_VERSION = 1;
+
+export const generateId = () => nanoid(16);
+const ID_SCHEMA = z.string().length(16);
+
+const FLOW_INFO_SCHEMA = z.object({
+  id: ID_SCHEMA,
+  name: z.string().min(1),
+  description: z.string().optional(),
+  updated: z.date(),
+  created: z.date(),
+});
+
+const MAIN_NODE_PROP_SCHEMA = z.object({
+  id: ID_SCHEMA,
+  type: z.string().min(1),
+  data: z.record(z.unknown()),
+  position: z.object({ x: z.number(), y: z.number() }),
+});
+
+const MAIN_EDGE_PROP_SCHEMA = z.object({
+  id: ID_SCHEMA,
+  type: z.string().min(1),
+  data: z.record(z.unknown()).optional(),
+  source: z.string(),
+  target: z.string(),
+  sourceHandle: z.string(),
+  targetHandle: z.string(),
+});
+
+const FLOW_PROPERTIES_SCHEMA = z.object({
+  viewportX: z.number().optional(),
+  viewportY: z.number().optional(),
+  viewportZoom: z.number().optional(),
+});
+
+export type FlowInfo = z.infer<typeof FLOW_INFO_SCHEMA>;
+export type MainNodeProp = z.infer<typeof MAIN_NODE_PROP_SCHEMA>;
+export type MainEdgeProp = z.infer<typeof MAIN_EDGE_PROP_SCHEMA>;
+export type FlowProperties = z.infer<typeof FLOW_PROPERTIES_SCHEMA>;
 
 export function pickMainNodeProp(node: Node): MainNodeProp {
-  return pick(node, ['id', 'type', 'data', 'position']);
+  return pick(node, ['id', 'type', 'data', 'position']) as MainNodeProp;
+}
+
+export function validateMainNodeProp(node: unknown): MainNodeProp {
+  return MAIN_NODE_PROP_SCHEMA.parse(node);
 }
 
 export function diffMainNodeProp(node1: Node, node2: Node) {
@@ -263,7 +308,11 @@ export function applyMainNodePropPatch(node: Node, patch: Record<string, any>) {
 }
 
 export function pickMainEdgeProp(edge: Edge): MainEdgeProp {
-  return pick(edge, ['id', 'type', 'data', 'source', 'target', 'sourceHandle', 'targetHandle']);
+  return pick(edge, ['id', 'type', 'data', 'source', 'target', 'sourceHandle', 'targetHandle']) as MainEdgeProp;
+}
+
+export function validateMainEdgeProp(edge: unknown): MainEdgeProp {
+  return MAIN_EDGE_PROP_SCHEMA.parse(edge);
 }
 
 export function diffMainEdgeProp(edge1: Edge, edge2: Edge) {
@@ -303,4 +352,33 @@ export function applyMainEdgePropPatch(edge: Edge, patch: Record<string, any>) {
     }
   }
   return reversePatch;
+}
+
+const EXPORT_FLOW_DATA_SCHEMA = z.object({
+  version: z.literal(FLOW_DATA_VERSION),
+  info: FLOW_INFO_SCHEMA,
+  nodes: z.array(MAIN_NODE_PROP_SCHEMA),
+  edges: z.array(MAIN_EDGE_PROP_SCHEMA),
+  properties: FLOW_PROPERTIES_SCHEMA,
+});
+
+export type ExportFlowData = z.infer<typeof EXPORT_FLOW_DATA_SCHEMA>;
+export type ExportDataOptions = {
+  spaced?: boolean;
+};
+
+export function exportFlow(
+  { info, nodes, edges, properties }: Omit<ExportFlowData, 'version'>,
+  { spaced = false }: ExportDataOptions = {},
+) {
+  return JSON.stringify(
+    EXPORT_FLOW_DATA_SCHEMA.parse({ version: FLOW_DATA_VERSION, info, nodes, edges, properties }),
+    null,
+    spaced ? 2 : 0,
+  );
+}
+
+export function importFlow(json: string): ExportFlowData {
+  const data = JSON.parse(json);
+  return EXPORT_FLOW_DATA_SCHEMA.parse(data);
 }

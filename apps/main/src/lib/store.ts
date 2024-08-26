@@ -2,10 +2,10 @@ import { Node, Edge, NodeChange, EdgeChange } from '@xyflow/react';
 import type { ParsedOutput } from 'docs-parser';
 import { Atom, atom, getDefaultStore, PrimitiveAtom, SetStateAction, WritableAtom } from 'jotai';
 import { atomWithLocation } from 'jotai-location';
-import { nanoid } from 'nanoid';
 import { computeFactoryGraph } from '../engines/itemSpeed';
 import examples from '../examples';
 import {
+  generateId,
   FlowInfo,
   MainNodeProp,
   MainEdgeProp,
@@ -19,8 +19,6 @@ import { delEdges, delNodes, getEdges, getFlows, getNodes, openFlowDb, setEdges,
 
 // Application Store using Jotai
 // Get the types for docs.json
-
-export const generateId = () => nanoid(16);
 
 export const store = getDefaultStore();
 
