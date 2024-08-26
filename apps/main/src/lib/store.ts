@@ -6,6 +6,7 @@ import { nanoid } from 'nanoid';
 import { computeFactoryGraph } from '../engines/itemSpeed';
 import examples from '../examples';
 import {
+  FlowInfo,
   MainNodeProp,
   MainEdgeProp,
   pickMainNodeProp,
@@ -14,7 +15,7 @@ import {
   applyMainEdgePropPatch,
   applyMainNodePropPatch,
 } from './data';
-import { delEdges, delNodes, FlowData, getEdges, getFlows, getNodes, openFlowDb, setEdges, setFlow, setNodes } from './db';
+import { delEdges, delNodes, getEdges, getFlows, getNodes, openFlowDb, setEdges, setFlow, setNodes } from './db';
 
 // Application Store using Jotai
 // Get the types for docs.json
@@ -44,7 +45,7 @@ export const docsMappedAtom = atom(async () => {
   }
 });
 
-const _flowsAtom = atom<Map<string, FlowData>>(new Map());
+const _flowsAtom = atom<Map<string, FlowInfo>>(new Map());
 _flowsAtom.onMount = set =>
   void getFlows()
     .then(flows => new Map(flows.map(flow => [flow.id, flow])))
@@ -533,15 +534,15 @@ export const selectedFlowDataAtom = atom(
     const selectedFlow = get(selectedFlowAtom);
     if (selectedFlow) {
       if (selectedFlow.source === 'db') {
-        return get(_flowsAtom).get(selectedFlow.flowId) as Pick<FlowData, 'name' | 'description'> | undefined;
+        return get(_flowsAtom).get(selectedFlow.flowId) as Pick<FlowInfo, 'name' | 'description'> | undefined;
       } else if (selectedFlow.source === 'example') {
-        return examples.get(selectedFlow.flowId) as Pick<FlowData, 'name' | 'description'> | undefined;
+        return examples.get(selectedFlow.flowId) as Pick<FlowInfo, 'name' | 'description'> | undefined;
       }
     } else {
       return null;
     }
   },
-  (get, set, update: Pick<FlowData, 'name' | 'description'>) => {
+  (get, set, update: Pick<FlowInfo, 'name' | 'description'>) => {
     const selectedFlow = get(selectedFlowAtom);
     if (selectedFlow && selectedFlow.source === 'db') {
       const flow = get(_flowsAtom).get(selectedFlow.flowId);

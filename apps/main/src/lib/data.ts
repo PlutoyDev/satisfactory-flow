@@ -207,6 +207,14 @@ export function joinIntoHandleId(a: {
   return `${a.dir}-${a.form}-${a.type}-${a.index}`;
 }
 
+export interface FlowInfo {
+  id: string;
+  name: string;
+  description?: string;
+  updated: Date;
+  created: Date;
+}
+
 export type MainNodeProp = Pick<Node, 'id' | 'type' | 'data' | 'position'>;
 export type MainEdgeProp = Pick<Edge, 'id' | 'type' | 'data' | 'source' | 'target' | 'sourceHandle' | 'targetHandle'>;
 

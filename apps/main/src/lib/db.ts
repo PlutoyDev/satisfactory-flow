@@ -1,7 +1,7 @@
 import type { Node, Edge } from '@xyflow/react';
 import { openDB, DBSchema } from 'idb';
 import { filter, map, mapToObj, pick, pipe } from 'remeda';
-import { MainNodeProp, MainEdgeProp, FlowProperties } from './data';
+import { MainNodeProp, MainEdgeProp, FlowProperties, FlowInfo } from './data';
 
 // IndexedDB for the app
 
@@ -21,14 +21,6 @@ How data is stored:
   TODO: History of changes
 */
 
-export interface FlowData {
-  id: string;
-  name: string;
-  description?: string;
-  updated: Date;
-  created: Date;
-}
-
 export interface Settings {
   lastOpenedFlowId?: string;
 }
@@ -36,7 +28,7 @@ export interface Settings {
 interface MainDbSchema extends DBSchema {
   flows: {
     key: string;
-    value: FlowData;
+    value: FlowInfo;
   };
   settings: {
     key: keyof Settings;
@@ -71,7 +63,7 @@ export async function getFlows(mainDb?: MainDb) {
   return mainDb.getAll('flows');
 }
 
-export async function setFlow(flow: FlowData, mainDb?: MainDb) {
+export async function setFlow(flow: FlowInfo, mainDb?: MainDb) {
   mainDb ??= await openMainDb();
   return mainDb.put('flows', flow);
 }
