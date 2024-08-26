@@ -18,6 +18,7 @@
     "jotai-location": "^0.5.5",
     "lucide-react": "^0.424.0",
     "nanoid": "^5.0.7",
+    "parse-json": "^8.1.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "remeda": "^2.6.0",

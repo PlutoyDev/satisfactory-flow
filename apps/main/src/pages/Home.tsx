@@ -1,6 +1,9 @@
 import { useRef, useState } from 'react';
 import { useAtom } from 'jotai';
+import { JSONError } from 'parse-json';
+import { ZodError } from 'zod';
 import examples from '../examples';
+import { parseFlowData } from '../lib/data';
 import { createFlow, flowsAtom, selectedFlowAtom } from '../lib/store';
 
 function NavigateToFlowButton({ flowName, flowId, source }: { flowName: string; flowId: string; source: 'db' | 'example' }) {
@@ -26,6 +29,7 @@ function HomePage() {
   const importJsonTextareaRef = useRef<HTMLTextAreaElement>(null);
   const [importErrors, setImportErrors] = useState<string[]>([]);
   const [view, setView] = useState<'create' | 'import' | 'select'>('select');
+  const [, setSelectedFlow] = useAtom(selectedFlowAtom);
   const [flows] = useAtom(flowsAtom);
 
   return (
@@ -79,48 +83,82 @@ function HomePage() {
               <textarea
                 ref={importJsonTextareaRef}
                 id='flowJson'
+                spellCheck='false'
                 className='textarea textarea-ghost'
                 placeholder='Paste flow JSON here'
                 onChange={e => {
                   // Disable file upload if there is text in the textarea
                   importFileUploadRef.current!.disabled = e.target.value.length > 0;
+                  if (importErrors.length > 0) setTimeout(() => setImportErrors([]), 4000);
                 }}
               />
             </label>
           </div>
           <ul className='list-disc list-inside text-sm text-error'>
             {importErrors.map((error, i) => (
-              <li key={i}>{error}</li>
+              <li key={i} style={{ textIndent: error.startsWith('\t') ? '1rem' : '0' }}>
+                {error}
+              </li>
             ))}
           </ul>
           <div className='flex justify-between w-full'>
             <button
               className='btn w-2/5 btn-accent'
               onClick={() => {
+                const errors: string[] = [];
                 // Check if file is uploaded or JSON is pasted
                 const file = importFileUploadRef.current?.files?.[0];
                 const textareaValue = importJsonTextareaRef.current?.value;
                 if (!file && !textareaValue) {
-                  setImportErrors(['Please upload a file or paste JSON']);
+                  errors.push('Please upload a file or paste JSON');
                   return;
                 } else if (file && textareaValue) {
-                  setImportErrors(['Please only upload a file or paste JSON']);
+                  errors.push('Please upload a file or paste JSON, not both');
                   return;
                 }
                 // Parse JSON
-                let flowJson;
-                if (file) {
-                  const reader = new FileReader();
-                  reader.onload = () => (flowJson = reader.result);
-                  reader.readAsText(file);
-                } else {
-                  flowJson = textareaValue;
-                }
-
                 try {
-                  // TODO: Import flow
+                  let flowJson: string | undefined;
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onload = () => (flowJson = reader.result as string);
+                    reader.onerror = () => (errors.push('Error reading file'), console.error(reader.error));
+                    reader.readAsText(file);
+                  } else {
+                    flowJson = textareaValue as string;
+                  }
+
+                  if (!flowJson) {
+                    throw new Error('No JSON data');
+                  }
+
+                  const flowData = parseFlowData(flowJson);
+                  setSelectedFlow({ source: 'import', flowId: flowData.info.id }, flowData);
                 } catch (e) {
-                  // TODO: Handle error
+                  if (e instanceof JSONError) {
+                    if (textareaValue) {
+                      // Set cursor position to error location
+                      const lineIndex = e.message.indexOf('line') + 5;
+                      const colIndex = e.message.indexOf('column') + 7;
+                      const line = parseInt(e.message.slice(lineIndex, e.message.indexOf(' ', lineIndex)));
+                      const col = parseInt(e.message.slice(colIndex, e.message.indexOf(' ', colIndex)));
+                      let position = 0;
+                      for (let i = 1; i < line; i++) position = textareaValue.indexOf('\n', position) + 1;
+                      position += col - 1;
+                      const textarea = importJsonTextareaRef.current!;
+                      textarea.focus();
+                      textarea.setSelectionRange(position, position);
+                    }
+                    errors.push('Error Parsing imported JSON:', e.message);
+                  } else if (e instanceof ZodError) {
+                    errors.push('Invalid Flow JSON:', ...e.errors.map(e => '\t' + e.path.join('.') + ': ' + e.message));
+                  } else if (e instanceof Error) {
+                    errors.push('Error:', e.message);
+                  }
+                }
+                if (errors.length > 0) {
+                  setImportErrors(errors);
+                  return;
                 }
               }}
             >

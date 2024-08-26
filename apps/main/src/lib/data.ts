@@ -3,6 +3,7 @@ Main data properties of nodes and edges that are stored, versioned, or transferr
 */
 import { Node, Edge } from '@xyflow/react';
 import { nanoid } from 'nanoid';
+import parseJson from 'parse-json';
 import { pick } from 'remeda';
 import { z } from 'zod';
 
@@ -356,29 +357,42 @@ export function applyMainEdgePropPatch(edge: Edge, patch: Record<string, any>) {
 
 const EXPORT_FLOW_DATA_SCHEMA = z.object({
   version: z.literal(FLOW_DATA_VERSION),
-  info: FLOW_INFO_SCHEMA,
+  info: FLOW_INFO_SCHEMA.omit({ created: true, updated: true }).merge(
+    z.object({
+      created: z.number().transform(v => new Date(v)),
+      updated: z.number().transform(v => new Date(v)),
+    }),
+  ),
   nodes: z.array(MAIN_NODE_PROP_SCHEMA),
   edges: z.array(MAIN_EDGE_PROP_SCHEMA),
   properties: FLOW_PROPERTIES_SCHEMA,
 });
 
-export type ExportFlowData = z.infer<typeof EXPORT_FLOW_DATA_SCHEMA>;
+export type FullFlowData = {
+  info: FlowInfo;
+  nodes: MainNodeProp[];
+  edges: MainEdgeProp[];
+  properties: FlowProperties;
+};
 export type ExportDataOptions = {
   spaced?: boolean;
 };
 
-export function exportFlow(
-  { info, nodes, edges, properties }: Omit<ExportFlowData, 'version'>,
-  { spaced = false }: ExportDataOptions = {},
-) {
+export function stringifyFlowData({ info, nodes, edges, properties }: FullFlowData, { spaced = false }: ExportDataOptions = {}) {
   return JSON.stringify(
-    EXPORT_FLOW_DATA_SCHEMA.parse({ version: FLOW_DATA_VERSION, info, nodes, edges, properties }),
+    {
+      version: FLOW_DATA_VERSION,
+      info: { ...info, created: info.created.getTime(), updated: info.updated.getTime() },
+      nodes,
+      edges,
+      properties,
+    },
     null,
     spaced ? 2 : 0,
   );
 }
 
-export function importFlow(json: string): ExportFlowData {
-  const data = JSON.parse(json);
+export function parseFlowData(json: string): FullFlowData {
+  const data = parseJson(json);
   return EXPORT_FLOW_DATA_SCHEMA.parse(data);
 }

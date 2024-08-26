@@ -14,7 +14,7 @@ import {
   pickMainEdgeProp,
   applyMainEdgePropPatch,
   applyMainNodePropPatch,
-  ExportFlowData,
+  FullFlowData,
 } from './data';
 import { delEdges, delNodes, getEdges, getFlows, getNodes, openFlowDb, setEdges, setFlow, setNodes } from './db';
 
@@ -495,7 +495,7 @@ export const isSwitchingFlow = atom(false);
 export const switchFlowError = atom<string | null>(null);
 export const selectedFlowAtom = atom(
   get => get(_selectedFlowAtom),
-  async (get, set, update: SelectedFlow | null, data?: ExportFlowData) => {
+  async (get, set, update: SelectedFlow | null, data?: FullFlowData) => {
     set(isSwitchingFlow, true);
     const prev = get(_selectedFlowAtom);
     if (prev) {
@@ -522,6 +522,7 @@ export const selectedFlowAtom = atom(
             edges = data.default.edges;
           }
         } else if (update.source === 'import' && data) {
+          console.log('Imported flow:', data);
           nodes = data.nodes;
           edges = data.edges;
           const flowInfos = get(_flowsAtom);
