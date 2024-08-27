@@ -333,6 +333,7 @@ async function deboucedAction(force?: true) {
         ]).finally(() => db.close());
       }
 
+      store.set(alignmentAtom, { x: undefined, y: undefined });
       store.set(_isDebouncePendingAtom, false);
       _debouncedTimeout = null;
     } catch (error) {
