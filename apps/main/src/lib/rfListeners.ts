@@ -179,7 +179,7 @@ export function onPaste(e: ClipboardEvent<HTMLDivElement>) {
   //  Deselect all nodes and edges
   //  Add the copied nodes and edges to the flow wiht it selected
   e.preventDefault();
-  const clipboardData = e.clipboardData?.getData('application/json+satisfactory-flow');
+  const clipboardData = e.clipboardData?.getData(CLIPBOARD_DATA_TYPE);
   if (!clipboardData) {
     addError('Unknown/Empty clipboard data');
     return;
