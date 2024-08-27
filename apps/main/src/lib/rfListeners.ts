@@ -113,32 +113,50 @@ type ClipboardData = {
 let clipDataId: string | undefined;
 let pasteCount = 0;
 
-export function onCopy(e: ClipboardEvent<HTMLDivElement>) {
+export function onCutOrCopy(e: ClipboardEvent<HTMLDivElement>) {
   e.preventDefault();
+  const isCut = e.type === 'cut';
   // Copies all selected nodes and edges to clipboard as JSON
   const nodes = store.get(nodesMapAtom);
   const edges = store.get(edgesMapAtom);
   const selectedIds = store.get(selectedIdsAtom);
 
+  if (selectedIds.length === 0) {
+    return;
+  }
+
   const copiedNodes: ExtendedNode[] = [];
   const copiedEdges: Edge[] = [];
 
-  // const nodeDeselectChanges: NodeSelectionChange[] = [];
-  // const edgeDeselectChanges: EdgeSelectionChange[] = [];
+  const currentHistoryEvent: HistoryEvent = [];
   for (const id of selectedIds) {
     if (nodes.has(id)) {
-      copiedNodes.push(pickMainNodeProp(nodes.get(id)!));
-      // nodeDeselectChanges.push({ id, type: 'select', selected: false });
+      const pickedNode = pickMainNodeProp(nodes.get(id)!);
+      copiedNodes.push(pickedNode);
+      if (isCut) {
+        currentHistoryEvent.push({ type: 'remove', itemType: 'node', itemId: id, item: pickedNode });
+        nodes.delete(id);
+      }
     } else if (edges.has(id)) {
-      copiedEdges.push(pickMainEdgeProp(edges.get(id)!));
-      // edgeDeselectChanges.push({ id, type: 'select', selected: false });
+      const pickedEdge = pickMainEdgeProp(edges.get(id)!);
+      copiedEdges.push(pickedEdge);
+      if (isCut) {
+        currentHistoryEvent.push({ type: 'remove', itemType: 'edge', itemId: id, item: pickedEdge });
+        edges.delete(id);
+      }
     } else {
       throw new Error('Invalid selected id');
+    }
+
+    if (isCut) {
+      store.set(nodesMapAtom, new Map(nodes));
+      store.set(edgesMapAtom, new Map(edges));
+      pushHistoryEvent(currentHistoryEvent);
     }
   }
 
   clipDataId = generateId();
-  pasteCount = 0;
+  pasteCount = isCut ? -1 : 0;
 
   const copiedData: ClipboardData = {
     clipDataId,
@@ -210,8 +228,8 @@ export function onPaste(e: ClipboardEvent<HTMLDivElement>) {
     const newNodeIdMap = new Map<string, string>();
     const viewport = store.get(reactflowInstanceAtom)!.getViewport();
     copiedData.viewport = viewport;
-    const nodeXOffset = (viewport.x === copiedViewport.x ? 72 : copiedViewport.x - viewport.x) + (pasteCount - 1) * 72;
-    const nodeYOffset = (viewport.y === copiedViewport.y ? 72 : copiedViewport.y - viewport.y) + (pasteCount - 1) * 72;
+    const nodeXOffset = viewport.x === copiedViewport.x ? pasteCount * 72 : copiedViewport.x - viewport.x + (pasteCount - 1) * 72;
+    const nodeYOffset = viewport.y === copiedViewport.y ? pasteCount * 72 : copiedViewport.y - viewport.y + (pasteCount - 1) * 72;
     console.log({ nodeXOffset, nodeYOffset, clipDataId, intId: copiedData.clipDataId, pasteCount });
 
     for (const node of copiedNodes) {

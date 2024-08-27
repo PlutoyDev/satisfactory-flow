@@ -12,7 +12,7 @@ import {
   addEdge,
   isDraggingNodeAtom,
   isValidConnection,
-  onCopy,
+  onCutOrCopy,
   onDrop,
   onPaste,
   onSelectionChange,
@@ -112,7 +112,8 @@ function FlowPage() {
             deleteKeyCode={['Delete', 'Backspace']}
             selectionKeyCode={['Shift', 'Control']}
             // Clipboard
-            onCopy={onCopy}
+            onCut={onCutOrCopy}
+            onCopy={onCutOrCopy}
             onPaste={onPaste}
           >
             <Background gap={18} bgColor='#202030' />
