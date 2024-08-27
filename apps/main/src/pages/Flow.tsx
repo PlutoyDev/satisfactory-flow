@@ -42,6 +42,7 @@ function FlowPage() {
   const [{ undoable, redoable }, applyHistoryAction] = useAtom(historyActionAtom);
   const [{ x: alignLineX, y: alignLineY }] = useAtom(alignmentAtom);
   const [isExporting, setExporting] = useState<boolean>(false);
+  const isReadOnly = selectedFlow?.source !== 'db';
 
   if (!selectedFlow) {
     return <div>404 Not Found</div>;
@@ -56,6 +57,7 @@ function FlowPage() {
           </a>
         </div>
         <div className='navbar-center'>
+          {isReadOnly && <span className='text-error mr-2'>Read-only</span>}
           <h2 className='text-xl font-semibold '>{selFlowData?.name}</h2>
           <button className='btn btn-ghost btn-xs mr-2' disabled={selectedFlow.source !== 'db'} onClick={() => setRenaming(true)}>
             <FilePen size={24} />
@@ -126,8 +128,8 @@ function FlowPage() {
                 </div>
               </div>
             )}
-            <NodeSelectionPanel />
-            <PropertyEditorPanel />
+            {!isReadOnly && <NodeSelectionPanel />}
+            <PropertyEditorPanel isReadOnly={isReadOnly} />
             <StatusMessagePanel />
             <Panel position='top-center'>
               <div className='flex flex-row'>
@@ -231,11 +233,7 @@ function NodeSelectionPanel() {
   );
 }
 
-function PropertyEditorPanel() {
-  // const [selNodeOrEdge] = useAtom(selectedNodeOrEdge);
-  // if (!selNodeOrEdge) {
-  //   return null;
-  // }
+function PropertyEditorPanel({ isReadOnly }: { isReadOnly: boolean }) {
   const [nodesMap] = useAtom(nodesMapAtom);
   const [edgesMap] = useAtom(edgesMapAtom);
   const [, applyNodeChanges] = useAtom(nodesAtom);
@@ -335,9 +333,15 @@ function PropertyEditorPanel() {
       >
         <div className='bg-base-300 rounded-box min-w-64 px-3 py-1'>
           <h2 className='text-lg font-semibold inline'>Properties</h2>
-          <p className='float-right text-xs text-gray-500 mt-2'>{selectedIds[0]}</p>
+          <p className='float-right text-xs text-gray-500 mt-2'>
+            {isReadOnly && <span className='text-error mr-2'>Read-only</span>}
+            {selectedIds[0]}
+          </p>
           <div className='divider m-0 mb-2 h-1' />
           <div className='flex flex-col gap-y-2'>{typeof Editor === 'function' ? <Editor /> : Editor}</div>
+          {isReadOnly && (
+            <div className='absolute w-full h-full top-0 left-0 z-40 bg-base-300 bg-opacity-50 rounded-box min-w-64 px-3 py-1' />
+          )}
         </div>
       </FactoryEditorContextProvider>
     </Panel>
