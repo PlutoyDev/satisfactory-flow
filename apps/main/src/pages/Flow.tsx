@@ -33,14 +33,13 @@ import {
 
 function FlowPage() {
   const [isDraggingNode] = useAtom(isDraggingNodeAtom);
-  const [rfInstance, setReactFlowInstance] = useAtom(reactflowInstanceAtom);
+  const [, setReactFlowInstance] = useAtom(reactflowInstanceAtom);
   const [selectedFlow, setSelectedFlow] = useAtom(selectedFlowAtom);
   const [selFlowData, setSelFlowData] = useAtom(selectedFlowDataAtom);
   const [isRenaming, setRenaming] = useState(false);
   const [nodes, applyNodeChanges] = useAtom(nodesAtom);
   const [edges, applyEdgeChanges] = useAtom(edgesAtom);
   const [{ undoable, redoable }, applyHistoryAction] = useAtom(historyActionAtom);
-  const [{ x: alignLineX, y: alignLineY }] = useAtom(alignmentAtom);
   const [isExporting, setExporting] = useState<boolean>(false);
   const isReadOnly = selectedFlow?.source !== 'db';
 
@@ -118,64 +117,64 @@ function FlowPage() {
             onPaste={onPaste}
           >
             <Background gap={18} bgColor='#202030' />
-
-            {[isDraggingNode].some(b => b) && (
-              <div className='fixed bottom-0 left-0 right-0 top-16 bg-gray-400 bg-opacity-10'>
-                {/* overlay */}
-                {/* Center */}
-                <div className='rounded-box absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transform px-3 py-1'>
-                  {isDraggingNode && <p className='text-lg font-semibold'>Drop here to add node</p>}
-                </div>
-              </div>
-            )}
+            {isDraggingNode && <DraggingOverlay />}
             {!isReadOnly && <NodeSelectionPanel />}
             <PropertyEditorPanel isReadOnly={isReadOnly} />
             <StatusMessagePanel />
-            <Panel position='top-center'>
-              <div className='flex flex-row'>
-                <button className='btn btn-ghost' disabled={!undoable} onClick={() => applyHistoryAction('undo')}>
-                  <Undo />
-                </button>
-                <button className='btn btn-ghost' disabled={!redoable} onClick={() => applyHistoryAction('redo')}>
-                  <Redo />
-                </button>
-              </div>
-            </Panel>
-            {/* Drawing the alignment line on screen */}
-            {rfInstance && alignLineX && (
-              <div
-                className='fixed pointer-events-none border-l border-success border-dashed'
-                style={{ left: rfInstance.flowToScreenPosition({ x: alignLineX, y: rfInstance.getViewport().y }).x, top: 0, bottom: 0 }}
+            <ToolbarPanel
+              undoable={undoable}
+              redoable={redoable}
+              onUndo={() => applyHistoryAction('undo')}
+              onRedo={() => applyHistoryAction('redo')}
+            />
+            <AlignmentLineOverlay />
+            {isRenaming && (
+              <RenameDialog
+                name={selFlowData?.name ?? ''}
+                onRename={newName => {
+                  setSelFlowData({ ...selFlowData, name: newName });
+                  setRenaming(false);
+                }}
+                onCancel={() => setRenaming(false)}
               />
             )}
-            {rfInstance && alignLineY && (
-              <div
-                className='fixed pointer-events-none border-t border-success border-dashed'
-                style={{ top: rfInstance.flowToScreenPosition({ x: rfInstance.getViewport().x, y: alignLineY }).y, left: 0, right: 0 }}
-              />
-            )}
-            {
-              // Renaming dialog
-              isRenaming && (
-                <RenameDialog
-                  name={selFlowData?.name ?? ''}
-                  onRename={newName => {
-                    setSelFlowData({ ...selFlowData, name: newName });
-                    setRenaming(false);
-                  }}
-                  onCancel={() => setRenaming(false)}
-                />
-              )
-            }
-            {
-              // Export dialog
-              isExporting && <ExportDialog nodes={nodes} edges={edges} close={() => setExporting(false)} />
-            }
+            {isExporting && <ExportDialog nodes={nodes} edges={edges} close={() => setExporting(false)} />}
           </ReactFlow>
         </Suspense>
       </div>
-      {/* Error Display */}
     </div>
+  );
+}
+
+function DraggingOverlay() {
+  return (
+    <div className='fixed bottom-0 left-0 right-0 top-16 bg-gray-400 bg-opacity-10'>
+      <div className='rounded-box absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transform px-3 py-1'>
+        <p className='text-lg font-semibold'>Drop here to add node</p>
+      </div>
+    </div>
+  );
+}
+
+function AlignmentLineOverlay() {
+  const rfInstance = useReactFlow();
+  const [{ x: alignLineX, y: alignLineY }] = useAtom(alignmentAtom);
+
+  return (
+    <>
+      {rfInstance && alignLineX && (
+        <div
+          className='fixed pointer-events-none border-l border-success border-dashed'
+          style={{ left: rfInstance.flowToScreenPosition({ x: alignLineX, y: rfInstance.getViewport().y }).x, top: 0, bottom: 0 }}
+        />
+      )}
+      {rfInstance && alignLineY && (
+        <div
+          className='fixed pointer-events-none border-t border-success border-dashed'
+          style={{ top: rfInstance.flowToScreenPosition({ x: rfInstance.getViewport().x, y: alignLineY }).y, left: 0, right: 0 }}
+        />
+      )}
+    </>
   );
 }
 
@@ -344,6 +343,27 @@ function PropertyEditorPanel({ isReadOnly }: { isReadOnly: boolean }) {
           )}
         </div>
       </FactoryEditorContextProvider>
+    </Panel>
+  );
+}
+
+type ToolbarPanelProps<events extends string[]> = {
+  [K in events[number] as `on${Capitalize<K>}`]?: () => void;
+} & {
+  [K in events[number] as `${K}able`]: boolean;
+};
+
+function ToolbarPanel(props: ToolbarPanelProps<['undo', 'redo']>) {
+  return (
+    <Panel position='top-center'>
+      <div className='flex flex-row'>
+        <button className='btn btn-ghost' onClick={props.onUndo} disabled={!props.undoable}>
+          <Undo />
+        </button>
+        <button className='btn btn-ghost' onClick={props.onRedo} disabled={!props.redoable}>
+          <Redo />
+        </button>
+      </div>
     </Panel>
   );
 }
