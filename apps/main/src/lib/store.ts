@@ -36,20 +36,30 @@ export function addError(error: string, hideErrorAfter = 5000) {
   }, hideErrorAfter);
 }
 
-type StatusMessage = { message: string; type: 'success' | 'info' | 'warning' | 'error' };
-export const statusMessageAtom = atom<Map<string, StatusMessage>>(new Map());
+type StatusMessage = { message: string; type: 'success' | 'info' | 'warning' | 'error'; timeout?: ReturnType<typeof setTimeout> };
+export const statusMessagesAtom = atom<Map<string, StatusMessage>>(new Map());
 
-type AppendStatusMessageOptions = StatusMessage & { key?: string; hideAfter?: number };
+type AppendStatusMessageOptions = Omit<StatusMessage, 'timeout'> & { key?: string; hideAfter?: number };
 export function appendStatusMessage(options: AppendStatusMessageOptions) {
   const { message, type, hideAfter = 5000 } = options;
+  let statusMessage: StatusMessage = { message, type };
   const key = options.key ?? generateId();
-  store.set(statusMessageAtom, new Map([...store.get(statusMessageAtom), [key, { message, type }]]));
+  const messages = store.get(statusMessagesAtom);
+  if (messages.has(key)) {
+    const existing = messages.get(key)!;
+    if (existing.timeout) clearTimeout(existing.timeout);
+    statusMessage = existing;
+  }
   if (hideAfter > 0) {
-    setTimeout(() => {
-      const newMessages = new Map([...store.get(statusMessageAtom)]);
+    statusMessage.timeout = setTimeout(() => {
+      const newMessages = new Map([...store.get(statusMessagesAtom)]);
       newMessages.delete(key);
-      store.set(statusMessageAtom, newMessages);
+      store.set(statusMessagesAtom, newMessages);
     }, hideAfter);
+  }
+  if (!messages.has(key)) {
+    // If message exists, can just mutate the timeout value, since its not react using it :)
+    store.set(statusMessagesAtom, new Map([...messages, [key, statusMessage]]));
   }
 }
 

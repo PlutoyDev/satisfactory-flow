@@ -29,7 +29,7 @@ import {
   nodesMapAtom,
   selectedFlowAtom,
   selectedFlowDataAtom,
-  statusMessageAtom,
+  statusMessagesAtom,
 } from '../lib/store';
 
 function FlowPage() {
@@ -353,7 +353,7 @@ const StatusMessageTypeMap = {
 } satisfies Record<'success' | 'info' | 'warning' | 'error', { textClassName: string; icon: JSX.Element }>;
 
 function StatusMessagePanel() {
-  const [statusMsgs] = useAtom(statusMessageAtom);
+  const [statusMsgs] = useAtom(statusMessagesAtom);
 
   return (
     <Panel position='bottom-center'>
