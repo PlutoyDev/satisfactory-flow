@@ -3,7 +3,7 @@ import { Background, ConnectionMode, Edge, Node, Panel, ReactFlow, useReactFlow 
 import '@xyflow/react/dist/style.css';
 import debounce from 'debounce';
 import { useAtom } from 'jotai';
-import { ArrowRightFromLine, Check, FilePen, Home, Info, OctagonAlert, OctagonX, Redo, Save, Undo, X } from 'lucide-react';
+import { ArrowRightFromLine, Check, Copy, FilePen, Home, Info, OctagonAlert, OctagonX, Redo, Save, Undo, X } from 'lucide-react';
 import { customEdges, customNodeEditors, customNodes } from '../components/rf';
 import { FACTORY_NODE_DEFAULT_COLORS, FACTORY_NODE_TYPES, FactoryEditorContextProvider, FactoryNodeType } from '../components/rf/BaseNode';
 import ConnectionLine from '../components/rf/ConnectionLine';
@@ -52,23 +52,48 @@ function FlowPage() {
       <div className='navbar w-full'>
         <div className='navbar-start'>
           <a href='/' className='btn btn-ghost' onClick={e => (e.preventDefault(), setSelectedFlow(null))}>
-            <Home size={32} className='stroke-2' />
+            <Home />
+            Back
           </a>
         </div>
         <div className='navbar-center'>
-          {isReadOnly && <span className='text-error mr-2'>Read-only</span>}
           <h2 className='text-xl font-semibold '>{selFlowData?.name}</h2>
-          <button className='btn btn-ghost btn-xs mr-2' disabled={selectedFlow.source !== 'db'} onClick={() => setRenaming(true)}>
-            <FilePen size={24} />
-          </button>
+          {isReadOnly ? (
+            <span className='text-error text-xl ml-2'>(Read-only)</span>
+          ) : (
+            <button className='btn btn-ghost btn-xs ml-2' onClick={() => setRenaming(true)}>
+              <FilePen size={24} />
+            </button>
+          )}
         </div>
         <div className='navbar-end'>
-          <button className='btn btn-ghost' onClick={() => setExporting(true)}>
+          <button role='button' className='btn btn-ghost' onClick={() => setExporting(true)}>
             <ArrowRightFromLine />
+            Export
           </button>
-          <button className='btn btn-ghost'>
-            <Save size={32} className='stroke-2' />
-          </button>
+          {isReadOnly ? (
+            <button
+              role='button'
+              className='btn btn-ghost'
+              onClick={() => {
+                // TODO: Duplicate flow
+              }}
+            >
+              <Copy />
+              Duplicate
+            </button>
+          ) : (
+            <button
+              role='button'
+              className='btn btn-ghost'
+              onClick={() => {
+                //TODO: Force save flow
+              }}
+            >
+              <Save />
+              Save
+            </button>
+          )}
         </div>
       </div>
       <div className='fixed bottom-0 left-0 right-0 top-16'>
