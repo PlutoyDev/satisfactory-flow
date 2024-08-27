@@ -21,6 +21,7 @@
     "parse-json": "^8.1.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-error-boundary": "^4.0.13",
     "remeda": "^2.6.0",
     "zod": "^3.23.8"
   },
