@@ -221,7 +221,6 @@ function NodeSelectionPanel() {
           setDraggingNode(false);
         }}
         onDragOver={e => {
-          e.dataTransfer.effectAllowed = 'none';
           e.preventDefault();
           e.stopPropagation();
         }}
