@@ -25,17 +25,6 @@ export const store = getDefaultStore();
 
 export const locationAtom = atomWithLocation();
 
-export const errorsAtom = atom(new Set<string>());
-
-export function addError(error: string, hideErrorAfter = 5000) {
-  store.set(errorsAtom, new Set([...store.get(errorsAtom), error]));
-  setTimeout(() => {
-    const newErrors = new Set([...store.get(errorsAtom)]);
-    newErrors.delete(error);
-    store.set(errorsAtom, newErrors);
-  }, hideErrorAfter);
-}
-
 type StatusMessage = { message: string; type: 'success' | 'info' | 'warning' | 'error'; timeout?: ReturnType<typeof setTimeout> };
 export const statusMessagesAtom = atom<Map<string, StatusMessage>>(new Map());
 
@@ -78,8 +67,6 @@ export const docsMappedAtom = atom(async () => {
     }
     return mapped;
   } catch (error) {
-    addError('Error loading parsedDocs.json');
-    console.error('Error handling parsedDocs.json:', error);
     throw error;
   }
 });
@@ -359,7 +346,7 @@ export const nodesAtom = atom(
   (get, set, changes: ExtendedNodeChange[]) => {
     const selectedFlow = get(_selectedFlowAtom);
     if (selectedFlow?.source !== 'db' && changes[0].type !== 'select' && changes[0].type !== 'dimensions') {
-      addError('Cannot modify this flow');
+      appendStatusMessage({ message: 'Cannot modify this flow, please duplicate it', type: 'error', key: 'readonly-flow' });
       return;
     }
     // Reimplement of applyNodeChanges to work with Map
@@ -469,7 +456,7 @@ export const edgesAtom = atom(
   (get, set, changes: EdgeChange<Edge>[]) => {
     const selectedFlow = get(_selectedFlowAtom);
     if (selectedFlow?.source !== 'db' && changes[0]?.type !== 'select') {
-      addError('Cannot modify this flow');
+      appendStatusMessage({ message: 'Cannot modify this flow, please duplicate it', type: 'error', key: 'readonly-flow' });
       return;
     }
     // Reimplement of applyEdgeChanges to work with Map

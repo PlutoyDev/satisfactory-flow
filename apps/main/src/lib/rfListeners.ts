@@ -1,5 +1,5 @@
 import { ClipboardEvent, DragEvent } from 'react';
-import { Edge, Connection, OnSelectionChangeParams, ReactFlowInstance, NodeSelectionChange, EdgeSelectionChange } from '@xyflow/react';
+import { Edge, Connection, OnSelectionChangeParams, ReactFlowInstance } from '@xyflow/react';
 import { atom } from 'jotai';
 import { isDeepEqual } from 'remeda';
 import { FactoryNodeType } from '../components/rf/BaseNode';
@@ -11,10 +11,10 @@ import {
   nodesMapAtom,
   selectedFlowAtom,
   edgesMapAtom,
-  addError,
   HistoryEvent,
   pushHistoryEvent,
   ExtendedNode,
+  appendStatusMessage,
 } from './store';
 
 export const connectionErrorReasonAtom = atom<string | null>(null);
@@ -114,60 +114,67 @@ let clipDataId: string | undefined;
 let pasteCount = 0;
 
 export function onCutOrCopy(e: ClipboardEvent<HTMLDivElement>) {
-  e.preventDefault();
-  const isCut = e.type === 'cut';
-  // Copies all selected nodes and edges to clipboard as JSON
-  const nodes = store.get(nodesMapAtom);
-  const edges = store.get(edgesMapAtom);
-  const selectedIds = store.get(selectedIdsAtom);
+  try {
+    e.preventDefault();
+    const isCut = e.type === 'cut';
+    // Copies all selected nodes and edges to clipboard as JSON
+    const nodes = store.get(nodesMapAtom);
+    const edges = store.get(edgesMapAtom);
+    const selectedIds = store.get(selectedIdsAtom);
 
-  if (selectedIds.length === 0) {
-    return;
-  }
-
-  const copiedNodes: ExtendedNode[] = [];
-  const copiedEdges: Edge[] = [];
-
-  const currentHistoryEvent: HistoryEvent = [];
-  for (const id of selectedIds) {
-    if (nodes.has(id)) {
-      const pickedNode = pickMainNodeProp(nodes.get(id)!);
-      copiedNodes.push(pickedNode);
-      if (isCut) {
-        currentHistoryEvent.push({ type: 'remove', itemType: 'node', itemId: id, item: pickedNode });
-        nodes.delete(id);
-      }
-    } else if (edges.has(id)) {
-      const pickedEdge = pickMainEdgeProp(edges.get(id)!);
-      copiedEdges.push(pickedEdge);
-      if (isCut) {
-        currentHistoryEvent.push({ type: 'remove', itemType: 'edge', itemId: id, item: pickedEdge });
-        edges.delete(id);
-      }
-    } else {
-      throw new Error('Invalid selected id');
+    if (selectedIds.length === 0) {
+      return;
     }
 
-    if (isCut) {
-      store.set(nodesMapAtom, new Map(nodes));
-      store.set(edgesMapAtom, new Map(edges));
-      pushHistoryEvent(currentHistoryEvent);
+    const copiedNodes: ExtendedNode[] = [];
+    const copiedEdges: Edge[] = [];
+
+    const currentHistoryEvent: HistoryEvent = [];
+    for (const id of selectedIds) {
+      if (nodes.has(id)) {
+        const pickedNode = pickMainNodeProp(nodes.get(id)!);
+        copiedNodes.push(pickedNode);
+        if (isCut) {
+          currentHistoryEvent.push({ type: 'remove', itemType: 'node', itemId: id, item: pickedNode });
+          nodes.delete(id);
+        }
+      } else if (edges.has(id)) {
+        const pickedEdge = pickMainEdgeProp(edges.get(id)!);
+        copiedEdges.push(pickedEdge);
+        if (isCut) {
+          currentHistoryEvent.push({ type: 'remove', itemType: 'edge', itemId: id, item: pickedEdge });
+          edges.delete(id);
+        }
+      } else {
+        throw new Error('Invalid selected id');
+      }
+
+      if (isCut) {
+        store.set(nodesMapAtom, new Map(nodes));
+        store.set(edgesMapAtom, new Map(edges));
+        pushHistoryEvent(currentHistoryEvent);
+      }
     }
+
+    clipDataId = generateId();
+    pasteCount = isCut ? -1 : 0;
+
+    const copiedData: ClipboardData = {
+      clipDataId,
+      nodes: copiedNodes,
+      edges: copiedEdges,
+      viewport: store.get(reactflowInstanceAtom)!.getViewport(),
+    };
+    e.clipboardData?.setData(CLIPBOARD_DATA_TYPE, JSON.stringify(copiedData));
+    pasteCount = 0;
+    appendStatusMessage({
+      type: 'info',
+      message: `${isCut ? 'Cut' : 'Copied'} ${copiedNodes.length} nodes and ${copiedEdges.length} edges`,
+    });
+  } catch (error) {
+    appendStatusMessage({ type: 'error', message: 'Failed to cut/copy' });
+    console.error(error);
   }
-
-  clipDataId = generateId();
-  pasteCount = isCut ? -1 : 0;
-
-  const copiedData: ClipboardData = {
-    clipDataId,
-    nodes: copiedNodes,
-    edges: copiedEdges,
-    viewport: store.get(reactflowInstanceAtom)!.getViewport(),
-  };
-  e.clipboardData?.setData(CLIPBOARD_DATA_TYPE, JSON.stringify(copiedData));
-  pasteCount = 0;
-  // store.set(nodesAtom, nodeDeselectChanges);
-  // store.set(edgesAtom, edgeDeselectChanges);
 }
 
 export function onPaste(e: ClipboardEvent<HTMLDivElement>) {
@@ -181,7 +188,8 @@ export function onPaste(e: ClipboardEvent<HTMLDivElement>) {
   e.preventDefault();
   const clipboardData = e.clipboardData?.getData(CLIPBOARD_DATA_TYPE);
   if (!clipboardData) {
-    addError('Unknown/Empty clipboard data');
+    // addError('Unknown/Empty clipboard data');
+    appendStatusMessage({ type: 'error', message: 'Unknown/Empty clipboard data' });
     return;
   }
 
@@ -260,7 +268,7 @@ export function onPaste(e: ClipboardEvent<HTMLDivElement>) {
     pushHistoryEvent(currentHistoryEvent);
   } catch (error) {
     if (e instanceof SyntaxError) {
-      addError('Invalid clipboard data');
+      appendStatusMessage({ type: 'error', message: 'Invalid clipboard data' });
     }
     throw error;
   }
