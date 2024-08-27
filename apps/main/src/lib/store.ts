@@ -36,6 +36,25 @@ export function addError(error: string, hideErrorAfter = 5000) {
   }, hideErrorAfter);
 }
 
+type StatusMessage = { message: string; type: 'success' | 'info' | 'warning' | 'error' };
+export const statusMessageAtom = atom<Map<string, StatusMessage>>(new Map());
+
+type AppendStatusMessageOptions = StatusMessage & { key?: string; hideAfter?: number };
+export function appendStatusMessage(options: AppendStatusMessageOptions) {
+  const { message, type, hideAfter = 5000 } = options;
+  const key = options.key ?? generateId();
+  store.set(statusMessageAtom, new Map([...store.get(statusMessageAtom), [key, { message, type }]]));
+  if (hideAfter > 0) {
+    setTimeout(() => {
+      const newMessages = new Map([...store.get(statusMessageAtom)]);
+      newMessages.delete(key);
+      store.set(statusMessageAtom, newMessages);
+    }, hideAfter);
+  }
+}
+
+(window as any).appendStatusMessage = appendStatusMessage;
+
 // Read only atom to fetch parsedDocs.json and map it to a Map
 export type DocsMapped = { [key in keyof ParsedOutput]: ParsedOutput[key] extends Record<string, infer U> ? Map<string, U> : never };
 

@@ -3,7 +3,8 @@ import { Background, ConnectionMode, Edge, Node, Panel, ReactFlow, useReactFlow 
 import '@xyflow/react/dist/style.css';
 import debounce from 'debounce';
 import { useAtom } from 'jotai';
-import { ArrowRightFromLine, FilePen, Home, OctagonX, Redo, Save, Undo, X } from 'lucide-react';
+import { ArrowRightFromLine, Check, FilePen, Home, Info, OctagonAlert, OctagonX, Redo, Save, Undo, X } from 'lucide-react';
+import { twMerge } from 'tailwind-merge';
 import { customEdges, customNodeEditors, customNodes } from '../components/rf';
 import { FACTORY_NODE_DEFAULT_COLORS, FACTORY_NODE_TYPES, FactoryEditorContextProvider, FactoryNodeType } from '../components/rf/BaseNode';
 import ConnectionLine from '../components/rf/ConnectionLine';
@@ -23,16 +24,15 @@ import {
   alignmentAtom,
   edgesAtom,
   edgesMapAtom,
-  errorsAtom,
   historyActionAtom,
   nodesAtom,
   nodesMapAtom,
   selectedFlowAtom,
   selectedFlowDataAtom,
+  statusMessageAtom,
 } from '../lib/store';
 
 function FlowPage() {
-  const [errors] = useAtom(errorsAtom);
   const [isDraggingNode] = useAtom(isDraggingNodeAtom);
   const [rfInstance, setReactFlowInstance] = useAtom(reactflowInstanceAtom);
   const [selectedFlow, setSelectedFlow] = useAtom(selectedFlowAtom);
@@ -129,6 +129,7 @@ function FlowPage() {
             )}
             <NodeSelectionPanel />
             <PropertyEditorPanel />
+            <StatusMessagePanel />
             <Panel position='top-center'>
               <div className='flex flex-row'>
                 <button className='btn btn-ghost' disabled={!undoable} onClick={() => applyHistoryAction('undo')}>
@@ -173,16 +174,6 @@ function FlowPage() {
         </Suspense>
       </div>
       {/* Error Display */}
-      {errors.size > 0 && (
-        <div className='fixed top-16 left-0 bg-transparent flex flex-col gap-y-2 p-2 right-1/2'>
-          {Array.from(errors).map((error, id) => (
-            <div key={id} className='alert alert-error'>
-              <OctagonX />
-              <p>{error}</p>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
@@ -350,6 +341,37 @@ function PropertyEditorPanel() {
           <div className='flex flex-col gap-y-2'>{typeof Editor === 'function' ? <Editor /> : Editor}</div>
         </div>
       </FactoryEditorContextProvider>
+    </Panel>
+  );
+}
+
+const StatusMessageTypeMap = {
+  success: { textClassName: 'text-success', icon: <Check /> },
+  info: { textClassName: 'text-info', icon: <Info /> },
+  warning: { textClassName: 'text-warning', icon: <OctagonAlert /> },
+  error: { textClassName: 'text-error', icon: <OctagonX /> },
+} satisfies Record<'success' | 'info' | 'warning' | 'error', { textClassName: string; icon: JSX.Element }>;
+
+function StatusMessagePanel() {
+  const [statusMsgs] = useAtom(statusMessageAtom);
+
+  return (
+    <Panel position='bottom-center'>
+      <div className='flex flex-col gap-y-2 w-full'>
+        {Array.from(statusMsgs).map(([key, { message, type }]) => {
+          const { textClassName, icon } = StatusMessageTypeMap[type];
+          return (
+            <div
+              key={key}
+              style={{ textShadow: '0 2px 4px oklch(var(--b1))' }}
+              className={'flex flex-row gap-x-1 flex-nowrap justify-center items-center text-center ' + textClassName}
+            >
+              <p>{icon}</p>
+              <p>{message}</p>
+            </div>
+          );
+        })}
+      </div>
     </Panel>
   );
 }
