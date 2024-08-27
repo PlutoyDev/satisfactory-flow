@@ -1,6 +1,7 @@
 import { ClipboardEvent, DragEvent } from 'react';
 import { Edge, Connection, OnSelectionChangeParams, ReactFlowInstance, NodeSelectionChange, EdgeSelectionChange } from '@xyflow/react';
 import { atom } from 'jotai';
+import { isDeepEqual } from 'remeda';
 import { FactoryNodeType } from '../components/rf/BaseNode';
 import { generateId, pickMainEdgeProp, pickMainNodeProp, splitHandleId } from './data';
 import {
@@ -102,7 +103,15 @@ export function onSelectionChange(params: OnSelectionChangeParams) {
 }
 
 const CLIPBOARD_DATA_TYPE = 'application/json+satisfactory-flow';
-type ClipboardData = { nodes: ExtendedNode[]; edges: Edge[]; viewport: ReturnType<ReactFlowInstance['getViewport']> };
+type ClipboardData = {
+  clipDataId: string;
+  nodes: ExtendedNode[];
+  edges: Edge[];
+  viewport: ReturnType<ReactFlowInstance['getViewport']>;
+};
+
+let clipDataId: string | undefined;
+let pasteCount = 0;
 
 export function onCopy(e: ClipboardEvent<HTMLDivElement>) {
   e.preventDefault();
@@ -114,24 +123,33 @@ export function onCopy(e: ClipboardEvent<HTMLDivElement>) {
   const copiedNodes: ExtendedNode[] = [];
   const copiedEdges: Edge[] = [];
 
-  const nodeDeselectChanges: NodeSelectionChange[] = [];
-  const edgeDeselectChanges: EdgeSelectionChange[] = [];
+  // const nodeDeselectChanges: NodeSelectionChange[] = [];
+  // const edgeDeselectChanges: EdgeSelectionChange[] = [];
   for (const id of selectedIds) {
     if (nodes.has(id)) {
       copiedNodes.push(pickMainNodeProp(nodes.get(id)!));
-      nodeDeselectChanges.push({ id, type: 'select', selected: false });
+      // nodeDeselectChanges.push({ id, type: 'select', selected: false });
     } else if (edges.has(id)) {
       copiedEdges.push(pickMainEdgeProp(edges.get(id)!));
-      edgeDeselectChanges.push({ id, type: 'select', selected: false });
+      // edgeDeselectChanges.push({ id, type: 'select', selected: false });
     } else {
       throw new Error('Invalid selected id');
     }
   }
 
-  const copiedData: ClipboardData = { nodes: copiedNodes, edges: copiedEdges, viewport: store.get(reactflowInstanceAtom)!.getViewport() };
+  clipDataId = generateId();
+  pasteCount = 0;
+
+  const copiedData: ClipboardData = {
+    clipDataId,
+    nodes: copiedNodes,
+    edges: copiedEdges,
+    viewport: store.get(reactflowInstanceAtom)!.getViewport(),
+  };
   e.clipboardData?.setData(CLIPBOARD_DATA_TYPE, JSON.stringify(copiedData));
-  store.set(nodesAtom, nodeDeselectChanges);
-  store.set(edgesAtom, edgeDeselectChanges);
+  pasteCount = 0;
+  // store.set(nodesAtom, nodeDeselectChanges);
+  // store.set(edgesAtom, edgeDeselectChanges);
 }
 
 export function onPaste(e: ClipboardEvent<HTMLDivElement>) {
@@ -150,57 +168,78 @@ export function onPaste(e: ClipboardEvent<HTMLDivElement>) {
   }
 
   try {
-    const { nodes: copiedNodes, edges: copiedEdges, viewport: copiedViewport } = JSON.parse(clipboardData) as ClipboardData;
-    const selectedIds = store.get(selectedIdsAtom);
+    const copiedData = JSON.parse(clipboardData) as ClipboardData;
+    const { nodes: copiedNodes, edges: copiedEdges, viewport: copiedViewport } = copiedData;
+    pasteCount = copiedData.clipDataId === clipDataId ? pasteCount + 1 : 1;
     const nodes = store.get(nodesMapAtom);
     const edges = store.get(edgesMapAtom);
-    const selectedIsSame = selectedIds.length === copiedNodes.length && copiedNodes.every(({ id }) => selectedIds.includes(id));
-    if (selectedIds.length === copiedNodes.length && copiedNodes.length === 1 && copiedEdges.length === 0 && !selectedIsSame) {
+    const selectedIds = store.get(selectedIdsAtom);
+    if (
+      selectedIds.length === copiedNodes.length &&
+      copiedNodes.length === 1 &&
+      copiedEdges.length === 0 &&
+      selectedIds[0] !== copiedNodes[0].id
+    ) {
       const selectedNode = nodes.get(selectedIds[0])!;
       const copiedNode = copiedNodes[0];
-      store.set(nodesAtom, [
-        {
-          id: selectedNode.id,
-          type: 'replace',
-          item: { ...selectedNode, data: copiedNode.data },
-        },
-      ]);
-    } else {
-      store.set(selectedIdsAtom, []);
-      const currentHistoryEvent: HistoryEvent = [];
-      const newNodes = new Map<string, ExtendedNode>(nodes);
-      const newEdges = new Map<string, Edge>(edges);
-      const newNodeIdMap = new Map<string, string>();
-      const viewport = store.get(reactflowInstanceAtom)!.getViewport();
-      const nodeXOffset = viewport.x === copiedViewport.x ? 72 : copiedViewport.x - viewport.x;
-      const nodeYOffset = viewport.y === copiedViewport.y ? 72 : copiedViewport.y - viewport.y;
-      for (const node of copiedNodes) {
-        const newNodeId = generateId();
-        newNodeIdMap.set(node.id, newNodeId);
-        currentHistoryEvent.push({ type: 'add', itemType: 'node', itemId: newNodeId });
-        newNodes.set(newNodeId, {
-          ...node,
-          id: newNodeId,
-          position: { x: node.position.x + nodeXOffset, y: node.position.y + nodeYOffset },
-          selected: true,
-          edges: new Map(),
-        });
+      if (selectedNode.type === copiedNode.type && !isDeepEqual(selectedNode.data, copiedNode.data)) {
+        store.set(nodesAtom, [
+          {
+            id: selectedNode.id,
+            type: 'replace',
+            item: { ...selectedNode, data: copiedNode.data },
+          },
+        ]);
+        return;
       }
-      for (const edge of copiedEdges) {
-        const newEdgeId = generateId();
-        const sourceId = newNodeIdMap.get(edge.source);
-        const targetId = newNodeIdMap.get(edge.target);
-        // Skip the edge if either source or target is not copied
-        if (!sourceId || !targetId) continue;
-        currentHistoryEvent.push({ type: 'add', itemType: 'edge', itemId: newEdgeId });
-        newEdges.set(newEdgeId, { ...edge, id: newEdgeId, source: sourceId, target: targetId });
-        newNodes.get(sourceId)!.edges!.set(edge.sourceHandle!, newEdgeId);
-        newNodes.get(targetId)!.edges!.set(edge.targetHandle!, newEdgeId);
-      }
-      store.set(nodesMapAtom, newNodes);
-      store.set(edgesMapAtom, newEdges);
-      pushHistoryEvent(currentHistoryEvent);
     }
+    store.set(selectedIdsAtom, []);
+    const currentHistoryEvent: HistoryEvent = [];
+    const newNodes = new Map<string, ExtendedNode>();
+    const newEdges = new Map<string, Edge>();
+    // Deselct all nodes and edges
+    for (const node of nodes.values()) {
+      if (node.selected) newNodes.set(node.id, { ...node, selected: false });
+      else newNodes.set(node.id, node);
+    }
+    for (const edge of edges.values()) {
+      if (edge.selected) newEdges.set(edge.id, { ...edge, selected: false });
+      else newEdges.set(edge.id, edge);
+    }
+    // Add copied nodes and edges (with new ids) to the flow
+    const newNodeIdMap = new Map<string, string>();
+    const viewport = store.get(reactflowInstanceAtom)!.getViewport();
+    copiedData.viewport = viewport;
+    const nodeXOffset = (viewport.x === copiedViewport.x ? 72 : copiedViewport.x - viewport.x) + (pasteCount - 1) * 72;
+    const nodeYOffset = (viewport.y === copiedViewport.y ? 72 : copiedViewport.y - viewport.y) + (pasteCount - 1) * 72;
+    console.log({ nodeXOffset, nodeYOffset, clipDataId, intId: copiedData.clipDataId, pasteCount });
+
+    for (const node of copiedNodes) {
+      const newNodeId = generateId();
+      newNodeIdMap.set(node.id, newNodeId);
+      currentHistoryEvent.push({ type: 'add', itemType: 'node', itemId: newNodeId });
+      newNodes.set(newNodeId, {
+        ...node,
+        id: newNodeId,
+        position: { x: node.position.x + nodeXOffset, y: node.position.y + nodeYOffset },
+        selected: true,
+        edges: new Map(),
+      });
+    }
+    for (const edge of copiedEdges) {
+      const newEdgeId = generateId();
+      const sourceId = newNodeIdMap.get(edge.source);
+      const targetId = newNodeIdMap.get(edge.target);
+      // Skip the edge if either source or target is not copied
+      if (!sourceId || !targetId) continue;
+      currentHistoryEvent.push({ type: 'add', itemType: 'edge', itemId: newEdgeId });
+      newEdges.set(newEdgeId, { ...edge, id: newEdgeId, source: sourceId, target: targetId });
+      newNodes.get(sourceId)!.edges!.set(edge.sourceHandle!, newEdgeId);
+      newNodes.get(targetId)!.edges!.set(edge.targetHandle!, newEdgeId);
+    }
+    store.set(nodesMapAtom, newNodes);
+    store.set(edgesMapAtom, newEdges);
+    pushHistoryEvent(currentHistoryEvent);
   } catch (error) {
     if (e instanceof SyntaxError) {
       addError('Invalid clipboard data');
