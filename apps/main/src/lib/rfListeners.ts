@@ -238,7 +238,6 @@ export function onPaste(e: ClipboardEvent<HTMLDivElement>) {
     copiedData.viewport = viewport;
     const nodeXOffset = viewport.x === copiedViewport.x ? pasteCount * 72 : copiedViewport.x - viewport.x + (pasteCount - 1) * 72;
     const nodeYOffset = viewport.y === copiedViewport.y ? pasteCount * 72 : copiedViewport.y - viewport.y + (pasteCount - 1) * 72;
-    console.log({ nodeXOffset, nodeYOffset, clipDataId, intId: copiedData.clipDataId, pasteCount });
 
     for (const node of copiedNodes) {
       const newNodeId = generateId();

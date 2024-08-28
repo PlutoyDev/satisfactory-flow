@@ -304,7 +304,6 @@ function PropertyEditorPanel({ isReadOnly }: { isReadOnly: boolean }) {
   const getValue = useCallback(
     (key?: string) => {
       if (!selNodeOrEdge) {
-        console.error('Selected node or edge not found');
         return undefined;
       }
       selNodeOrEdge.data ??= {};
@@ -322,7 +321,6 @@ function PropertyEditorPanel({ isReadOnly }: { isReadOnly: boolean }) {
       const setValue = (updateOrUpdater: any | ((prev: any) => any)) => {
         const prevValue = selNodeOrEdge;
         if (!prevValue) {
-          console.error('Selected node or edge not found');
           return;
         }
         // Can only update data, other properties cannot be changed

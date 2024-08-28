@@ -12,7 +12,7 @@ import {
   resolveRecipeNodeData,
   speedThouToString,
 } from '../lib/data';
-import { DocsMapped, ExtendedNode } from '../lib/store';
+import { appendStatusMessage, DocsMapped, ExtendedNode } from '../lib/store';
 
 /*
 Will be Modified from: 
@@ -61,7 +61,7 @@ export function computeFactoryItemNode(args: ComputeArgs): ComputeResult | null 
   if (!itemKey) return null;
   const item = docsMapped.items.get(itemKey);
   if (!item) {
-    console.error(`Item ${itemKey} not found`);
+    appendStatusMessage({ type: 'error', message: `Item ${itemKey} not found` });
     return null;
   }
 
@@ -94,7 +94,7 @@ export function computeFactoryRecipeNode(args: ComputeArgs): ComputeResult | nul
   if (!recipeKey) return null;
   const recipe = docsMapped.recipes.get(recipeKey);
   if (!recipe) {
-    console.error(`Recipe ${recipeKey} not found`);
+    appendStatusMessage({ type: 'error', message: `Recipe ${recipeKey} not found` });
     return null;
   }
 
@@ -111,7 +111,8 @@ export function computeFactoryRecipeNode(args: ComputeArgs): ComputeResult | nul
     const { itemKey, amount } = itemAmt;
     const item = docsMapped.items.get(itemKey);
     if (!item) {
-      throw new Error(`Item ${itemKey} not found for recipe ${recipeKey}`);
+      appendStatusMessage({ type: 'error', message: `Item ${itemKey} not found` });
+      continue;
     }
 
     const itemForm = item.form === 'solid' ? 'solid' : 'fluid';
@@ -209,7 +210,7 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
         const nodeComputeResult =
           nodesComputeResult.get(otherNodeId) ??
           computeNode({ ...args, nodeId: otherNodeId, ignoreHandleIds: [otherHandleId], visitedNode: [nodeId, ...visitedNode] });
-        if (!nodeComputeResult) throw `error: Unable to compute node ${otherNodeId}`;
+        if (!nodeComputeResult) throw `warn: Unable to compute node ${otherNodeId}`;
         // nodesComputeResult.set(otherNodeId, nodeComputeResult);
 
         const nodeItemSpeed = nodeComputeResult.actualItemsSpeed[otherHandleId] ?? nodeComputeResult.expectItemsSpeed[otherHandleId];
@@ -232,8 +233,9 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
         }
       } catch (e) {
         if (e && typeof e === 'string') {
-          if (e.startsWith('log:')) console.log(e.slice(4));
-          else if (e.startsWith('error:')) console.error(e.slice(7));
+          if (e.startsWith('log:')) appendStatusMessage({ type: 'info', message: e.slice(4) });
+          else if (e.startsWith('warn:')) appendStatusMessage({ type: 'warning', message: e.slice(5) });
+          else if (e.startsWith('error:')) appendStatusMessage({ type: 'error', message: e.slice(6) });
         }
       }
 
@@ -254,7 +256,8 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
           } else if (rules[0] !== 'none') {
             for (const rule of rules) {
               if (!rule.startsWith('item-')) {
-                console.error(`Invalid rule ${rule} for node ${nodeId}`);
+                // console.error(`Invalid rule ${rule} for node ${nodeId}`);
+                appendStatusMessage({ type: 'error', message: `Invalid rule ${rule} for node ${nodeId}` });
                 continue;
               }
               const itemKey = rule.slice(5);
@@ -354,8 +357,8 @@ export function computeFactoryBeltOrPieEdge(args: EdgeComputeArgs): FactoryBeltO
     colorMode = 'error';
     centerLabel = 'Invalid Node (please submit a bug report)';
   } else if (!sourceResult || !targetResult) {
-    if (!sourceResult) console.warn(`Source Node ${source} has no compute result`);
-    if (!targetResult) console.warn(`Target Node ${target} has no compute result`);
+    if (!sourceResult) appendStatusMessage({ type: 'warning', message: `Source Node ${source} has no item speed result` });
+    if (!targetResult) appendStatusMessage({ type: 'warning', message: `Target Node ${target} has no item speed result` });
     return undefined;
   } else {
     // Has computed result
@@ -395,7 +398,6 @@ export interface ComputeFactoryGraphArgs {
 }
 
 export function computeFactoryGraph(arg: ComputeFactoryGraphArgs) {
-  console.log('Computing Factory Graph');
   // Right now, it recomputes all nodes
   const { docsMapped, nodeMap, edgeMap } = arg;
   const nodesComputeResult = new Map<string, ComputeResult>();

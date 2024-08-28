@@ -128,7 +128,6 @@ const _edgesArrayAtom = atom<Edge[]>([]); // Used for rendering
 export const nodesMapAtom = atom(
   get => get(_nodesMapAtom),
   (_get, set, nodes: Map<string, Node>) => {
-    console.log('Setting nodes:', nodes);
     set(_nodesMapAtom, nodes);
     set(_nodesArrayAtom, Array.from(nodes.values()));
   },
@@ -300,13 +299,11 @@ let _debouncedTimeout: ReturnType<typeof setTimeout> | null = null;
 
 export async function deboucedAction(force?: true) {
   if ((!_debouncedIds.size || _debouncedTimeout) && !force) {
-    console.log('debounced action (ignored):', _debouncedIds.size, _debouncedTimeout, force);
     return;
   }
   store.set(_isDebouncePendingAtom, true);
   _debouncedTimeout = setTimeout(
     async () => {
-      console.log('Debounced action');
       try {
         const ids = Array.from(_debouncedIds);
         _debouncedIds.clear();
@@ -365,6 +362,7 @@ export async function deboucedAction(force?: true) {
         _debouncedTimeout = null;
       } catch (error) {
         console.error('Error saving changes:', error);
+        appendStatusMessage({ message: 'Error saving changes', type: 'error', hideAfter: -1 });
       }
     },
     force ? 0 : 2000,
@@ -417,7 +415,7 @@ export const nodesAtom = atom(
         default: {
           const node = nodes.get(change.id);
           if (!node) {
-            console.error('Node not found:', change.id);
+            appendStatusMessage({ message: `Node with ID ${change.id} not found`, type: 'error', key: 'node-not-found' });
             continue;
           }
           switch (change.type) {
@@ -549,7 +547,6 @@ export const edgesAtom = atom(
 );
 
 export const isSwitchingFlow = atom(false);
-export const switchFlowError = atom<string | null>(null);
 export const selectedFlowAtom = atom(
   get => get(_selectedFlowAtom),
   async (get, set, update: SelectedFlow | null, data?: FullFlowData) => {
@@ -584,7 +581,6 @@ export const selectedFlowAtom = atom(
             edges = data.default.edges;
           }
         } else if (update.source === 'import' && data) {
-          console.log('Imported flow:', data);
           nodes = data.nodes;
           edges = data.edges;
           const flowInfos = get(_flowsAtom);
@@ -617,8 +613,7 @@ export const selectedFlowAtom = atom(
         // Set URL to /{source}/{id}
         set(locationAtom, { pathname: `/flows/${update.source}/${update.flowId}` });
       } catch (error) {
-        console.error('Error switching flow:', error);
-        set(switchFlowError, 'Error switching flow');
+        throw new Error('Error switching flow', { cause: error });
       }
     } else {
       set(nodesMapAtom, new Map());
@@ -658,7 +653,7 @@ export const selectedFlowDataAtom = atom(
         set(_flowsAtom, new Map(get(_flowsAtom).entries()));
       }
     } else {
-      console.error('Cannot update example flow data');
+      appendStatusMessage({ message: 'Cannot modify this flow', type: 'error' });
     }
   },
 );
