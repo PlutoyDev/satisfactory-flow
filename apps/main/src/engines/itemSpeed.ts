@@ -157,9 +157,9 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
     console.error(`Circular dependency detected at node ${nodeId}`);
     return null;
   }
-  const nodeAdditionalProperty = nodeMap.get(nodeId);
 
-  const nullableNodeData = nodeMap.get(nodeId)?.data as FactoryLogisticNodeData | undefined;
+  const node = nodeMap.get(nodeId);
+  const nullableNodeData = node?.data as FactoryLogisticNodeData | undefined;
   if (!nullableNodeData) return null;
   const nodeData = resolveLogisticNodeData(nullableNodeData);
   const { type: logisticType, smartProRules, pipeJuncInt } = nodeData;
@@ -173,7 +173,7 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
   }
 
   const remainingItemsSpeed: Map<string, number> = new Map();
-  const handleIdToEdgeIdMap = nodeAdditionalProperty?.edges;
+  const handleIdToEdgeIdMap = node?.edges;
   // Connected in and outs
   const inHandleIds: string[] = [];
   const outHandleIds: string[] = [];
@@ -195,7 +195,7 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
 
     // Find the connected edge and the other node
     const handleId = `${dir}-${itemForm}-${intType}-0`;
-    ret.expectItemsSpeed[handleId] = intType === 'in' ? { any: 0 } : { any: 0 }; // Expects to demand everything or provide everything
+    ret.expectItemsSpeed[handleId] = intType === 'in' ? { any: 0 } : { any: 0 }; // Expects to demand nothing or provide nothing
 
     const edgeId = handleIdToEdgeIdMap?.get(handleId);
     if (edgeId) {
@@ -322,6 +322,56 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
   return ret;
 }
 
+export function computeFactorySinkNode(args: ComputeArgs): ComputeResult | null {
+  const { visitedNode = [], nodeId, nodeMap, edgeMap, ignoreHandleIds, nodesComputeResult } = args;
+  // Sink nodes are the simplest, they just consume any items that are provided to them
+  const ret: ComputeResult = {
+    expectItemsSpeed: { 'left-solid-in-0': { any: Infinity } },
+    actualItemsSpeed: {},
+    basedOn: {},
+  };
+
+  // Find the connected edge and the other node
+  const handleId = 'left-solid-in-0';
+  const edgeId = nodeMap.get(nodeId)?.edges!.get(handleId);
+  if (edgeId) {
+    // Connected to an edge with id ${edgeId}
+    try {
+      if (ignoreHandleIds?.includes(handleId)) throw null;
+      const edge = edgeMap.get(edgeId);
+      if (!edge) throw `error: Edge ${edgeId} not found`;
+
+      const otherNodeId = edge.source;
+      const otherHandleId = edge.sourceHandle;
+      if (!otherHandleId) throw `error: HandleId not found for edge ${edgeId}`;
+
+      const nodeComputeResult =
+        nodesComputeResult.get(otherNodeId) ??
+        computeNode({ ...args, nodeId: otherNodeId, ignoreHandleIds: [otherHandleId], visitedNode: [nodeId, ...visitedNode] });
+      if (!nodeComputeResult) throw `warn: Unable to compute node ${otherNodeId}`;
+
+      const nodeItemSpeed = nodeComputeResult.actualItemsSpeed[otherHandleId] ?? nodeComputeResult.expectItemsSpeed[otherHandleId];
+      if (!nodeItemSpeed) throw `error: Item speed not found for handleId ${otherHandleId} at node ${otherNodeId}`;
+
+      for (const itemKey in nodeItemSpeed) {
+        const speedThou = nodeItemSpeed[itemKey] ?? 0;
+        if (itemKey === 'any') continue;
+        ret.actualItemsSpeed[handleId] ??= {};
+        ret.actualItemsSpeed[handleId][itemKey] = -speedThou;
+      }
+    } catch (e) {
+      if (e && typeof e === 'string') {
+        if (e.startsWith('log:')) appendStatusMessage({ type: 'info', message: e.slice(4) });
+        else if (e.startsWith('warn:')) appendStatusMessage({ type: 'warning', message: e.slice(5) });
+        else if (e.startsWith('error:')) appendStatusMessage({ type: 'error', message: e.slice(6) });
+      }
+    }
+  }
+
+  console.log('Sink Node', nodeId, ret);
+  return ret;
+}
+
 export function computeNode(args: ComputeArgs) {
   const { nodeId, nodeMap } = args;
   const node = nodeMap.get(nodeId);
@@ -333,6 +383,8 @@ export function computeNode(args: ComputeArgs) {
       return computeFactoryRecipeNode(args);
     case 'logistic':
       return computeFactoryLogisticsNode(args);
+    case 'sink':
+      return computeFactorySinkNode(args);
     default:
       console.error(`Unknown node type ${node.data.type}`);
       return null;
@@ -404,14 +456,18 @@ export function computeFactoryGraph(arg: ComputeFactoryGraphArgs) {
   // Order of computation: Item, Recipe, Logistics Node then Edges
   const recipeNodes = new Set<ExtendedNode>();
   const logisticNodes = new Set<ExtendedNode>();
+  const otherNodes = new Set<ExtendedNode>();
   for (const [nodeId, node] of nodeMap) {
-    if (node.type === 'recipe') {
+    if (node.type === 'item') {
+      const result = computeFactoryItemNode({ nodeId, docsMapped, nodeMap, edgeMap, nodesComputeResult });
+      if (result) nodesComputeResult.set(node.id, result);
+    } else if (node.type === 'recipe') {
       recipeNodes.add(node);
     } else if (node.type === 'logistic') {
       logisticNodes.add(node);
+    } else {
+      otherNodes.add(node);
     }
-    const result = computeFactoryItemNode({ nodeId, docsMapped, nodeMap, edgeMap, nodesComputeResult });
-    if (result) nodesComputeResult.set(node.id, result);
   }
   for (const node of recipeNodes) {
     const result = computeFactoryRecipeNode({ nodeId: node.id, docsMapped, nodeMap, edgeMap, nodesComputeResult });
@@ -421,6 +477,12 @@ export function computeFactoryGraph(arg: ComputeFactoryGraphArgs) {
     const result = computeFactoryLogisticsNode({ nodeId: node.id, docsMapped, nodeMap, edgeMap, nodesComputeResult });
     if (result) nodesComputeResult.set(node.id, result);
   }
+  for (const node of otherNodes) {
+    const result = computeNode({ nodeId: node.id, docsMapped, nodeMap, edgeMap, nodesComputeResult });
+    if (result) nodesComputeResult.set(node.id, result);
+  }
+
+  console.log('Nodes Compute Result', new Map(nodesComputeResult));
 
   for (const [edgeId, edge] of edgeMap) {
     const result = computeFactoryBeltOrPieEdge({ edgeId, docsMapped, nodeMap, edgeMap, nodesComputeResult });
