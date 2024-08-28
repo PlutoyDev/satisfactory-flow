@@ -134,7 +134,6 @@ function FlowPage() {
             // Misc
             colorMode='dark'
             onInit={setReactFlowInstance}
-            // onInit={setReactFlowInstance}
             onSelectionChange={onSelectionChange}
             // Viewport
             viewport={viewport}
@@ -234,6 +233,7 @@ const NODE_NAMES = {
   item: 'Item',
   recipe: 'Recipe',
   logistic: 'Logistic',
+  sink: 'Sink',
 } as const satisfies Record<FactoryNodeType, string>;
 
 function NodeSelectionPanel() {

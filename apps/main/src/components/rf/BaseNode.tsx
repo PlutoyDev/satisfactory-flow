@@ -3,13 +3,14 @@ import { Handle, NodeProps, Position, Node, useUpdateNodeInternals, Edge } from 
 import { FACTORY_INTERFACE_DIR, FactoryInterfaceDir, FactoryInterfaceType, FactoryItemForm, joinIntoHandleId } from '../../lib/data';
 import { FactoryBaseNodeData } from '../../lib/data';
 
-export const FACTORY_NODE_TYPES = ['item', 'recipe', 'logistic'] as const;
+export const FACTORY_NODE_TYPES = ['item', 'recipe', 'logistic', 'sink'] as const;
 export type FactoryNodeType = (typeof FACTORY_NODE_TYPES)[number];
 
 export const FACTORY_NODE_DEFAULT_COLORS = {
   item: '#76BABF',
   recipe: '#F6AD55',
   logistic: '#71DA8F',
+  sink: '#52525b',
 } as const satisfies Record<FactoryNodeType, string>;
 
 /* 
