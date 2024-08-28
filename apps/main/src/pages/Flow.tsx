@@ -3,7 +3,24 @@ import { Background, ConnectionMode, Edge, Node, Panel, ReactFlow, useReactFlow 
 import '@xyflow/react/dist/style.css';
 import debounce from 'debounce';
 import { useAtom } from 'jotai';
-import { ArrowRightFromLine, Check, Copy, FilePen, Home, Info, OctagonAlert, OctagonX, Redo, Save, Undo, X } from 'lucide-react';
+import {
+  ArrowRightFromLine,
+  Check,
+  Copy,
+  FilePen,
+  Fullscreen,
+  Home,
+  Info,
+  OctagonAlert,
+  OctagonX,
+  Redo,
+  Save,
+  ScanEye,
+  Undo,
+  X,
+  ZoomIn,
+  ZoomOut,
+} from 'lucide-react';
 import { customEdges, customNodeEditors, customNodes } from '../components/rf';
 import { FACTORY_NODE_DEFAULT_COLORS, FACTORY_NODE_TYPES, FactoryEditorContextProvider, FactoryNodeType } from '../components/rf/BaseNode';
 import ConnectionLine from '../components/rf/ConnectionLine';
@@ -372,15 +389,19 @@ function PropertyEditorPanel({ isReadOnly }: { isReadOnly: boolean }) {
 }
 
 type ToolbarPanelProps<events extends string[]> = {
+  // Event handlers
   [K in events[number] as `on${Capitalize<K>}`]?: () => void;
 } & {
-  [K in events[number] as `${K}able`]: boolean;
+  // Enable/disable props
+  [K in events[number] as `${K}able`]?: boolean;
+} & {
+  // Any other props
 };
 
-function ToolbarPanel(props: ToolbarPanelProps<['undo', 'redo']>) {
+function ToolbarPanel(props: ToolbarPanelProps<['undo', 'redo', 'zoomIn', 'zoomOut', 'fitView', 'fullscreen']>) {
   return (
     <Panel position='top-center'>
-      <div className='flex flex-row gap-x-1'>
+      <div className='flex flex-row gap-x-2 shadow-2xl rounded-box px-2 bg-base-100'>
         <button
           role='button'
           className='btn btn-ghost btn-sm btn-square tooltip tooltip-bottom'
@@ -399,6 +420,40 @@ function ToolbarPanel(props: ToolbarPanelProps<['undo', 'redo']>) {
         >
           <Redo />
         </button>
+        <div className='divider divider-horizontal mx-0' />
+        <button
+          role='button'
+          className='btn btn-ghost btn-sm btn-square tooltip tooltip-bottom'
+          aria-label='Zoom In'
+          onClick={props.onZoomIn}
+        >
+          <ZoomIn />
+        </button>
+        <button
+          role='button'
+          className='btn btn-ghost btn-sm btn-square tooltip tooltip-bottom'
+          aria-label='Zoom Out'
+          onClick={props.onZoomOut}
+        >
+          <ZoomOut />
+        </button>
+        <button
+          role='button'
+          className='btn btn-ghost btn-sm btn-square tooltip tooltip-bottom'
+          aria-label='Fit View'
+          onClick={props.onFitView}
+        >
+          <ScanEye />
+        </button>
+        <button
+          role='button'
+          className='btn btn-ghost btn-sm btn-square tooltip tooltip-bottom'
+          aria-label='Fullscreen'
+          onClick={props.onFullscreen}
+        >
+          <Fullscreen />
+        </button>
+        <div className='divider divider-horizontal mx-0' />
       </div>
     </Panel>
   );
