@@ -12,3 +12,24 @@ input::-webkit-inner-spin-button {
 input[type='number'] {
   -moz-appearance: textfield;
 }
+
+/* 
+Modify the tooltip to use the aria-label attribute instead of the data-tip attribute when use as button tooltip
+- Change --tw-content to attr(aria-label) instead of attr(data-tip)
+- Unset visibility and opacity when hover if aria-label is present
+- Set tooltip button's display to inline-flex (was set to inline-block by .tooltip class)
+*/
+
+.btn.tooltip::before {
+  --tw-content: attr(aria-label);
+}
+
+.btn.tooltip[aria-label]:hover:before,
+.btn.tooltip[aria-label]:hover:after {
+  visibility: unset;
+  opacity: unset;
+}
+
+.btn.tooltip {
+  display: inline-flex;
+}

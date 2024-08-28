@@ -380,11 +380,23 @@ type ToolbarPanelProps<events extends string[]> = {
 function ToolbarPanel(props: ToolbarPanelProps<['undo', 'redo']>) {
   return (
     <Panel position='top-center'>
-      <div className='flex flex-row'>
-        <button className='btn btn-ghost' onClick={props.onUndo} disabled={!props.undoable}>
+      <div className='flex flex-row gap-x-1'>
+        <button
+          role='button'
+          className='btn btn-ghost btn-sm btn-square tooltip tooltip-bottom'
+          aria-label='Undo'
+          onClick={props.onUndo}
+          disabled={!props.undoable}
+        >
           <Undo />
         </button>
-        <button className='btn btn-ghost' onClick={props.onRedo} disabled={!props.redoable}>
+        <button
+          role='button'
+          className='btn btn-ghost btn-sm btn-square tooltip tooltip-bottom'
+          aria-label='Redo'
+          onClick={props.onRedo}
+          disabled={!props.redoable}
+        >
           <Redo />
         </button>
       </div>
