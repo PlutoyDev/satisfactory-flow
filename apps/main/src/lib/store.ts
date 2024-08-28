@@ -612,6 +612,8 @@ export const selectedFlowAtom = atom(
         set(nodesMapAtom, nodesMap);
         set(edgesMapAtom, edgesMap);
         set(viewportAtom, viewport);
+        set(_undoHistoryAtom, []);
+        set(_redoHistoryAtom, []);
         // Set URL to /{source}/{id}
         set(locationAtom, { pathname: `/flows/${update.source}/${update.flowId}` });
       } catch (error) {
