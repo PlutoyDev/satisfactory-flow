@@ -1,4 +1,4 @@
-import { Suspense, useCallback, useMemo, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Background, ConnectionMode, Edge, Node, Panel, ReactFlow, useReactFlow } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import debounce from 'debounce';
@@ -38,6 +38,7 @@ import {
 } from '../lib/rfListeners';
 import {
   alignmentAtom,
+  appendStatusMessage,
   createFlow,
   deboucedAction,
   edgesAtom,
@@ -65,6 +66,7 @@ function FlowPage() {
   const isReadOnly = selectedFlow?.source !== 'db';
   const [isDebounceActionPending] = useAtom(isDebouncePendingAtom);
   const [isSaved] = useAtom(isSavedAtom);
+  const rfParentRef = useRef<HTMLDivElement>(null);
 
   if (!selectedFlow) {
     return <div>404 Not Found</div>;
@@ -102,7 +104,7 @@ function FlowPage() {
           </button>
         </div>
       </div>
-      <div className='fixed bottom-0 left-0 right-0 top-16'>
+      <div className='fixed bottom-0 left-0 right-0 top-16' ref={rfParentRef}>
         <Suspense fallback={<div>Loading...</div>}>
           <ReactFlow
             // Viewport
@@ -157,6 +159,21 @@ function FlowPage() {
               redoable={redoable}
               onUndo={() => applyHistoryAction('undo')}
               onRedo={() => applyHistoryAction('redo')}
+              onFullscreen={() => {
+                const isExiting = document.fullscreenElement === rfParentRef.current;
+                try {
+                  if (isExiting) document.exitFullscreen();
+                  else rfParentRef.current?.requestFullscreen({ navigationUI: 'hide' });
+                } catch (e) {
+                  appendStatusMessage({
+                    type: 'warning',
+                    message: `Failed to ${isExiting ? 'exit' : 'enter'} fullscreen`,
+                    key: 'fullscreen',
+                    hideAfter: 2000,
+                  });
+                  console.error(e);
+                }
+              }}
             />
             <AlignmentLineOverlay />
             {isRenaming && (
@@ -387,7 +404,8 @@ type ToolbarPanelProps<events extends string[]> = {
   // Any other props
 };
 
-function ToolbarPanel(props: ToolbarPanelProps<['undo', 'redo', 'zoomIn', 'zoomOut', 'fitView', 'fullscreen']>) {
+function ToolbarPanel(props: ToolbarPanelProps<['undo', 'redo', 'fullscreen']>) {
+  const reactFlowInstance = useReactFlow();
   return (
     <Panel position='top-center'>
       <div className='flex flex-row gap-x-2 shadow-2xl rounded-box px-2 bg-base-100'>
@@ -414,7 +432,7 @@ function ToolbarPanel(props: ToolbarPanelProps<['undo', 'redo', 'zoomIn', 'zoomO
           role='button'
           className='btn btn-ghost btn-sm btn-square tooltip tooltip-bottom'
           aria-label='Zoom In'
-          onClick={props.onZoomIn}
+          onClick={() => reactFlowInstance?.zoomIn({ duration: 100 })}
         >
           <ZoomIn />
         </button>
@@ -422,7 +440,7 @@ function ToolbarPanel(props: ToolbarPanelProps<['undo', 'redo', 'zoomIn', 'zoomO
           role='button'
           className='btn btn-ghost btn-sm btn-square tooltip tooltip-bottom'
           aria-label='Zoom Out'
-          onClick={props.onZoomOut}
+          onClick={() => reactFlowInstance?.zoomOut({ duration: 100 })}
         >
           <ZoomOut />
         </button>
@@ -430,7 +448,7 @@ function ToolbarPanel(props: ToolbarPanelProps<['undo', 'redo', 'zoomIn', 'zoomO
           role='button'
           className='btn btn-ghost btn-sm btn-square tooltip tooltip-bottom'
           aria-label='Fit View'
-          onClick={props.onFitView}
+          onClick={() => reactFlowInstance?.fitView({ padding: 0.4, duration: 100 })}
         >
           <ScanEye />
         </button>
