@@ -39,9 +39,12 @@ import {
 import {
   alignmentAtom,
   createFlow,
+  deboucedAction,
   edgesAtom,
   edgesMapAtom,
   historyActionAtom,
+  isDebouncePendingAtom,
+  isSavedAtom,
   nodesAtom,
   nodesMapAtom,
   selectedFlowAtom,
@@ -60,6 +63,8 @@ function FlowPage() {
   const [{ undoable, redoable }, applyHistoryAction] = useAtom(historyActionAtom);
   const [isExporting, setExporting] = useState<boolean>(false);
   const isReadOnly = selectedFlow?.source !== 'db';
+  const [isDebounceActionPending] = useAtom(isDebouncePendingAtom);
+  const [isSaved] = useAtom(isSavedAtom);
 
   if (!selectedFlow) {
     return <div>404 Not Found</div>;
@@ -73,6 +78,8 @@ function FlowPage() {
             <Home />
             Back
           </a>
+          <p className='text-xs text-gray-500 ml-2'>Flow ID: {selectedFlow.flowId}</p>
+          <p className='text-xs text-gray-500 ml-2'>{isDebounceActionPending ? 'Saving...' : isSaved ? 'Saved' : 'Unsaved'}</p>
         </div>
         <div className='navbar-center'>
           <h2 className='text-xl font-semibold '>{selFlowData?.name}</h2>
@@ -89,23 +96,10 @@ function FlowPage() {
             <ArrowRightFromLine />
             Export
           </button>
-          {isReadOnly ? (
-            <button role='button' className='btn btn-ghost' onClick={() => createFlow('Duplicate: ' + selFlowData?.name, { edges, nodes })}>
-              <Copy />
-              Duplicate
-            </button>
-          ) : (
-            <button
-              role='button'
-              className='btn btn-ghost'
-              onClick={() => {
-                //TODO: Force save flow
-              }}
-            >
-              <Save />
-              Save
-            </button>
-          )}
+          <button role='button' className='btn btn-ghost' onClick={() => createFlow('Duplicate: ' + selFlowData?.name, { edges, nodes })}>
+            <Copy />
+            Duplicate
+          </button>
         </div>
       </div>
       <div className='fixed bottom-0 left-0 right-0 top-16'>

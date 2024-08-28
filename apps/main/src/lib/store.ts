@@ -280,66 +280,72 @@ function removeAlignmentXYs(node: Node) {
 export const alignmentAtom = atom<{ x: number | undefined; y: number | undefined }>({ x: undefined, y: undefined });
 
 const _isDebouncePendingAtom = atom(false);
+export const isDebouncePendingAtom = atom(get => get(_isDebouncePendingAtom));
+export const isSavedAtom = atom(true);
 const _debouncedIds = new Set<string>();
 let _debouncedTimeout: ReturnType<typeof setTimeout> | null = null;
 
-async function deboucedAction(force?: true) {
+export async function deboucedAction(force?: true) {
   if ((!_debouncedIds.size || _debouncedTimeout) && !force) {
     console.log('debounced action (ignored):', _debouncedIds.size, _debouncedTimeout, force);
     return;
   }
   store.set(_isDebouncePendingAtom, true);
-  _debouncedTimeout = setTimeout(async () => {
-    console.log('Debounced action');
-    try {
-      const ids = Array.from(_debouncedIds);
-      _debouncedIds.clear();
-      const nodes = store.get(nodesMapAtom);
-      const edges = store.get(edgesMapAtom);
-      const docsMapped = await store.get(docsMappedAtom);
+  _debouncedTimeout = setTimeout(
+    async () => {
+      console.log('Debounced action');
+      try {
+        const ids = Array.from(_debouncedIds);
+        _debouncedIds.clear();
+        const nodes = store.get(nodesMapAtom);
+        const edges = store.get(edgesMapAtom);
+        const docsMapped = await store.get(docsMappedAtom);
 
-      const updatedNodes: Node[] = [];
-      const updatedEdges: Edge[] = [];
-      const deletedNodes: string[] = [];
-      const deletedEdges: string[] = [];
-      for (const id of ids) {
-        // const [type, itemId] = id.split('-') as ['node' | 'edge', string];
-        const type = id.substring(0, 4) as 'node' | 'edge';
-        const itemId = id.substring(5);
-        if (type === 'node') {
-          const node = nodes.get(itemId);
-          if (node) updatedNodes.push(node);
-          else deletedNodes.push(itemId);
-        } else if (type === 'edge') {
-          const edge = edges.get(itemId);
-          if (edge) updatedEdges.push(edge);
-          else deletedEdges.push(itemId);
+        const updatedNodes: Node[] = [];
+        const updatedEdges: Edge[] = [];
+        const deletedNodes: string[] = [];
+        const deletedEdges: string[] = [];
+        for (const id of ids) {
+          // const [type, itemId] = id.split('-') as ['node' | 'edge', string];
+          const type = id.substring(0, 4) as 'node' | 'edge';
+          const itemId = id.substring(5);
+          if (type === 'node') {
+            const node = nodes.get(itemId);
+            if (node) updatedNodes.push(node);
+            else deletedNodes.push(itemId);
+          } else if (type === 'edge') {
+            const edge = edges.get(itemId);
+            if (edge) updatedEdges.push(edge);
+            else deletedEdges.push(itemId);
+          }
         }
+
+        computeFactoryGraph({ docsMapped, nodeMap: nodes, edgeMap: edges });
+        store.set(nodesMapAtom, new Map(nodes));
+        store.set(edgesMapAtom, new Map(edges));
+
+        const selFlow = store.get(_selectedFlowAtom);
+        if (selFlow?.source === 'db') {
+          const db = await openFlowDb(selFlow!.flowId);
+          // Save changes
+          await Promise.all([
+            setNodes(db, updatedNodes),
+            delNodes(db, deletedNodes),
+            setEdges(db, updatedEdges),
+            delEdges(db, deletedEdges),
+          ]).finally(() => db.close());
+          store.set(isSavedAtom, true);
+        }
+
+        store.set(alignmentAtom, { x: undefined, y: undefined });
+        store.set(_isDebouncePendingAtom, false);
+        _debouncedTimeout = null;
+      } catch (error) {
+        console.error('Error saving changes:', error);
       }
-
-      computeFactoryGraph({ docsMapped, nodeMap: nodes, edgeMap: edges });
-      store.set(nodesMapAtom, new Map(nodes));
-      store.set(edgesMapAtom, new Map(edges));
-
-      const selFlow = store.get(_selectedFlowAtom);
-      if (selFlow?.source === 'db') {
-        const db = await openFlowDb(selFlow!.flowId);
-        // Save changes
-        await Promise.all([
-          setNodes(db, updatedNodes),
-          delNodes(db, deletedNodes),
-          setEdges(db, updatedEdges),
-          delEdges(db, deletedEdges),
-        ]).finally(() => db.close());
-      }
-
-      store.set(alignmentAtom, { x: undefined, y: undefined });
-      store.set(_isDebouncePendingAtom, false);
-      _debouncedTimeout = null;
-    } catch (error) {
-      console.error('Error saving changes:', error);
-    }
-  }, 2000);
+    },
+    force ? 0 : 2000,
+  );
 }
 
 export const nodesAtom = atom(
@@ -444,6 +450,7 @@ export const nodesAtom = atom(
       set(alignmentAtom, { x: alignmentValue.x, y: alignmentValue.y });
     }
     if (currentHistoryEvent.length) {
+      set(isSavedAtom, false);
       set(_undoHistoryAtom, [...historyEvents, currentHistoryEvent]);
       set(_redoHistoryAtom, []); // Clear redo history
     }
@@ -509,6 +516,7 @@ export const edgesAtom = atom(
       }
     }
     if (currentHistoryEvent.length) {
+      set(isSavedAtom, false);
       set(_undoHistoryAtom, [...historyEvents, currentHistoryEvent]);
       set(_redoHistoryAtom, []); // Clear redo history
     }
