@@ -38,6 +38,7 @@ import {
 } from '../lib/rfListeners';
 import {
   alignmentAtom,
+  createFlow,
   edgesAtom,
   edgesMapAtom,
   historyActionAtom,
@@ -89,13 +90,7 @@ function FlowPage() {
             Export
           </button>
           {isReadOnly ? (
-            <button
-              role='button'
-              className='btn btn-ghost'
-              onClick={() => {
-                // TODO: Duplicate flow
-              }}
-            >
+            <button role='button' className='btn btn-ghost' onClick={() => createFlow('Duplicate: ' + selFlowData?.name, { edges, nodes })}>
               <Copy />
               Duplicate
             </button>

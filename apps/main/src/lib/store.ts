@@ -644,10 +644,16 @@ export function useAtomOutsideReact<A extends Atom<unknown>>(atom: A): UnawaitUs
   return [store.get(atom) as any, (...args: any[]) => store.set(atom, ...args) as any] as UnawaitUsedAtom<A>;
 }
 
-export async function createFlow(name: string) {
+export async function createFlow(name: string, flowData?: { nodes: Node[]; edges: Edge[] }) {
   const newFlowId = generateId();
   // Create flow db
-  await openFlowDb(newFlowId, false);
+  const flowDb = await openFlowDb(newFlowId, false);
+  // Load the data into the db if provided
+  if (flowData) {
+    const { nodes, edges } = flowData;
+    await Promise.all([setNodes(flowDb, nodes), setEdges(flowDb, edges)]);
+  }
+
   // Create flow record in main db
   await setFlow({ id: newFlowId, name, created: new Date(), updated: new Date() });
   store.set(selectedFlowAtom, { source: 'db', flowId: newFlowId });
