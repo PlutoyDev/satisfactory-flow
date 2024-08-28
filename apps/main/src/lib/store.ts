@@ -1,4 +1,4 @@
-import { Node, Edge, NodeChange, EdgeChange } from '@xyflow/react';
+import { Node, Edge, NodeChange, EdgeChange, Viewport } from '@xyflow/react';
 import type { ParsedOutput } from 'docs-parser';
 import { Atom, atom, getDefaultStore, PrimitiveAtom, SetStateAction, WritableAtom } from 'jotai';
 import { atomWithLocation } from 'jotai-location';
@@ -16,7 +16,19 @@ import {
   applyMainNodePropPatch,
   FullFlowData,
 } from './data';
-import { delEdges, delNodes, getEdges, getFlows, getNodes, openFlowDb, setEdges, setFlow, setNodes } from './db';
+import {
+  delEdges,
+  delNodes,
+  getEdges,
+  getFlows,
+  getNodes,
+  getProperties,
+  openFlowDb,
+  setEdges,
+  setFlow,
+  setNodes,
+  setProperties,
+} from './db';
 
 // Application Store using Jotai
 // Get the types for docs.json
@@ -277,6 +289,7 @@ function removeAlignmentXYs(node: Node) {
   }
 }
 
+export const viewportAtom = atom<Viewport | undefined>(undefined);
 export const alignmentAtom = atom<{ x: number | undefined; y: number | undefined }>({ x: undefined, y: undefined });
 
 const _isDebouncePendingAtom = atom(false);
@@ -327,12 +340,22 @@ export async function deboucedAction(force?: true) {
         const selFlow = store.get(_selectedFlowAtom);
         if (selFlow?.source === 'db') {
           const db = await openFlowDb(selFlow!.flowId);
+          const viewport = store.get(viewportAtom);
           // Save changes
           await Promise.all([
             setNodes(db, updatedNodes),
             delNodes(db, deletedNodes),
             setEdges(db, updatedEdges),
             delEdges(db, deletedEdges),
+            viewport &&
+              getProperties(db).then(prev =>
+                setProperties(db, {
+                  ...prev,
+                  viewportX: viewport.x,
+                  viewportY: viewport.y,
+                  viewportZoom: viewport.zoom,
+                }),
+              ),
           ]).finally(() => db.close());
           store.set(isSavedAtom, true);
         }
@@ -544,10 +567,15 @@ export const selectedFlowAtom = atom(
       try {
         let nodes: Node[] = [];
         let edges: Edge[] = [];
+        let viewport: Viewport | undefined = undefined;
         if (update.source === 'db') {
           const flowDb = await openFlowDb(update!.flowId);
           nodes = await getNodes(flowDb);
           edges = await getEdges(flowDb);
+          const { viewportX, viewportY, viewportZoom } = await getProperties(flowDb);
+          if (viewportX && viewportY && viewportZoom) {
+            viewport = { x: viewportX, y: viewportY, zoom: viewportZoom };
+          }
           flowDb.close();
         } else if (update.source === 'example') {
           const data = await examples.get(update.flowId)?.getData();
@@ -562,6 +590,10 @@ export const selectedFlowAtom = atom(
           const flowInfos = get(_flowsAtom);
           if (!flowInfos.has(update.flowId)) {
             set(_flowsAtom, new Map([...flowInfos, [update.flowId, { ...data.info, id: 'imported-' + update.flowId }]]));
+          }
+          const { viewportX, viewportY, viewportZoom } = data.properties;
+          if (viewportX && viewportY && viewportZoom) {
+            viewport = { x: viewportX, y: viewportY, zoom: viewportZoom };
           }
         }
 
@@ -579,6 +611,7 @@ export const selectedFlowAtom = atom(
         );
         set(nodesMapAtom, nodesMap);
         set(edgesMapAtom, edgesMap);
+        set(viewportAtom, viewport);
         // Set URL to /{source}/{id}
         set(locationAtom, { pathname: `/flows/${update.source}/${update.flowId}` });
       } catch (error) {

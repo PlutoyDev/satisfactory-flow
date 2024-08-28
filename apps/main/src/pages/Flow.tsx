@@ -1,4 +1,4 @@
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useCallback, useMemo, useRef, useState } from 'react';
 import { Background, ConnectionMode, Edge, Node, Panel, ReactFlow, useReactFlow } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import debounce from 'debounce';
@@ -14,7 +14,6 @@ import {
   OctagonAlert,
   OctagonX,
   Redo,
-  Save,
   ScanEye,
   Undo,
   X,
@@ -40,7 +39,6 @@ import {
   alignmentAtom,
   appendStatusMessage,
   createFlow,
-  deboucedAction,
   edgesAtom,
   edgesMapAtom,
   historyActionAtom,
@@ -51,6 +49,7 @@ import {
   selectedFlowAtom,
   selectedFlowDataAtom,
   statusMessagesAtom,
+  viewportAtom,
 } from '../lib/store';
 
 function FlowPage() {
@@ -67,6 +66,7 @@ function FlowPage() {
   const [isDebounceActionPending] = useAtom(isDebouncePendingAtom);
   const [isSaved] = useAtom(isSavedAtom);
   const rfParentRef = useRef<HTMLDivElement>(null);
+  const [viewport, setViewport] = useAtom(viewportAtom);
 
   if (!selectedFlow) {
     return <div>404 Not Found</div>;
@@ -134,7 +134,11 @@ function FlowPage() {
             // Misc
             colorMode='dark'
             onInit={setReactFlowInstance}
+            // onInit={setReactFlowInstance}
             onSelectionChange={onSelectionChange}
+            // Viewport
+            viewport={viewport}
+            onViewportChange={setViewport}
             // Drag and Drop
             onDrop={onDrop}
             onDragOver={e => {

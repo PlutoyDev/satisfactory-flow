@@ -204,8 +204,13 @@ export function delEdges(flowDbOrId: FlowDb | string, ids: string[]) {
 }
 
 export async function getProperties(flowDbOrId: FlowDb | string) {
-  return resolveFlowDbOrId(flowDbOrId, flowDb => {
-    return flowDb.getAll('properties');
+  return resolveFlowDbOrId(flowDbOrId, async flowDb => {
+    const propertiesKv = await flowDb.getAll('properties');
+    return pipe(
+      propertiesKv,
+      filter(kv => !!kv && kv.value !== undefined),
+      mapToObj(kv => [kv!.key, kv!.value!]),
+    ) as FlowProperties;
   });
 }
 
