@@ -173,6 +173,7 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
   }
 
   const remainingItemsSpeed: Map<string, number> = new Map();
+  const itemHandlerMap: Map<string, string[]> = new Map(); // Keep track of the handleIds that are handling the item
   const handleIdToEdgeIdMap = node?.edges;
   // Connected in and outs
   const inHandleIds: string[] = [];
@@ -218,18 +219,15 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
 
         for (const itemKey in nodeItemSpeed) {
           const speedThou = nodeItemSpeed[itemKey] ?? 0;
-          if (itemKey === 'any') {
-            continue;
-          }
           ret.actualItemsSpeed[handleId] ??= {};
           ret.actualItemsSpeed[handleId][itemKey] = -speedThou;
 
           const newValue = (remainingItemsSpeed.get(itemKey) ?? 0) + speedThou;
-          if (newValue === 0) {
-            remainingItemsSpeed.delete(itemKey);
-          } else {
-            remainingItemsSpeed.set(itemKey, newValue);
-          }
+          if (newValue === 0) remainingItemsSpeed.delete(itemKey);
+          else remainingItemsSpeed.set(itemKey, newValue);
+
+          if (itemHandlerMap.has(itemKey)) itemHandlerMap.get(itemKey)!.push(handleId);
+          else itemHandlerMap.set(itemKey, [handleId]);
         }
       } catch (e) {
         if (e && typeof e === 'string') {
@@ -277,7 +275,7 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
 
   // Distribute remaining items based on the rules
   for (const [itemKey, speedThou] of remainingItemsSpeed) {
-    if (speedThou === 0) continue;
+    if (speedThou === 0 || itemKey === 'any') continue;
     let positiveHandleIds: string[]; // Handle Ids to distribute the item to
     let negativeHandleIds: string[]; // Handle Ids to take the item from
     if (speedThou < 0) {
@@ -299,6 +297,26 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
         positiveHandleIds = anyOutHandleIds;
       }
       negativeHandleIds = inHandleIds;
+    }
+
+    if (remainingItemsSpeed.has('any')) {
+      // Value can only be -Infinity / Infinity / NaN (when Ifinite - Infinity)
+      const limitOfAny = remainingItemsSpeed.get('any')!;
+      if (
+        isNaN(limitOfAny) || // Supplies everything and consumes everything
+        (limitOfAny === -Infinity && speedThou > 0) || // oversupplies with infinite any demand
+        (limitOfAny === Infinity && speedThou < 0) // overdemands with infinite any supply
+      ) {
+        // Do not distribute negatively
+        negativeHandleIds = [];
+      }
+    }
+
+    if (itemHandlerMap.has(itemKey)) {
+      const handleIds = itemHandlerMap.get(itemKey)!;
+      // Filter out the handleIds that are not handling this particular item, or has been ignored (likely a logistic node)
+      // positiveHandleIds = positiveHandleIds.filter(handleId => handleIds.includes(handleId) || ignoreHandleIds?.includes(handleId));
+      negativeHandleIds = negativeHandleIds.filter(handleId => handleIds.includes(handleId) || ignoreHandleIds?.includes(handleId));
     }
 
     // TODO: Handle Overflow
@@ -326,14 +344,14 @@ export function computeFactorySinkNode(args: ComputeArgs): ComputeResult | null 
   const { visitedNode = [], nodeId, nodeMap, edgeMap, ignoreHandleIds, nodesComputeResult } = args;
   // Sink nodes are the simplest, they just consume any items that are provided to them
   const ret: ComputeResult = {
-    expectItemsSpeed: { 'left-solid-in-0': { any: Infinity } },
+    expectItemsSpeed: { 'left-solid-in-0': { any: -Infinity } },
     actualItemsSpeed: {},
     basedOn: {},
   };
 
   // Find the connected edge and the other node
   const handleId = 'left-solid-in-0';
-  const edgeId = nodeMap.get(nodeId)?.edges!.get(handleId);
+  const edgeId = nodeMap.get(nodeId)?.edges?.get(handleId);
   if (edgeId) {
     // Connected to an edge with id ${edgeId}
     try {
