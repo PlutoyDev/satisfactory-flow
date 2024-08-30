@@ -167,8 +167,6 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
     return null;
   }
 
-  console.group('Computing Factory Logistics Node', nodeId);
-  console.time(`Compute ${nodeId}`);
   const ret: ComputeResult = { expectItemsSpeed: {}, actualItemsSpeed: {}, basedOn: nodeData };
   if (ignoreHandleIds && ignoreHandleIds.length > 0) {
     ret.ignoreHandleIds = ignoreHandleIds;
@@ -176,7 +174,6 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
 
   // const remainingItemsSpeed: Map<string, number> = new Map();a
   const inputItemSpeed: Map<string, number> = new Map();
-  const outputItemSpeed: Map<string, number> = new Map();
   const itemHandlerSpeedMap: Map<string, Map<string, number>> = new Map(); // Keep track of the handleIds that are handling the item
   const handleIdToEdgeIdMap = node?.edges;
   // Connected in and outs
@@ -231,9 +228,7 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
           // else remainingItemsSpeed.set(itemKey, newValue);
           // otherSpeedThou is negative, it means the item is being consumed at speedThou
           // otherSpeedThou is positive, it means the item is being produced at speedThou
-          if (otherSpeedThou < 0) outputItemSpeed.set(itemKey, (outputItemSpeed.get(itemKey) ?? 0) - otherSpeedThou);
-          else if (otherSpeedThou > 0) inputItemSpeed.set(itemKey, (inputItemSpeed.get(itemKey) ?? 0) + otherSpeedThou);
-          else console.info(`Item ${itemKey} at node ${otherNodeId} is not being consumed or produced`);
+          if (otherSpeedThou > 0) inputItemSpeed.set(itemKey, (inputItemSpeed.get(itemKey) ?? 0) + otherSpeedThou);
 
           // if (itemHandlerMap.has(itemKey)) itemHandlerMap.get(itemKey)!.push(handleId);
           // else itemHandlerMap.set(itemKey, [handleId]);
@@ -281,17 +276,6 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
       }
     }
   }
-  console.timeLog(`Compute ${nodeId}`, 'Data Gathered from connected nodes', {
-    inputItemSpeed: new Map(inputItemSpeed),
-    outputItemSpeed: new Map(outputItemSpeed),
-    itemHandlerSpeedMap: new Map(itemHandlerSpeedMap),
-    inHandleIds,
-    outHandleIds,
-    anyOutHandleIds,
-    overflowOutHandleIds,
-    specificItemOutHandleIds,
-    anyUndefinedOutHandleIds,
-  });
 
   // Now that we have all the input and output speeds, we need to:
   // - check if the supply is matching the demand
@@ -315,51 +299,80 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
     if (itemKey in specificItemOutHandleIds) {
       // For smart / programmable splitters, if this has a specific item out, it will be distributed to that output
       for (const handleId of specificItemOutHandleIds[itemKey]) {
-        if (handlerSpeedMap.has(handleId) || anyHandleSpeedMap?.has(handleId) || ignoreHandleIds?.includes(handleId))
+        if (handlerSpeedMap.has(handleId) || anyHandleSpeedMap?.has(handleId) || ignoreHandleIds?.includes(handleId)) {
           outputHandleIds.push(handleId);
+        }
       }
     } else if (hasSpecificItemOutAndAnyUndefinedOut) {
       // For smart / programmable splitters, if there is any specific item out and any undefined out
       // but this item isn't specified, it will be distributed to anyUndefined output
       for (const handleId of anyUndefinedOutHandleIds) {
-        if (handlerSpeedMap.has(handleId) || anyHandleSpeedMap?.has(handleId) || ignoreHandleIds?.includes(handleId))
+        if (handlerSpeedMap.has(handleId) || anyHandleSpeedMap?.has(handleId) || ignoreHandleIds?.includes(handleId)) {
           outputHandleIds.push(handleId);
+        }
       }
     }
     for (const handleId of anyOutHandleIds) {
-      if (handlerSpeedMap.has(handleId) || anyHandleSpeedMap?.has(handleId) || ignoreHandleIds?.includes(handleId))
+      if (handlerSpeedMap.has(handleId) || anyHandleSpeedMap?.has(handleId) || ignoreHandleIds?.includes(handleId)) {
         outputHandleIds.push(handleId);
+      }
     }
+    const filteredOverflowOutHandleIds = overflowOutHandleIds.filter(
+      handleId => handlerSpeedMap.has(handleId) || anyHandleSpeedMap?.has(handleId),
+    );
 
-    const unmetOutputHandleId: string[] = [...outputHandleIds];
+    let actualOutputSpeedThou = 0;
 
+    // Distributing the input to the output
+    const unmetOutputHandleId: Set<string> = new Set(outputHandleIds);
     let remainingOutputItemSpeed = itemInputSpeedThou;
     let loopCount = 0;
-    while (unmetOutputHandleId.length > 0 && remainingOutputItemSpeed > 0) {
-      console.log('Distributing item', itemKey, 'at node', nodeId, 'remaining', remainingOutputItemSpeed, 'unmet', [
-        ...unmetOutputHandleId,
-      ]);
+    let isOverflowDone = overflowOutHandleIds.length === 0;
+    let hasTooMuch = false;
+    while (unmetOutputHandleId.size > 0 && remainingOutputItemSpeed > 0) {
       // While there are still outputs that are not met and there are still remaining output
       loopCount++;
-      const evenlyDistributedOutputItemSpeed = Math.floor(remainingOutputItemSpeed / unmetOutputHandleId.length);
-      // for (const handleId of unmetOutputHandleId) {
-      for (let handleIndex = 0; handleIndex < unmetOutputHandleId.length; handleIndex++) {
-        const handleId = unmetOutputHandleId[handleIndex];
-        const outputHandleSpeedThou = itemHandlerSpeedMap.get(itemKey)?.get(handleId) ?? itemHandlerSpeedMap.get('any')?.get(handleId);
+      const evenlyDistributedOutputItemSpeed = Math.floor(remainingOutputItemSpeed / unmetOutputHandleId.size);
+      for (const handleId of unmetOutputHandleId) {
+        const outputHandleSpeedThou = handlerSpeedMap.get(handleId) ?? itemHandlerSpeedMap.get('any')?.get(handleId);
         if (outputHandleSpeedThou === undefined) {
           console.log(`No handler found for item ${itemKey} at node ${nodeId} for handle ${handleId}`);
           continue;
         }
-        const outputSpeedThou = Math.min(evenlyDistributedOutputItemSpeed, -outputHandleSpeedThou);
+        const outputSpeedThou = hasTooMuch
+          ? evenlyDistributedOutputItemSpeed
+          : Math.min(evenlyDistributedOutputItemSpeed, -outputHandleSpeedThou);
         ret.actualItemsSpeed[handleId] ??= {};
         ret.actualItemsSpeed[handleId][itemKey] = (ret.actualItemsSpeed[handleId][itemKey] ?? 0) + outputSpeedThou;
         remainingOutputItemSpeed -= outputSpeedThou;
         if (outputSpeedThou === -outputHandleSpeedThou) {
           // If the output is fully met, remove it from the unmet list
-          unmetOutputHandleId.splice(handleIndex, 1);
-          handleIndex--; // Since we removed an item, we need to go back one step
+          unmetOutputHandleId.delete(handleId);
         }
-        console.log('Distributed', outputSpeedThou, 'to', handleId);
+        if (!hasTooMuch) {
+          actualOutputSpeedThou += outputSpeedThou;
+        }
+      }
+
+      if (!hasTooMuch && isOverflowDone && unmetOutputHandleId.size === 0 && remainingOutputItemSpeed > 0) {
+        // If all outputs are met and there is still remaining output item speed
+        // redistribute the remaining output to the outputs that are already met so that it show up as overproducing
+        for (const handleId of outputHandleIds) {
+          unmetOutputHandleId.add(handleId);
+        }
+        for (const handleId of filteredOverflowOutHandleIds) {
+          unmetOutputHandleId.add(handleId);
+        }
+        hasTooMuch = true; // It won't go into this block again
+      }
+
+      if (!isOverflowDone && unmetOutputHandleId.size === 0 && remainingOutputItemSpeed > 0) {
+        // If there are overflow outputs, all outputs are met and there is still remaining output item speed
+        // distribute the remaining output to the overflow outputs
+        for (const handleId of filteredOverflowOutHandleIds) {
+          unmetOutputHandleId.add(handleId);
+        }
+        isOverflowDone = true; // It won't go into this block again
       }
 
       if (loopCount > 5) {
@@ -367,14 +380,51 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
         console.error(`Potential infinite loop detected at node ${nodeId} for item ${itemKey}`);
         break;
       }
+    }
 
-      // TODO: Overflow handling
+    // Distributing the output to the input
+    const unmetInputHandleId = new Set(inHandleIds);
+    let remainingInputItemSpeed = actualOutputSpeedThou;
+    loopCount = 0;
+    let hasTooLittle = false;
+    while (unmetInputHandleId.size > 0 && remainingInputItemSpeed > 0) {
+      // While there are still inputs that are not met and there are still remaining input
+      loopCount++;
+      const evenlyDistributedInputItemSpeed = Math.floor(remainingInputItemSpeed / unmetInputHandleId.size);
+      for (const handleId of unmetInputHandleId) {
+        const inputHandleSpeedThou = handlerSpeedMap.get(handleId) ?? itemHandlerSpeedMap.get('any')?.get(handleId);
+        if (inputHandleSpeedThou === undefined) {
+          console.log(`No handler found for item ${itemKey} at node ${nodeId} for handle ${handleId}`);
+          continue;
+        }
+        const inputSpeedThou = hasTooLittle
+          ? evenlyDistributedInputItemSpeed
+          : Math.min(evenlyDistributedInputItemSpeed, inputHandleSpeedThou);
+        ret.actualItemsSpeed[handleId] ??= {};
+        ret.actualItemsSpeed[handleId][itemKey] = (ret.actualItemsSpeed[handleId][itemKey] ?? 0) - inputSpeedThou;
+        remainingInputItemSpeed -= inputSpeedThou;
+        if (inputSpeedThou === inputHandleSpeedThou) {
+          // If the input is fully met, remove it from the unmet list
+          unmetInputHandleId.delete(handleId);
+        }
+      }
+
+      if (!hasTooLittle && unmetInputHandleId.size === 0 && remainingInputItemSpeed > 0) {
+        // If all inputs are met and there is still remaining input item speed
+        // redistribute the remaining input to the inputs that are already met so that it show up as underproducing
+        for (const handleId of inputHandleIds) {
+          unmetInputHandleId.add(handleId);
+        }
+        hasTooLittle = true; // It won't go into this block again
+      }
+
+      if (loopCount > 5) {
+        // Safety check to prevent infinite loop
+        console.error(`Potential infinite loop detected at node ${nodeId} for item ${itemKey}`);
+        break;
+      }
     }
   }
-
-  console.timeEnd(`Compute ${nodeId}`);
-  console.log('Result: ', { ...ret.actualItemsSpeed });
-  console.groupEnd();
   return ret;
 }
 
