@@ -221,19 +221,11 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
 
         for (const itemKey in nodeItemSpeed) {
           const otherSpeedThou = nodeItemSpeed[itemKey]!;
-          // ret.actualItemsSpeed[handleId] ??= {};
-          // ret.actualItemsSpeed[handleId][itemKey] = -otherSpeedThou;
-
-          // const newValue = (remainingItemsSpeed.get(itemKey) ?? 0) + speedThou;
-          // if (newValue === 0) remainingItemsSpeed.delete(itemKey);
-          // else remainingItemsSpeed.set(itemKey, newValue);
           // otherSpeedThou is negative, it means the item is being consumed at speedThou
           // otherSpeedThou is positive, it means the item is being produced at speedThou
           if (otherSpeedThou > 0) inputItemSpeed.set(itemKey, (inputItemSpeed.get(itemKey) ?? 0) + otherSpeedThou);
           else if (otherSpeedThou < 0) outputItemSpeed.set(itemKey, (outputItemSpeed.get(itemKey) ?? 0) - otherSpeedThou);
 
-          // if (itemHandlerMap.has(itemKey)) itemHandlerMap.get(itemKey)!.push(handleId);
-          // else itemHandlerMap.set(itemKey, [handleId]);
           if (itemHandlerSpeedMap.has(itemKey)) itemHandlerSpeedMap.get(itemKey)!.set(handleId, otherSpeedThou);
           else itemHandlerSpeedMap.set(itemKey, new Map([[handleId, otherSpeedThou]]));
         }
@@ -285,7 +277,6 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
   // - distribute the demand to the input
 
   const hasSpecificItemOutAndAnyUndefinedOut = Object.keys(specificItemOutHandleIds).length > 0 && anyUndefinedOutHandleIds.length > 0;
-  const anyHandleSpeedMap = itemHandlerSpeedMap.get('any');
   // Distribution of outputs from inputs
   for (const [itemKey, handlerSpeedMap] of itemHandlerSpeedMap) {
     const itemInputSpeedThou = inputItemSpeed.get(itemKey) ?? 0;
@@ -297,37 +288,28 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
       continue;
     }
 
-    const inputHandleIds = inHandleIds.filter(handleId => handlerSpeedMap.has(handleId) || ignoreHandleIds?.includes(handleId));
-    const outputHandleIds: string[] = [];
+    const itemInputHandleIds = inHandleIds.filter(handleId => handlerSpeedMap.has(handleId) || ignoreHandleIds?.includes(handleId));
+    const itemOutputHandleIds: string[] = [];
     if (itemKey in specificItemOutHandleIds) {
       // For smart / programmable splitters, if this has a specific item out, it will be distributed to that output
       for (const handleId of specificItemOutHandleIds[itemKey]) {
-        if (handlerSpeedMap.has(handleId) || anyHandleSpeedMap?.has(handleId) || ignoreHandleIds?.includes(handleId)) {
-          outputHandleIds.push(handleId);
-        }
+        itemOutputHandleIds.push(handleId);
       }
     } else if (hasSpecificItemOutAndAnyUndefinedOut) {
       // For smart / programmable splitters, if there is any specific item out and any undefined out
       // but this item isn't specified, it will be distributed to anyUndefined output
       for (const handleId of anyUndefinedOutHandleIds) {
-        if (handlerSpeedMap.has(handleId) || anyHandleSpeedMap?.has(handleId) || ignoreHandleIds?.includes(handleId)) {
-          outputHandleIds.push(handleId);
-        }
+        itemOutputHandleIds.push(handleId);
       }
     }
     for (const handleId of anyOutHandleIds) {
-      if (handlerSpeedMap.has(handleId) || anyHandleSpeedMap?.has(handleId) || ignoreHandleIds?.includes(handleId)) {
-        outputHandleIds.push(handleId);
-      }
+      itemOutputHandleIds.push(handleId);
     }
-    const filteredOverflowOutHandleIds = overflowOutHandleIds.filter(
-      handleId => handlerSpeedMap.has(handleId) || anyHandleSpeedMap?.has(handleId),
-    );
 
     let actualOutputSpeedThou = 0;
 
     // Distributing the input to the output
-    const unmetOutputHandleId: Set<string> = new Set(outputHandleIds);
+    const unmetOutputHandleId: Set<string> = new Set(itemOutputHandleIds);
     let remainingOutputItemSpeed = itemInputSpeedThou;
     let loopCount = 0;
     let isOverflowDone = overflowOutHandleIds.length === 0;
@@ -337,7 +319,7 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
       loopCount++;
       const evenlyDistributedOutputItemSpeed = Math.floor(remainingOutputItemSpeed / unmetOutputHandleId.size);
       for (const handleId of unmetOutputHandleId) {
-        const outputHandleSpeedThou = handlerSpeedMap.get(handleId) ?? itemHandlerSpeedMap.get('any')?.get(handleId) ?? -Infinity;
+        const outputHandleSpeedThou = handlerSpeedMap.get(handleId) ?? itemHandlerSpeedMap.get('any')?.get(handleId) ?? 0;
         const outputSpeedThou = hasTooMuch
           ? evenlyDistributedOutputItemSpeed
           : Math.min(evenlyDistributedOutputItemSpeed, -outputHandleSpeedThou);
@@ -356,10 +338,10 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
       if (!hasTooMuch && isOverflowDone && unmetOutputHandleId.size === 0 && remainingOutputItemSpeed > 0) {
         // If all outputs are met and there is still remaining output item speed
         // redistribute the remaining output to the outputs that are already met so that it show up as overproducing
-        for (const handleId of outputHandleIds) {
+        for (const handleId of itemOutputHandleIds) {
           unmetOutputHandleId.add(handleId);
         }
-        for (const handleId of filteredOverflowOutHandleIds) {
+        for (const handleId of overflowOutHandleIds) {
           unmetOutputHandleId.add(handleId);
         }
         hasTooMuch = true; // It won't go into this block again
@@ -368,7 +350,7 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
       if (!isOverflowDone && unmetOutputHandleId.size === 0 && remainingOutputItemSpeed > 0) {
         // If there are overflow outputs, all outputs are met and there is still remaining output item speed
         // distribute the remaining output to the overflow outputs
-        for (const handleId of filteredOverflowOutHandleIds) {
+        for (const handleId of overflowOutHandleIds) {
           unmetOutputHandleId.add(handleId);
         }
         isOverflowDone = true; // It won't go into this block again
@@ -382,8 +364,8 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
     }
 
     // Distributing the output to the input
-    const unmetInputHandleId = new Set(inputHandleIds);
-    let remainingInputItemSpeed = Math.max(itemOutputSpeedThou, actualOutputSpeedThou);
+    const unmetInputHandleId = new Set(itemInputHandleIds);
+    let remainingInputItemSpeed = ignoreHandleIds ? itemOutputSpeedThou : actualOutputSpeedThou;
     loopCount = 0;
     let hasTooLittle = false;
     while (unmetInputHandleId.size > 0 && remainingInputItemSpeed > 0) {
@@ -391,7 +373,7 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
       loopCount++;
       const evenlyDistributedInputItemSpeed = Math.floor(remainingInputItemSpeed / unmetInputHandleId.size);
       for (const handleId of unmetInputHandleId) {
-        const inputHandleSpeedThou = handlerSpeedMap.get(handleId) ?? itemHandlerSpeedMap.get('any')?.get(handleId) ?? Infinity;
+        const inputHandleSpeedThou = handlerSpeedMap.get(handleId) ?? itemHandlerSpeedMap.get('any')?.get(handleId) ?? 0;
         const inputSpeedThou = hasTooLittle
           ? evenlyDistributedInputItemSpeed
           : Math.min(evenlyDistributedInputItemSpeed, inputHandleSpeedThou);
@@ -407,7 +389,7 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
       if (!hasTooLittle && unmetInputHandleId.size === 0 && remainingInputItemSpeed > 0) {
         // If all inputs are met and there is still remaining input item speed
         // redistribute the remaining input to the inputs that are already met so that it show up as underproducing
-        for (const handleId of inputHandleIds) {
+        for (const handleId of itemInputHandleIds) {
           unmetInputHandleId.add(handleId);
         }
         hasTooLittle = true; // It won't go into this block again
@@ -420,6 +402,7 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
       }
     }
   }
+
   return ret;
 }
 
