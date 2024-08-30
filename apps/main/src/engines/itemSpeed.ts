@@ -174,6 +174,7 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
 
   // const remainingItemsSpeed: Map<string, number> = new Map();a
   const inputItemSpeed: Map<string, number> = new Map();
+  const outputItemSpeed: Map<string, number> = new Map();
   const itemHandlerSpeedMap: Map<string, Map<string, number>> = new Map(); // Keep track of the handleIds that are handling the item
   const handleIdToEdgeIdMap = node?.edges;
   // Connected in and outs
@@ -229,6 +230,7 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
           // otherSpeedThou is negative, it means the item is being consumed at speedThou
           // otherSpeedThou is positive, it means the item is being produced at speedThou
           if (otherSpeedThou > 0) inputItemSpeed.set(itemKey, (inputItemSpeed.get(itemKey) ?? 0) + otherSpeedThou);
+          else if (otherSpeedThou < 0) outputItemSpeed.set(itemKey, (outputItemSpeed.get(itemKey) ?? 0) - otherSpeedThou);
 
           // if (itemHandlerMap.has(itemKey)) itemHandlerMap.get(itemKey)!.push(handleId);
           // else itemHandlerMap.set(itemKey, [handleId]);
@@ -287,14 +289,15 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
   // Distribution of outputs from inputs
   for (const [itemKey, handlerSpeedMap] of itemHandlerSpeedMap) {
     const itemInputSpeedThou = inputItemSpeed.get(itemKey) ?? 0;
+    const itemOutputSpeedThou = outputItemSpeed.get(itemKey) ?? 0;
 
-    if (itemKey === 'any' || itemInputSpeedThou === 0) continue;
+    if (itemKey === 'any' || handlerSpeedMap.size === 0) continue;
     if (isNaN(itemInputSpeedThou)) {
       appendStatusMessage({ type: 'error', message: `Speed for item ${itemKey} at node ${nodeId} is NaN` });
       continue;
     }
 
-    const inputHandleIds = inHandleIds.filter(handleId => handlerSpeedMap.has(handleId));
+    const inputHandleIds = inHandleIds.filter(handleId => handlerSpeedMap.has(handleId) || ignoreHandleIds?.includes(handleId));
     const outputHandleIds: string[] = [];
     if (itemKey in specificItemOutHandleIds) {
       // For smart / programmable splitters, if this has a specific item out, it will be distributed to that output
@@ -334,11 +337,7 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
       loopCount++;
       const evenlyDistributedOutputItemSpeed = Math.floor(remainingOutputItemSpeed / unmetOutputHandleId.size);
       for (const handleId of unmetOutputHandleId) {
-        const outputHandleSpeedThou = handlerSpeedMap.get(handleId) ?? itemHandlerSpeedMap.get('any')?.get(handleId);
-        if (outputHandleSpeedThou === undefined) {
-          console.log(`No handler found for item ${itemKey} at node ${nodeId} for handle ${handleId}`);
-          continue;
-        }
+        const outputHandleSpeedThou = handlerSpeedMap.get(handleId) ?? itemHandlerSpeedMap.get('any')?.get(handleId) ?? -Infinity;
         const outputSpeedThou = hasTooMuch
           ? evenlyDistributedOutputItemSpeed
           : Math.min(evenlyDistributedOutputItemSpeed, -outputHandleSpeedThou);
@@ -383,8 +382,8 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
     }
 
     // Distributing the output to the input
-    const unmetInputHandleId = new Set(inHandleIds);
-    let remainingInputItemSpeed = actualOutputSpeedThou;
+    const unmetInputHandleId = new Set(inputHandleIds);
+    let remainingInputItemSpeed = Math.max(itemOutputSpeedThou, actualOutputSpeedThou);
     loopCount = 0;
     let hasTooLittle = false;
     while (unmetInputHandleId.size > 0 && remainingInputItemSpeed > 0) {
@@ -392,11 +391,7 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
       loopCount++;
       const evenlyDistributedInputItemSpeed = Math.floor(remainingInputItemSpeed / unmetInputHandleId.size);
       for (const handleId of unmetInputHandleId) {
-        const inputHandleSpeedThou = handlerSpeedMap.get(handleId) ?? itemHandlerSpeedMap.get('any')?.get(handleId);
-        if (inputHandleSpeedThou === undefined) {
-          console.log(`No handler found for item ${itemKey} at node ${nodeId} for handle ${handleId}`);
-          continue;
-        }
+        const inputHandleSpeedThou = handlerSpeedMap.get(handleId) ?? itemHandlerSpeedMap.get('any')?.get(handleId) ?? Infinity;
         const inputSpeedThou = hasTooLittle
           ? evenlyDistributedInputItemSpeed
           : Math.min(evenlyDistributedInputItemSpeed, inputHandleSpeedThou);
