@@ -167,13 +167,17 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
     return null;
   }
 
+  console.group('Computing Factory Logistics Node', nodeId);
+  console.time(`Compute ${nodeId}`);
   const ret: ComputeResult = { expectItemsSpeed: {}, actualItemsSpeed: {}, basedOn: nodeData };
   if (ignoreHandleIds && ignoreHandleIds.length > 0) {
     ret.ignoreHandleIds = ignoreHandleIds;
   }
 
-  const remainingItemsSpeed: Map<string, number> = new Map();
-  const itemHandlerMap: Map<string, string[]> = new Map(); // Keep track of the handleIds that are handling the item
+  // const remainingItemsSpeed: Map<string, number> = new Map();a
+  const inputItemSpeed: Map<string, number> = new Map();
+  const outputItemSpeed: Map<string, number> = new Map();
+  const itemHandlerSpeedMap: Map<string, Map<string, number>> = new Map(); // Keep track of the handleIds that are handling the item
   const handleIdToEdgeIdMap = node?.edges;
   // Connected in and outs
   const inHandleIds: string[] = [];
@@ -218,16 +222,23 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
         if (!nodeItemSpeed) throw `error: Item speed not found for handleId ${otherHandleId} at node ${otherNodeId}`;
 
         for (const itemKey in nodeItemSpeed) {
-          const speedThou = nodeItemSpeed[itemKey] ?? 0;
-          ret.actualItemsSpeed[handleId] ??= {};
-          ret.actualItemsSpeed[handleId][itemKey] = -speedThou;
+          const otherSpeedThou = nodeItemSpeed[itemKey]!;
+          // ret.actualItemsSpeed[handleId] ??= {};
+          // ret.actualItemsSpeed[handleId][itemKey] = -otherSpeedThou;
 
-          const newValue = (remainingItemsSpeed.get(itemKey) ?? 0) + speedThou;
-          if (newValue === 0) remainingItemsSpeed.delete(itemKey);
-          else remainingItemsSpeed.set(itemKey, newValue);
+          // const newValue = (remainingItemsSpeed.get(itemKey) ?? 0) + speedThou;
+          // if (newValue === 0) remainingItemsSpeed.delete(itemKey);
+          // else remainingItemsSpeed.set(itemKey, newValue);
+          // otherSpeedThou is negative, it means the item is being consumed at speedThou
+          // otherSpeedThou is positive, it means the item is being produced at speedThou
+          if (otherSpeedThou < 0) outputItemSpeed.set(itemKey, (outputItemSpeed.get(itemKey) ?? 0) - otherSpeedThou);
+          else if (otherSpeedThou > 0) inputItemSpeed.set(itemKey, (inputItemSpeed.get(itemKey) ?? 0) + otherSpeedThou);
+          else console.info(`Item ${itemKey} at node ${otherNodeId} is not being consumed or produced`);
 
-          if (itemHandlerMap.has(itemKey)) itemHandlerMap.get(itemKey)!.push(handleId);
-          else itemHandlerMap.set(itemKey, [handleId]);
+          // if (itemHandlerMap.has(itemKey)) itemHandlerMap.get(itemKey)!.push(handleId);
+          // else itemHandlerMap.set(itemKey, [handleId]);
+          if (itemHandlerSpeedMap.has(itemKey)) itemHandlerSpeedMap.get(itemKey)!.set(handleId, otherSpeedThou);
+          else itemHandlerSpeedMap.set(itemKey, new Map([[handleId, otherSpeedThou]]));
         }
       } catch (e) {
         if (e && typeof e === 'string') {
@@ -270,73 +281,100 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
       }
     }
   }
+  console.timeLog(`Compute ${nodeId}`, 'Data Gathered from connected nodes', {
+    inputItemSpeed: new Map(inputItemSpeed),
+    outputItemSpeed: new Map(outputItemSpeed),
+    itemHandlerSpeedMap: new Map(itemHandlerSpeedMap),
+    inHandleIds,
+    outHandleIds,
+    anyOutHandleIds,
+    overflowOutHandleIds,
+    specificItemOutHandleIds,
+    anyUndefinedOutHandleIds,
+  });
+
+  // Now that we have all the input and output speeds, we need to:
+  // - check if the supply is matching the demand
+  // - distribute the supplies to the output
+  // - distribute the demand to the input
 
   const hasSpecificItemOutAndAnyUndefinedOut = Object.keys(specificItemOutHandleIds).length > 0 && anyUndefinedOutHandleIds.length > 0;
+  const anyHandleSpeedMap = itemHandlerSpeedMap.get('any');
+  // Distribution of outputs from inputs
+  for (const [itemKey, handlerSpeedMap] of itemHandlerSpeedMap) {
+    const itemInputSpeedThou = inputItemSpeed.get(itemKey) ?? 0;
 
-  // Distribute remaining items based on the rules
-  for (const [itemKey, speedThou] of remainingItemsSpeed) {
-    if (speedThou === 0 || itemKey === 'any') continue;
-    let positiveHandleIds: string[]; // Handle Ids to distribute the item to
-    let negativeHandleIds: string[]; // Handle Ids to take the item from
-    if (speedThou < 0) {
-      // if negative speedThou, it means the item is being consumed more than what is provided
-      positiveHandleIds = inHandleIds;
-      negativeHandleIds = outHandleIds;
-    } else {
-      if (itemKey in specificItemOutHandleIds) {
-        // If the item has been specified to go to a specific output
-        positiveHandleIds = specificItemOutHandleIds[itemKey];
-        positiveHandleIds.push(...anyOutHandleIds); //If there are any out, it will be distributed to any out also
-      } else if (hasSpecificItemOutAndAnyUndefinedOut) {
-        // If the item isn't specified to go to a specific output.
-        // But this node has specific item out and any undefined out
-        // So it needs to be distributed to anyUndefined output
-        positiveHandleIds = anyUndefinedOutHandleIds;
-        positiveHandleIds.push(...anyOutHandleIds); //If there are any out, it will be distributed to any out also
-      } else {
-        positiveHandleIds = anyOutHandleIds;
-      }
-      negativeHandleIds = inHandleIds;
+    if (itemKey === 'any' || itemInputSpeedThou === 0) continue;
+    if (isNaN(itemInputSpeedThou)) {
+      appendStatusMessage({ type: 'error', message: `Speed for item ${itemKey} at node ${nodeId} is NaN` });
+      continue;
     }
 
-    if (remainingItemsSpeed.has('any')) {
-      // Value can only be -Infinity / Infinity / NaN (when Ifinite - Infinity)
-      const limitOfAny = remainingItemsSpeed.get('any')!;
-      if (
-        isNaN(limitOfAny) || // Supplies everything and consumes everything
-        (limitOfAny === -Infinity && speedThou > 0) || // oversupplies with infinite any demand
-        (limitOfAny === Infinity && speedThou < 0) // overdemands with infinite any supply
-      ) {
-        // Do not distribute negatively
-        negativeHandleIds = [];
+    const inputHandleIds = inHandleIds.filter(handleId => handlerSpeedMap.has(handleId));
+    const outputHandleIds: string[] = [];
+    if (itemKey in specificItemOutHandleIds) {
+      // For smart / programmable splitters, if this has a specific item out, it will be distributed to that output
+      for (const handleId of specificItemOutHandleIds[itemKey]) {
+        if (handlerSpeedMap.has(handleId) || anyHandleSpeedMap?.has(handleId) || ignoreHandleIds?.includes(handleId))
+          outputHandleIds.push(handleId);
+      }
+    } else if (hasSpecificItemOutAndAnyUndefinedOut) {
+      // For smart / programmable splitters, if there is any specific item out and any undefined out
+      // but this item isn't specified, it will be distributed to anyUndefined output
+      for (const handleId of anyUndefinedOutHandleIds) {
+        if (handlerSpeedMap.has(handleId) || anyHandleSpeedMap?.has(handleId) || ignoreHandleIds?.includes(handleId))
+          outputHandleIds.push(handleId);
       }
     }
-
-    if (itemHandlerMap.has(itemKey)) {
-      const handleIds = itemHandlerMap.get(itemKey)!;
-      // Filter out the handleIds that are not handling this particular item, or has been ignored (likely a logistic node)
-      // positiveHandleIds = positiveHandleIds.filter(handleId => handleIds.includes(handleId) || ignoreHandleIds?.includes(handleId));
-      negativeHandleIds = negativeHandleIds.filter(handleId => handleIds.includes(handleId) || ignoreHandleIds?.includes(handleId));
+    for (const handleId of anyOutHandleIds) {
+      if (handlerSpeedMap.has(handleId) || anyHandleSpeedMap?.has(handleId) || ignoreHandleIds?.includes(handleId))
+        outputHandleIds.push(handleId);
     }
 
-    // TODO: Handle Overflow
-    if (positiveHandleIds.length > 0) {
-      const distrubutedPositiveItemSpeed = Math.floor(speedThou / positiveHandleIds.length);
-      for (const handleId of positiveHandleIds) {
+    const unmetOutputHandleId: string[] = [...outputHandleIds];
+
+    let remainingOutputItemSpeed = itemInputSpeedThou;
+    let loopCount = 0;
+    while (unmetOutputHandleId.length > 0 && remainingOutputItemSpeed > 0) {
+      console.log('Distributing item', itemKey, 'at node', nodeId, 'remaining', remainingOutputItemSpeed, 'unmet', [
+        ...unmetOutputHandleId,
+      ]);
+      // While there are still outputs that are not met and there are still remaining output
+      loopCount++;
+      const evenlyDistributedOutputItemSpeed = Math.floor(remainingOutputItemSpeed / unmetOutputHandleId.length);
+      // for (const handleId of unmetOutputHandleId) {
+      for (let handleIndex = 0; handleIndex < unmetOutputHandleId.length; handleIndex++) {
+        const handleId = unmetOutputHandleId[handleIndex];
+        const outputHandleSpeedThou = itemHandlerSpeedMap.get(itemKey)?.get(handleId) ?? itemHandlerSpeedMap.get('any')?.get(handleId);
+        if (outputHandleSpeedThou === undefined) {
+          console.log(`No handler found for item ${itemKey} at node ${nodeId} for handle ${handleId}`);
+          continue;
+        }
+        const outputSpeedThou = Math.min(evenlyDistributedOutputItemSpeed, -outputHandleSpeedThou);
         ret.actualItemsSpeed[handleId] ??= {};
-        ret.actualItemsSpeed[handleId][itemKey] = (ret.actualItemsSpeed[handleId][itemKey] ?? 0) + distrubutedPositiveItemSpeed;
+        ret.actualItemsSpeed[handleId][itemKey] = (ret.actualItemsSpeed[handleId][itemKey] ?? 0) + outputSpeedThou;
+        remainingOutputItemSpeed -= outputSpeedThou;
+        if (outputSpeedThou === -outputHandleSpeedThou) {
+          // If the output is fully met, remove it from the unmet list
+          unmetOutputHandleId.splice(handleIndex, 1);
+          handleIndex--; // Since we removed an item, we need to go back one step
+        }
+        console.log('Distributed', outputSpeedThou, 'to', handleId);
       }
-    }
 
-    if (negativeHandleIds.length > 0) {
-      const distrubutedNegativeItemSpeed = Math.floor(speedThou / negativeHandleIds.length);
-      for (const handleId of negativeHandleIds) {
-        ret.actualItemsSpeed[handleId] ??= {};
-        ret.actualItemsSpeed[handleId][itemKey] = (ret.actualItemsSpeed[handleId][itemKey] ?? 0) + distrubutedNegativeItemSpeed;
+      if (loopCount > 5) {
+        // Safety check to prevent infinite loop
+        console.error(`Potential infinite loop detected at node ${nodeId} for item ${itemKey}`);
+        break;
       }
+
+      // TODO: Overflow handling
     }
   }
 
+  console.timeEnd(`Compute ${nodeId}`);
+  console.log('Result: ', { ...ret.actualItemsSpeed });
+  console.groupEnd();
   return ret;
 }
 
