@@ -25,6 +25,7 @@ import {
   pushHistoryEvent,
   ExtendedNode,
   appendStatusMessage,
+  pushAndTriggerDebouncedAction,
 } from './store';
 
 export const connectionErrorReasonAtom = atom<string | null>(null);
@@ -279,6 +280,7 @@ function fromClipboardData(data: string) {
     }
     // Add copied nodes and edges (with new ids) to the flow
     const newNodeIdMap = new Map<string, string>();
+    const newEdgeIds = new Set<string>();
     const viewport = store.get(reactflowInstanceAtom)!.getViewport();
     copiedData.viewport = viewport;
     const nodeXOffset = viewport.x === copiedViewport.x ? pasteCount * 72 : copiedViewport.x - viewport.x + (pasteCount - 1) * 72;
@@ -298,6 +300,7 @@ function fromClipboardData(data: string) {
     }
     for (const edge of copiedEdges) {
       const newEdgeId = generateId();
+      newEdgeIds.add(newEdgeId);
       const sourceId = newNodeIdMap.get(edge.source);
       const targetId = newNodeIdMap.get(edge.target);
       // Skip the edge if either source or target is not copied
@@ -311,6 +314,7 @@ function fromClipboardData(data: string) {
     store.set(edgesMapAtom, newEdges);
 
     pushHistoryEvent(currentHistoryEvent);
+    pushAndTriggerDebouncedAction({ nodes: newNodeIdMap.values(), edges: newEdgeIds });
     appendStatusMessage({ type: 'info', message: `Pasted ${copiedNodes.length} nodes and ${copiedEdges.length} edges` });
   } catch (error) {
     if (error instanceof z.ZodError) {

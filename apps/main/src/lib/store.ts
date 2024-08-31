@@ -187,6 +187,7 @@ export const historyActionAtom = atom(
     const nodes = new Map(get(nodesMapAtom));
     const edges = new Map(get(edgesMapAtom));
     const reverseEvent: HistoryEvent = [];
+
     for (const op of lastEvent) {
       _debouncedIds.add(`${op.itemType}-${op.itemId}`);
       if (op.type === 'add') {
@@ -296,6 +297,20 @@ export const isDebouncePendingAtom = atom(get => get(_isDebouncePendingAtom));
 export const isSavedAtom = atom(true);
 const _debouncedIds = new Set<string>();
 let _debouncedTimeout: ReturnType<typeof setTimeout> | null = null;
+
+export function pushAndTriggerDebouncedAction(ids: { nodes?: Iterable<string>; edges?: Iterable<string> }) {
+  if (ids.nodes) {
+    for (const id of ids.nodes) {
+      _debouncedIds.add('node-' + id);
+    }
+  }
+  if (ids.edges) {
+    for (const id of ids.edges) {
+      _debouncedIds.add('edge-' + id);
+    }
+  }
+  deboucedAction();
+}
 
 export async function deboucedAction(force?: true) {
   if ((!_debouncedIds.size || _debouncedTimeout) && !force) {
