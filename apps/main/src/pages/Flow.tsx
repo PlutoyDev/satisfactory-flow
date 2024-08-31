@@ -1,4 +1,4 @@
-import { Suspense, useCallback, useMemo, useRef, useState } from 'react';
+import { Fragment, ReactNode, Suspense, useCallback, useMemo, useRef, useState } from 'react';
 import { Background, ConnectionMode, Edge, Node, Panel, ReactFlow, useReactFlow } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import debounce from 'debounce';
@@ -171,9 +171,6 @@ function FlowPage() {
               cutable={copyableOrCutable}
               copyable={copyableOrCutable}
               pasteable={!isReadOnly}
-              onCut={() => excuteCustomCutOrCopy(/* isCut: */ true)}
-              onCopy={() => excuteCustomCutOrCopy(/* isCut: */ false)}
-              onPaste={() => excuteCustomPaste()}
               // onCopy={() => excuteClipboardAction('copy')}
               // onPaste={() => excuteClipboardAction('paste')}
               onFullscreen={() => {
@@ -410,101 +407,66 @@ function PropertyEditorPanel({ isReadOnly }: { isReadOnly: boolean }) {
   );
 }
 
-type ToolbarPanelProps<events extends string[]> = {
+type ToolbarPanelProps<Events extends string[], Actions extends string[]> = {
   // Event handlers
-  [K in events[number] as `on${Capitalize<K>}`]?: () => void;
+  [K in Events[number] as `on${Capitalize<K>}`]: () => void;
 } & {
-  // Enable/disable props
-  [K in events[number] as `${K}able`]?: boolean;
+  // Enable/disable props for events
+  [K in Events[number] as `${K}able`]?: boolean;
+} & {
+  // Enable/disable props for actions
+  [K in Actions[number] as `${K}able`]?: boolean;
 } & {
   // Any other props
 };
 
-function ToolbarPanel(props: ToolbarPanelProps<['undo', 'redo', 'fullscreen', 'cut', 'copy', 'paste']>) {
+type ButtonProps = {
+  icon: ReactNode;
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+};
+
+function ToolbarPanel(props: ToolbarPanelProps<['undo', 'redo', 'fullscreen'], ['cut', 'copy', 'paste']>) {
   const reactFlowInstance = useReactFlow();
+
   return (
     <Panel position='top-center'>
       <div className='flex flex-row gap-x-2 shadow-2xl rounded-box px-2 bg-base-100'>
-        <button
-          role='button'
-          className='btn btn-ghost btn-sm btn-square tooltip tooltip-bottom'
-          aria-label='Undo'
-          onClick={props.onUndo}
-          disabled={!props.undoable}
-        >
-          <Undo />
-        </button>
-        <button
-          role='button'
-          className='btn btn-ghost btn-sm btn-square tooltip tooltip-bottom'
-          aria-label='Redo'
-          onClick={props.onRedo}
-          disabled={!props.redoable}
-        >
-          <Redo />
-        </button>
-        <div className='divider divider-horizontal mx-0' />
-        <button
-          role='button'
-          className='btn btn-ghost btn-sm btn-square tooltip tooltip-bottom'
-          aria-label='Cut'
-          onClick={props.onCut}
-          disabled={!props.cutable}
-        >
-          <Scissors />
-        </button>
-        <button
-          role='button'
-          className='btn btn-ghost btn-sm btn-square tooltip tooltip-bottom'
-          aria-label='Copy'
-          onClick={props.onCopy}
-          disabled={!props.copyable}
-        >
-          <Copy />
-        </button>
-        <button
-          role='button'
-          className='btn btn-ghost btn-sm btn-square tooltip tooltip-bottom'
-          aria-label='Paste'
-          onClick={props.onPaste}
-          disabled={!props.pasteable}
-        >
-          <Clipboard />
-        </button>
-        <div className='divider divider-horizontal mx-0' />
-        <button
-          role='button'
-          className='btn btn-ghost btn-sm btn-square tooltip tooltip-bottom'
-          aria-label='Zoom In'
-          onClick={() => reactFlowInstance?.zoomIn({ duration: 100 })}
-        >
-          <ZoomIn />
-        </button>
-        <button
-          role='button'
-          className='btn btn-ghost btn-sm btn-square tooltip tooltip-bottom'
-          aria-label='Zoom Out'
-          onClick={() => reactFlowInstance?.zoomOut({ duration: 100 })}
-        >
-          <ZoomOut />
-        </button>
-        <button
-          role='button'
-          className='btn btn-ghost btn-sm btn-square tooltip tooltip-bottom'
-          aria-label='Fit View'
-          onClick={() => reactFlowInstance?.fitView({ padding: 0.4, duration: 100 })}
-        >
-          <ScanEye />
-        </button>
-        <button
-          role='button'
-          className='btn btn-ghost btn-sm btn-square tooltip tooltip-bottom'
-          aria-label='Fullscreen'
-          onClick={props.onFullscreen}
-        >
-          <Fullscreen />
-        </button>
-        <div className='divider divider-horizontal mx-0' />
+        {(
+          [
+            [
+              { icon: <Undo />, label: 'Undo', onClick: props.onUndo, disabled: !props.undoable },
+              { icon: <Redo />, label: 'Redo', onClick: props.onRedo, disabled: !props.redoable },
+            ],
+            [
+              { icon: <Scissors />, label: 'Cut', onClick: () => excuteCustomCutOrCopy(/* isCut: */ true), disabled: !props.cutable },
+              { icon: <Copy />, label: 'Copy', onClick: () => excuteCustomCutOrCopy(/* isCut: */ false), disabled: !props.copyable },
+              { icon: <Clipboard />, label: 'Paste', onClick: () => excuteCustomPaste(), disabled: !props.pasteable },
+            ],
+            [
+              { icon: <ZoomIn />, label: 'Zoom In', onClick: () => reactFlowInstance?.zoomIn({ duration: 100 }) },
+              { icon: <ZoomOut />, label: 'Zoom Out', onClick: () => reactFlowInstance?.zoomOut({ duration: 100 }) },
+              { icon: <ScanEye />, label: 'Fit View', onClick: () => reactFlowInstance?.fitView({ padding: 0.4, duration: 100 }) },
+              { icon: <Fullscreen />, label: 'Fullscreen', onClick: props.onFullscreen },
+            ],
+          ] as ButtonProps[][]
+        ).map((btnPropGroup, i, { length }) => (
+          <Fragment key={i}>
+            {btnPropGroup.map(btnProps => (
+              <button
+                role='button'
+                className='btn btn-ghost btn-sm btn-square tooltip tooltip-bottom'
+                aria-label={btnProps.label}
+                onClick={btnProps.onClick}
+                disabled={btnProps.disabled}
+              >
+                {btnProps.icon}
+              </button>
+            ))}
+            {i < length - 1 && <div className='divider divider-horizontal mx-0' />}
+          </Fragment>
+        ))}
       </div>
     </Panel>
   );
