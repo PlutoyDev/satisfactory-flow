@@ -4,6 +4,13 @@ import '@xyflow/react/dist/style.css';
 import debounce from 'debounce';
 import { useAtom } from 'jotai';
 import {
+  AlignCenterHorizontal,
+  AlignCenterVertical,
+  AlignEndHorizontal,
+  AlignEndVertical,
+  AlignStartHorizontal,
+  AlignStartVertical,
+  AlignVerticalDistributeCenter,
   ArrowRightFromLine,
   Check,
   Clipboard,
@@ -28,6 +35,7 @@ import ConnectionLine from '../components/rf/ConnectionLine';
 import { MainEdgeProp, MainNodeProp, stringifyFlowData } from '../lib/data';
 import {
   addEdge,
+  alignSelectedNodes,
   excuteCustomCutOrCopy,
   excuteCustomPaste,
   isDraggingNodeAtom,
@@ -170,7 +178,7 @@ function FlowPage() {
               onRedo={() => applyHistoryAction('redo')}
               cutable={copyableOrCutable}
               copyable={copyableOrCutable}
-              pasteable={!isReadOnly}
+              isReadOnly={isReadOnly}
               // onCopy={() => excuteClipboardAction('copy')}
               // onPaste={() => excuteClipboardAction('paste')}
               onFullscreen={() => {
@@ -418,6 +426,7 @@ type ToolbarPanelProps<Events extends string[], Actions extends string[]> = {
   [K in Actions[number] as `${K}able`]?: boolean;
 } & {
   // Any other props
+  isReadOnly?: boolean;
 };
 
 type ButtonProps = {
@@ -427,7 +436,7 @@ type ButtonProps = {
   disabled?: boolean;
 };
 
-function ToolbarPanel(props: ToolbarPanelProps<['undo', 'redo', 'fullscreen'], ['cut', 'copy', 'paste']>) {
+function ToolbarPanel(props: ToolbarPanelProps<['undo', 'redo', 'fullscreen'], ['cut', 'copy']>) {
   const reactFlowInstance = useReactFlow();
 
   return (
@@ -442,7 +451,7 @@ function ToolbarPanel(props: ToolbarPanelProps<['undo', 'redo', 'fullscreen'], [
             [
               { icon: <Scissors />, label: 'Cut', onClick: () => excuteCustomCutOrCopy(/* isCut: */ true), disabled: !props.cutable },
               { icon: <Copy />, label: 'Copy', onClick: () => excuteCustomCutOrCopy(/* isCut: */ false), disabled: !props.copyable },
-              { icon: <Clipboard />, label: 'Paste', onClick: () => excuteCustomPaste(), disabled: !props.pasteable },
+              { icon: <Clipboard />, label: 'Paste', onClick: () => excuteCustomPaste(), disabled: props.isReadOnly },
             ],
             [
               { icon: <ZoomIn />, label: 'Zoom In', onClick: () => reactFlowInstance?.zoomIn({ duration: 100 }) },
@@ -450,11 +459,50 @@ function ToolbarPanel(props: ToolbarPanelProps<['undo', 'redo', 'fullscreen'], [
               { icon: <ScanEye />, label: 'Fit View', onClick: () => reactFlowInstance?.fitView({ padding: 0.4, duration: 100 }) },
               { icon: <Fullscreen />, label: 'Fullscreen', onClick: props.onFullscreen },
             ],
+            [
+              {
+                icon: <AlignStartVertical />,
+                label: 'Align Left',
+                onClick: () => alignSelectedNodes({ axis: 'y', to: 'start' }),
+                disabled: props.isReadOnly,
+              },
+              {
+                icon: <AlignCenterVertical />,
+                label: 'Align Middle',
+                onClick: () => alignSelectedNodes({ axis: 'y', to: 'center' }),
+                disabled: props.isReadOnly,
+              },
+              {
+                icon: <AlignEndVertical />,
+                label: 'Align Right',
+                onClick: () => alignSelectedNodes({ axis: 'y', to: 'end' }),
+                disabled: props.isReadOnly,
+              },
+              {
+                icon: <AlignStartHorizontal />,
+                label: 'Align Top',
+                onClick: () => alignSelectedNodes({ axis: 'x', to: 'start' }),
+                disabled: props.isReadOnly,
+              },
+              {
+                icon: <AlignCenterHorizontal />,
+                label: 'Align Center',
+                onClick: () => alignSelectedNodes({ axis: 'x', to: 'center' }),
+                disabled: props.isReadOnly,
+              },
+              {
+                icon: <AlignEndHorizontal />,
+                label: 'Align Bottom',
+                onClick: () => alignSelectedNodes({ axis: 'x', to: 'end' }),
+                disabled: props.isReadOnly,
+              },
+            ],
           ] as ButtonProps[][]
         ).map((btnPropGroup, i, { length }) => (
           <Fragment key={i}>
-            {btnPropGroup.map(btnProps => (
+            {btnPropGroup.map((btnProps, i) => (
               <button
+                key={i}
                 role='button'
                 className='btn btn-ghost btn-sm btn-square tooltip tooltip-bottom'
                 aria-label={btnProps.label}

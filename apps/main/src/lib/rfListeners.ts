@@ -1,5 +1,5 @@
 import { ClipboardEvent, DragEvent } from 'react';
-import { Edge, Connection, OnSelectionChangeParams, ReactFlowInstance } from '@xyflow/react';
+import { Edge, Connection, OnSelectionChangeParams, ReactFlowInstance, XYPosition } from '@xyflow/react';
 import { atom } from 'jotai';
 import { isDeepEqual } from 'remeda';
 import { z } from 'zod';
@@ -111,6 +111,67 @@ export const selectedIdsAtom = atom<string[]>([]);
 export function onSelectionChange(params: OnSelectionChangeParams) {
   const selectedIds = [...params.nodes.map(node => node.id), ...params.edges.map(edge => edge.id)];
   store.set(selectedIdsAtom, selectedIds);
+}
+
+type AlignAxis = 'x' | 'y';
+type AlignTo = undefined | 'start' | 'center' | 'end';
+
+type AlignOptions = {
+  axis: AlignAxis;
+  to?: AlignTo;
+};
+
+export function alignSelectedNodes(opt: AlignOptions) {
+  const selectedIds = store.get(selectedIdsAtom);
+  const nodes = new Map(store.get(nodesMapAtom));
+  // Accumulation
+  const selectedNodes: ExtendedNode[] = [];
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const id of selectedIds) {
+    const node = nodes.get(id);
+    if (!node) continue; // Skip if node is not found, ie an edge
+    if (!node.measured?.width || !node.measured?.height) {
+      appendStatusMessage({ type: 'error', message: 'Try again later' });
+      return;
+    }
+    selectedNodes.push(node);
+    minX = Math.min(minX, node.position.x - node.measured.width / 2);
+    minY = Math.min(minY, node.position.y - node.measured.height / 2);
+    maxX = Math.max(maxX, node.position.x + node.measured.width / 2);
+    maxY = Math.max(maxY, node.position.y + node.measured.height / 2);
+  }
+  if (selectedNodes.length < 2) {
+    appendStatusMessage({ type: 'error', message: 'At least 2 nodes required' });
+    return;
+  }
+  const rangeX = maxX - minX;
+  const rangeY = maxY - minY;
+  const midX = minX + rangeX / 2;
+  const midY = minY + rangeY / 2;
+
+  const crossAxis = opt.axis === 'x' ? 'y' : 'x';
+  const crossAxisPosition =
+    opt.to && { startx: minX, starty: minY, centerx: midX, centery: midY, endx: maxX, endy: maxY }[`${opt.to}${crossAxis}`];
+
+  const ids: string[] = [];
+  const currentHistoryEvent: HistoryEvent = [];
+  for (let i = 0; i < selectedNodes.length; i++) {
+    const node = selectedNodes[i];
+    const newPosition: XYPosition = { ...node.position };
+    if (crossAxisPosition) {
+      const size = node.measured![crossAxis === 'x' ? 'width' : 'height']!;
+      newPosition[crossAxis] = crossAxisPosition - (opt.to === 'start' ? -size / 2 : opt.to === 'end' ? size / 2 : 0);
+    }
+    currentHistoryEvent.push({ type: 'change', itemType: 'node', itemId: node.id, patch: { position: node.position } });
+    nodes.set(node.id, { ...node, position: newPosition });
+    ids.push(node.id);
+  }
+  store.set(nodesMapAtom, nodes);
+  pushHistoryEvent(currentHistoryEvent);
+  pushAndTriggerDebouncedAction({ nodes: ids });
 }
 
 const CLIPBOARD_DATA_SCHEMA = z.object({
