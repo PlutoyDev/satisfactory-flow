@@ -2,8 +2,18 @@ import { ClipboardEvent, DragEvent } from 'react';
 import { Edge, Connection, OnSelectionChangeParams, ReactFlowInstance } from '@xyflow/react';
 import { atom } from 'jotai';
 import { isDeepEqual } from 'remeda';
+import { z } from 'zod';
 import { FactoryNodeType } from '../components/rf/BaseNode';
-import { generateId, pickMainEdgeProp, pickMainNodeProp, splitHandleId } from './data';
+import {
+  generateId,
+  MAIN_EDGE_PROP_SCHEMA,
+  MAIN_NODE_PROP_SCHEMA,
+  MainEdgeProp,
+  MainNodeProp,
+  pickMainEdgeProp,
+  pickMainNodeProp,
+  splitHandleId,
+} from './data';
 import {
   store,
   edgesAtom,
@@ -102,82 +112,125 @@ export function onSelectionChange(params: OnSelectionChangeParams) {
   store.set(selectedIdsAtom, selectedIds);
 }
 
-const CLIPBOARD_DATA_TYPE = 'application/json+satisfactory-flow';
-type ClipboardData = {
-  clipDataId: string;
-  nodes: ExtendedNode[];
-  edges: Edge[];
-  viewport: ReturnType<ReactFlowInstance['getViewport']>;
-};
+const CLIPBOARD_DATA_SCHEMA = z.object({
+  clipDataId: z.string(),
+  nodes: z.array(MAIN_NODE_PROP_SCHEMA),
+  edges: z.array(MAIN_EDGE_PROP_SCHEMA),
+  viewport: z.object({ x: z.number(), y: z.number(), zoom: z.number() }),
+});
+
+type ClipboardData = z.infer<typeof CLIPBOARD_DATA_SCHEMA>;
 
 let clipDataId: string | undefined;
 let pasteCount = 0;
 
+function toClipboardData(isCut: boolean) {
+  // Copies all selected nodes and edges to clipboard as JSON
+  const nodes = store.get(nodesMapAtom);
+  const edges = store.get(edgesMapAtom);
+  const selectedIds = store.get(selectedIdsAtom);
+
+  if (selectedIds.length === 0) {
+    throw new Error('No selected nodes or edges');
+  }
+
+  const copiedNodes: MainNodeProp[] = [];
+  const copiedEdges: MainEdgeProp[] = [];
+
+  const currentHistoryEvent: HistoryEvent = [];
+  for (const id of selectedIds) {
+    if (nodes.has(id)) {
+      const pickedNode = pickMainNodeProp(nodes.get(id)!);
+      copiedNodes.push(pickedNode);
+      if (isCut) {
+        currentHistoryEvent.push({ type: 'remove', itemType: 'node', itemId: id, item: pickedNode });
+        nodes.delete(id);
+      }
+    } else if (edges.has(id)) {
+      const pickedEdge = pickMainEdgeProp(edges.get(id)!);
+      copiedEdges.push(pickedEdge);
+      if (isCut) {
+        currentHistoryEvent.push({ type: 'remove', itemType: 'edge', itemId: id, item: pickedEdge });
+        edges.delete(id);
+      }
+    } else {
+      throw new Error('Invalid selected id');
+    }
+
+    if (isCut) {
+      store.set(nodesMapAtom, new Map(nodes));
+      store.set(edgesMapAtom, new Map(edges));
+      pushHistoryEvent(currentHistoryEvent);
+    }
+  }
+
+  clipDataId = generateId();
+  pasteCount = isCut ? -1 : 0;
+
+  const copiedData: ClipboardData = {
+    clipDataId,
+    nodes: copiedNodes,
+    edges: copiedEdges,
+    viewport: store.get(reactflowInstanceAtom)!.getViewport(),
+  };
+  // e.clipboardData?.setData(CLIPBOARD_DATA_TYPE, JSON.stringify(copiedData));
+  pasteCount = 0;
+  appendStatusMessage({
+    type: 'info',
+    message: `${isCut ? 'Cuting' : 'Copying'} ${copiedNodes.length} nodes and ${copiedEdges.length} edges`,
+  });
+  return JSON.stringify(copiedData);
+}
+
 export function onCutOrCopy(e: ClipboardEvent<HTMLDivElement>) {
+  console.log('onCutOrCopy', e.currentTarget);
   try {
     e.preventDefault();
     const isCut = e.type === 'cut';
-    // Copies all selected nodes and edges to clipboard as JSON
-    const nodes = store.get(nodesMapAtom);
-    const edges = store.get(edgesMapAtom);
-    const selectedIds = store.get(selectedIdsAtom);
-
-    if (selectedIds.length === 0) {
-      return;
-    }
-
-    const copiedNodes: ExtendedNode[] = [];
-    const copiedEdges: Edge[] = [];
-
-    const currentHistoryEvent: HistoryEvent = [];
-    for (const id of selectedIds) {
-      if (nodes.has(id)) {
-        const pickedNode = pickMainNodeProp(nodes.get(id)!);
-        copiedNodes.push(pickedNode);
-        if (isCut) {
-          currentHistoryEvent.push({ type: 'remove', itemType: 'node', itemId: id, item: pickedNode });
-          nodes.delete(id);
-        }
-      } else if (edges.has(id)) {
-        const pickedEdge = pickMainEdgeProp(edges.get(id)!);
-        copiedEdges.push(pickedEdge);
-        if (isCut) {
-          currentHistoryEvent.push({ type: 'remove', itemType: 'edge', itemId: id, item: pickedEdge });
-          edges.delete(id);
-        }
-      } else {
-        throw new Error('Invalid selected id');
-      }
-
-      if (isCut) {
-        store.set(nodesMapAtom, new Map(nodes));
-        store.set(edgesMapAtom, new Map(edges));
-        pushHistoryEvent(currentHistoryEvent);
-      }
-    }
-
-    clipDataId = generateId();
-    pasteCount = isCut ? -1 : 0;
-
-    const copiedData: ClipboardData = {
-      clipDataId,
-      nodes: copiedNodes,
-      edges: copiedEdges,
-      viewport: store.get(reactflowInstanceAtom)!.getViewport(),
-    };
-    e.clipboardData?.setData(CLIPBOARD_DATA_TYPE, JSON.stringify(copiedData));
-    pasteCount = 0;
-    appendStatusMessage({
-      type: 'info',
-      message: `${isCut ? 'Cut' : 'Copied'} ${copiedNodes.length} nodes and ${copiedEdges.length} edges`,
-    });
+    const data = toClipboardData(isCut);
+    e.clipboardData?.setData('text/plain', data);
+    appendStatusMessage({ type: 'info', message: `${isCut ? 'Cut' : 'Copied'} to clipboard` });
   } catch (error) {
-    appendStatusMessage({ type: 'error', message: 'Failed to cut/copy' });
-    console.error(error);
+    if (error instanceof Error) {
+      appendStatusMessage({ type: 'error', message: `Failed to ${e.type}: ${error.message}` });
+    } else {
+      appendStatusMessage({ type: 'error', message: `Failed to ${e.type}: Unknown error` });
+      console.error(error);
+    }
   }
 }
 
-export function onPaste(e: ClipboardEvent<HTMLDivElement>) {
+export async function excuteCustomCutOrCopy(isCut: boolean) {
+  // Custom implementation of cut/copy for custom context menu and toolbar
+  // Uses the browser's navigator.clipboard API
+  try {
+    const data = toClipboardData(isCut);
+    await navigator.clipboard.writeText(data);
+    appendStatusMessage({ type: 'info', message: `${isCut ? 'Cut' : 'Copied'} to clipboard` });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'NotAllowedError') {
+      // NotAllowedError: The request is not allowed by the user agent or the platform in the current context, possibly because the user denied permission.
+      appendStatusMessage({ type: 'error', message: `Clipboard access denied: ${error.message}` });
+      if (isCut)
+        appendStatusMessage({
+          type: 'info',
+          message: 'Alternatively, you can use (Ctrl/Cmd)+X to cut which does not require clipboard access',
+        });
+      else
+        appendStatusMessage({
+          type: 'info',
+          message: 'Alternatively, you can use (Ctrl/Cmd)+C to copy which does not require clipboard access',
+        });
+    } else if (error instanceof Error) {
+      appendStatusMessage({ type: 'error', message: `Failed to ${isCut ? 'cut' : 'copy'}: ${error.message}` });
+    } else {
+      appendStatusMessage({ type: 'error', message: `Failed to ${isCut ? 'cut' : 'copy'}: Unknown error` });
+      console.error(error);
+    }
+  }
+}
+
+function fromClipboardData(data: string) {
   // If clipboard contains JSON
   //  Parse JSON
   // If there is one node selected and copied
@@ -185,17 +238,9 @@ export function onPaste(e: ClipboardEvent<HTMLDivElement>) {
   // If there are none or multiple nodes or any edges selected
   //  Deselect all nodes and edges
   //  Add the copied nodes and edges to the flow wiht it selected
-  e.preventDefault();
-  const clipboardData = e.clipboardData?.getData(CLIPBOARD_DATA_TYPE);
-  if (!clipboardData) {
-    // addError('Unknown/Empty clipboard data');
-    appendStatusMessage({ type: 'error', message: 'Unknown/Empty clipboard data' });
-    return;
-  }
-
   try {
-    const copiedData = JSON.parse(clipboardData) as ClipboardData;
-    const { nodes: copiedNodes, edges: copiedEdges, viewport: copiedViewport } = copiedData;
+    const copiedData = JSON.parse(data);
+    const { nodes: copiedNodes, edges: copiedEdges, viewport: copiedViewport } = CLIPBOARD_DATA_SCHEMA.parse(copiedData);
     pasteCount = copiedData.clipDataId === clipDataId ? pasteCount + 1 : 1;
     const nodes = store.get(nodesMapAtom);
     const edges = store.get(edgesMapAtom);
@@ -264,11 +309,49 @@ export function onPaste(e: ClipboardEvent<HTMLDivElement>) {
     }
     store.set(nodesMapAtom, newNodes);
     store.set(edgesMapAtom, newEdges);
+
     pushHistoryEvent(currentHistoryEvent);
+    appendStatusMessage({ type: 'info', message: `Pasted ${copiedNodes.length} nodes and ${copiedEdges.length} edges` });
   } catch (error) {
-    if (e instanceof SyntaxError) {
+    if (error instanceof z.ZodError) {
+      appendStatusMessage({ type: 'error', message: `Invalid clipboard data: ${error.errors.map(e => e.message).join(', ')}` });
+    } else if (error instanceof SyntaxError) {
       appendStatusMessage({ type: 'error', message: 'Invalid clipboard data' });
+    } else {
+      appendStatusMessage({ type: 'error', message: 'Unknown error' });
+      throw error;
     }
-    throw error;
+  }
+}
+
+export function onPaste(e: ClipboardEvent<HTMLDivElement>) {
+  e.preventDefault();
+  const clipboardData = e.clipboardData?.getData('text/plain');
+  if (!clipboardData) {
+    appendStatusMessage({ type: 'error', message: 'Unknown/Empty clipboard data' });
+    return;
+  }
+
+  fromClipboardData(clipboardData);
+}
+
+export async function excuteCustomPaste() {
+  try {
+    const clipboardData = await navigator.clipboard.readText();
+    fromClipboardData(clipboardData);
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'NotAllowedError') {
+      // NotAllowedError: The request is not allowed by the user agent or the platform in the current context, possibly because the user denied permission.
+      appendStatusMessage({ type: 'error', message: `Clipboard access denied: ${error.message}` });
+      appendStatusMessage({
+        type: 'info',
+        message: 'Alternatively, you can use (Ctrl/Cmd)+V to paste which does not require clipboard access',
+      });
+    } else if (error instanceof Error) {
+      appendStatusMessage({ type: 'error', message: `Failed to paste: ${error.message}` });
+    } else {
+      appendStatusMessage({ type: 'error', message: `Failed to paste: Unknown error` });
+      console.error(error);
+    }
   }
 }

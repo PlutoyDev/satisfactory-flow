@@ -6,6 +6,7 @@ import { useAtom } from 'jotai';
 import {
   ArrowRightFromLine,
   Check,
+  Clipboard,
   Copy,
   FilePen,
   Fullscreen,
@@ -15,6 +16,7 @@ import {
   OctagonX,
   Redo,
   ScanEye,
+  Scissors,
   Undo,
   X,
   ZoomIn,
@@ -26,6 +28,8 @@ import ConnectionLine from '../components/rf/ConnectionLine';
 import { MainEdgeProp, MainNodeProp, stringifyFlowData } from '../lib/data';
 import {
   addEdge,
+  excuteCustomCutOrCopy,
+  excuteCustomPaste,
   isDraggingNodeAtom,
   isValidConnection,
   onCutOrCopy,
@@ -67,6 +71,8 @@ function FlowPage() {
   const [isSaved] = useAtom(isSavedAtom);
   const rfParentRef = useRef<HTMLDivElement>(null);
   const [viewport, setViewport] = useAtom(viewportAtom);
+  const [selectedIds] = useAtom(selectedIdsAtom);
+  const copyableOrCutable = selectedIds.length > 0;
 
   if (!selectedFlow) {
     return <div>404 Not Found</div>;
@@ -162,6 +168,14 @@ function FlowPage() {
               redoable={redoable}
               onUndo={() => applyHistoryAction('undo')}
               onRedo={() => applyHistoryAction('redo')}
+              cutable={copyableOrCutable}
+              copyable={copyableOrCutable}
+              pasteable={!isReadOnly}
+              onCut={() => excuteCustomCutOrCopy(/* isCut: */ true)}
+              onCopy={() => excuteCustomCutOrCopy(/* isCut: */ false)}
+              onPaste={() => excuteCustomPaste()}
+              // onCopy={() => excuteClipboardAction('copy')}
+              // onPaste={() => excuteClipboardAction('paste')}
               onFullscreen={() => {
                 const isExiting = document.fullscreenElement === rfParentRef.current;
                 try {
@@ -406,7 +420,7 @@ type ToolbarPanelProps<events extends string[]> = {
   // Any other props
 };
 
-function ToolbarPanel(props: ToolbarPanelProps<['undo', 'redo', 'fullscreen']>) {
+function ToolbarPanel(props: ToolbarPanelProps<['undo', 'redo', 'fullscreen', 'cut', 'copy', 'paste']>) {
   const reactFlowInstance = useReactFlow();
   return (
     <Panel position='top-center'>
@@ -428,6 +442,34 @@ function ToolbarPanel(props: ToolbarPanelProps<['undo', 'redo', 'fullscreen']>) 
           disabled={!props.redoable}
         >
           <Redo />
+        </button>
+        <div className='divider divider-horizontal mx-0' />
+        <button
+          role='button'
+          className='btn btn-ghost btn-sm btn-square tooltip tooltip-bottom'
+          aria-label='Cut'
+          onClick={props.onCut}
+          disabled={!props.cutable}
+        >
+          <Scissors />
+        </button>
+        <button
+          role='button'
+          className='btn btn-ghost btn-sm btn-square tooltip tooltip-bottom'
+          aria-label='Copy'
+          onClick={props.onCopy}
+          disabled={!props.copyable}
+        >
+          <Copy />
+        </button>
+        <button
+          role='button'
+          className='btn btn-ghost btn-sm btn-square tooltip tooltip-bottom'
+          aria-label='Paste'
+          onClick={props.onPaste}
+          disabled={!props.pasteable}
+        >
+          <Clipboard />
         </button>
         <div className='divider divider-horizontal mx-0' />
         <button

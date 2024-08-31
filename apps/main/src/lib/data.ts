@@ -230,7 +230,7 @@ export const FLOW_DATA_VERSION = 1;
 export const generateId = () => nanoid(16);
 const ID_SCHEMA = z.string().length(16);
 
-const FLOW_INFO_SCHEMA = z.object({
+export const FLOW_INFO_SCHEMA = z.object({
   id: ID_SCHEMA,
   name: z.string().min(1),
   description: z.string().optional(),
@@ -238,14 +238,14 @@ const FLOW_INFO_SCHEMA = z.object({
   created: z.date(),
 });
 
-const MAIN_NODE_PROP_SCHEMA = z.object({
+export const MAIN_NODE_PROP_SCHEMA = z.object({
   id: ID_SCHEMA,
   type: z.string().min(1),
   data: z.record(z.unknown()),
   position: z.object({ x: z.number(), y: z.number() }),
 });
 
-const MAIN_EDGE_PROP_SCHEMA = z.object({
+export const MAIN_EDGE_PROP_SCHEMA = z.object({
   id: ID_SCHEMA,
   type: z.string().min(1),
   data: z.record(z.unknown()).optional(),
@@ -255,7 +255,7 @@ const MAIN_EDGE_PROP_SCHEMA = z.object({
   targetHandle: z.string(),
 });
 
-const FLOW_PROPERTIES_SCHEMA = z.object({
+export const FLOW_PROPERTIES_SCHEMA = z.object({
   viewportX: z.number().optional(),
   viewportY: z.number().optional(),
   viewportZoom: z.number().optional(),
