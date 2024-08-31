@@ -114,11 +114,11 @@ export function onSelectionChange(params: OnSelectionChangeParams) {
 }
 
 type AlignAxis = 'x' | 'y';
-type AlignTo = undefined | 'start' | 'center' | 'end';
+type AlignTo = 'start' | 'center' | 'end';
 
 type AlignOptions = {
   axis: AlignAxis;
-  to?: AlignTo;
+  to: AlignTo;
 };
 
 export function alignSelectedNodes(opt: AlignOptions) {
@@ -153,8 +153,7 @@ export function alignSelectedNodes(opt: AlignOptions) {
   const midY = minY + rangeY / 2;
 
   const crossAxis = opt.axis === 'x' ? 'y' : 'x';
-  const crossAxisPosition =
-    opt.to && { startx: minX, starty: minY, centerx: midX, centery: midY, endx: maxX, endy: maxY }[`${opt.to}${crossAxis}`];
+  const crossAxisPosition = { startx: minX, starty: minY, centerx: midX, centery: midY, endx: maxX, endy: maxY }[`${opt.to}${crossAxis}`];
 
   const ids: string[] = [];
   const currentHistoryEvent: HistoryEvent = [];
