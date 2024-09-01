@@ -20,32 +20,22 @@ type ItemOrRecipeListItemProps = {
 function ItemOrRecipeListItem({ data, docsMapped, selected, onClick }: ItemOrRecipeListItemProps) {
   const listItem = 'item' in data ? data.item : data;
   const isRecipe = 'ingredients' in listItem;
-  // const itemAmts = isRecipe ? [...(listItem as Recipe).ingredients, ...(listItem as Recipe).products] : [];
-  // const ingredientCount = isRecipe ? (listItem as Recipe).ingredients.length : 0;
-  // const items = itemAmts.map(({ itemKey }) => docsMapped.items.get(itemKey));
+  const isAltRecipe = isRecipe && listItem.displayName.startsWith('Alternate');
 
   return (
     <button
       role='bottom'
       data-selected={selected}
-      className='btn btn-sm data-[selected=true]:btn-accent col-span-full w-full grid-cols-subgrid flex-nowrap justify-start'
+      className='btn btn-sm data-[selected=true]:btn-accent col-span-full w-full grid-cols-subgrid flex-nowrap justify-start text-start'
       style={{ display: isRecipe ? 'grid' : 'flex' }}
     >
       {isRecipe ? (
-        // <div className='flex flex-nowrap gap-x-0.5'>
-        //   {items.map((item, i) => (
-        //     <Fragment key={i}>
-        //       {i === ingredientCount && <ArrowRight size={24} />}
-        //       <img src={'/extracted/' + item?.iconPath} alt={item?.displayName} className='h-6 w-6' />
-        //     </Fragment>
-        //   ))}
-        // </div>
         Array.from({ length: 7 }).map((_, i) => {
           if (i === 4) {
             return <ArrowRight key={i} size={24} className='col-start-5' />;
           }
           const itemKey = i < 4 ? (listItem as Recipe).ingredients[3 - i]?.itemKey : (listItem as Recipe).products[i - 5]?.itemKey;
-          if (!itemKey) return <div key={i} style={{ gridColumnStart: i + 1 }} />;
+          if (!itemKey) return null;
 
           const item = docsMapped.items.get(itemKey);
           return (
@@ -53,7 +43,7 @@ function ItemOrRecipeListItem({ data, docsMapped, selected, onClick }: ItemOrRec
               key={i}
               src={'/extracted/' + item?.iconPath}
               alt={item?.displayName}
-              className='h-6 w-6'
+              className='size-6'
               style={{ gridColumnStart: i + 1 }}
             />
           );
@@ -61,7 +51,17 @@ function ItemOrRecipeListItem({ data, docsMapped, selected, onClick }: ItemOrRec
       ) : (
         <img src={'/extracted/' + (listItem as SimpleItem).iconPath} alt={(listItem as SimpleItem).displayName} className='h-6 w-6' />
       )}
-      <span className='col-start-8 flex-1 text-start'>{listItem.displayName}</span>
+
+      {isAltRecipe ? (
+        <>
+          <p className='col-start-8'>{listItem.displayName.slice(11)}</p>
+          <span className='border-accent text-accent text-bold tooltip tooltip-right ml-2 rounded-sm border px-0.5' data-tip='Alternate'>
+            A
+          </span>
+        </>
+      ) : (
+        <p className='col-start-8'>{listItem.displayName}</p>
+      )}
     </button>
   );
 }
@@ -182,11 +182,14 @@ export default function ItemOrRecipeComboBox({ type, placeholder, defaultValue, 
         )}
       </label>
       {isOpen && (
-        <div
-          className='bg-base-200 rounded-box absolute bottom-full end-0 top-auto z-10 w-full origin-bottom grid-flow-col shadow-lg'
-          style={{ width: type === 'recipe' ? '36rem' : '24rem' }}
-        >
-          <ul style={{ display: type === 'recipe' ? 'grid' : undefined, gridTemplateColumns: 'repeat(7, 2rem) 1fr' }}>
+        <div className='bg-base-200 rounded-box absolute bottom-full end-0 top-auto z-10 origin-bottom grid-flow-col shadow-lg'>
+          <ul
+            style={{
+              display: type === 'recipe' ? 'grid' : undefined,
+              gridTemplateColumns: 'repeat(7, 2rem) auto min-content',
+              width: type === 'recipe' ? '28rem' : '20rem',
+            }}
+          >
             {displayList.length === 0
               ? 'No result'
               : displayList.slice(page * PER_PAGE, page * PER_PAGE + PER_PAGE).map((data, i) => (
@@ -201,7 +204,7 @@ export default function ItemOrRecipeComboBox({ type, placeholder, defaultValue, 
                   />
                 ))}
           </ul>
-          <div className='flex w-full justify-center gap-6'>
+          <div className='flex w-full justify-center gap-2'>
             <button className='btn btn-sm rounded-full' disabled={page === 0} onClick={() => setSelectIndex(0)}>
               <ChevronsLeft size={20} />
             </button>
