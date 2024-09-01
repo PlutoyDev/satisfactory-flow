@@ -140,7 +140,7 @@ export default function ItemOrRecipeComboBox({ type, placeholder, defaultKey, on
     let value = defaultKey;
     if (!value) return;
     const data = fullDataMap.get(value);
-    if (data) setDisplayText(data.displayName);
+    if (data) return setDisplayText(data.displayName);
     console.error('Invalid default value:', value);
   }, [defaultKey]);
 
