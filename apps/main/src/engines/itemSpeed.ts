@@ -149,7 +149,7 @@ export function computeFactoryRecipeNode(args: ComputeArgs): ComputeResult | nul
   - none: The output is unused. Appears by default in the right and left outputs.
   - anyUndefined: Only parts that do not have their own Item rule will pass through. For example, if a  Rotor has its own output, no Rotors will ever pass through.
   - overflow: This output will only be used if there are no other outputs to use (due to being full, or having no suitable rule). If multiple outputs have this filter, overflowing parts will be distributed evenly among them.
-  - item-${string}: Only the selected item will pass through. Its recipe has to be unlocked first for it to appear in the list.  
+  - {itemKey}: Only the selected item will pass through. Its recipe has to be unlocked first for it to appear in the list.  
 */
 export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | null {
   const { visitedNode = [], nodeId, nodeMap, edgeMap, ignoreHandleIds, nodesComputeResult } = args;
@@ -252,13 +252,7 @@ export function computeFactoryLogisticsNode(args: ComputeArgs): ComputeResult | 
           } else if (rules[0] === 'anyUndefined') {
             anyUndefinedOutHandleIds.push(handleId);
           } else if (rules[0] !== 'none') {
-            for (const rule of rules) {
-              if (!rule.startsWith('item-')) {
-                // console.error(`Invalid rule ${rule} for node ${nodeId}`);
-                appendStatusMessage({ type: 'error', message: `Invalid rule ${rule} for node ${nodeId}` });
-                continue;
-              }
-              const itemKey = rule.slice(5);
+            for (const itemKey of rules) {
               specificItemOutHandleIds[itemKey] ??= [];
               specificItemOutHandleIds[itemKey].push(handleId);
             }

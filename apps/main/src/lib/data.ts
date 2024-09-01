@@ -27,7 +27,7 @@ LogisticDir: 'left' | 'right' | 'center'
 
 Logistic Node Data extends Base Node Data:
 - type: 'splitter' | 'merger' | 'splitterSmart' |'splitterPro' | 'pipeJunc'
-- smartProRules?: Partial< Record< LogisticDir, ('any' | 'none' | 'anyUndefined' | 'overflow' | `item-${string}`)>>
+- smartProRules?: Partial< Record< LogisticDir, ('any' | 'none' | 'anyUndefined' | 'overflow' | string)>>
 - pipeJuncInt?: Partial< Record< LogisticDir, 'in' | 'out' >>
 
 Generators Node Data extends Base Node Data:
@@ -103,7 +103,7 @@ export function parseClockSpeedThouFromPercentString(clockSpeedStr: string) {
 export const LOGISTIC_TYPE = ['splitter', 'merger', 'splitterSmart', 'splitterPro', 'pipeJunc'] as const;
 export type LogisticType = (typeof LOGISTIC_TYPE)[number];
 export const LOGISTIC_SMART_PRO_RULES = ['any', 'none', 'anyUndefined', 'overflow'] as const;
-export type LogisticSmartProRules = (typeof LOGISTIC_SMART_PRO_RULES)[number] | `item-${string}`;
+export type LogisticSmartProRules = (typeof LOGISTIC_SMART_PRO_RULES)[number];
 export const LOGISTIC_PIPE_JUNC_INT = ['in', 'out'] as const;
 export type LogisticPipeJuncInt = (typeof LOGISTIC_PIPE_JUNC_INT)[number];
 
@@ -118,7 +118,7 @@ export interface FactoryLogisticNodeData extends FactoryBaseNodeData {
    * In-game the output are named (left, center, right) relative to the input
    * Hence, top -> left, right -> center, bottom -> right
    */
-  smartProRules?: Partial<Record<Exclude<FactoryInterfaceDir, 'left'>, LogisticSmartProRules[]>>;
+  smartProRules?: Partial<Record<Exclude<FactoryInterfaceDir, 'left'>, (LogisticSmartProRules | string)[]>>;
   /**
    * For easier computation, Left is always input, make the user rotate instead :)
    *

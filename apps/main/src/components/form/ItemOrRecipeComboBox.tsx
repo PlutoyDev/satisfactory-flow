@@ -1,10 +1,11 @@
 // An overly complicated, over-powered Item / Recipe Combo Box
 // Mainly for me to play around and learn xD (It's a flawed implementation)
-import { KeyboardEvent, useCallback, useMemo, useRef, useState } from 'react';
+import { KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Recipe, Item } from 'docs-parser';
 import Fuse, { FuseResult } from 'fuse.js';
 import { useAtom } from 'jotai';
 import { ArrowRight, ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ChevronUp } from 'lucide-react';
+import { LogisticSmartProRules } from '../../lib/data';
 import { DocsMapped, docsMappedAtom } from '../../lib/store';
 
 type SimpleItem = Pick<Item, 'displayName' | 'iconPath' | 'key'>;
@@ -74,12 +75,12 @@ function ItemOrRecipeListItem({ data, docsMapped, selected, onClick, onMouseEnte
 
 const PER_PAGE = 10;
 
-const additionalItemAsRule = [
-  { key: 'any', displayName: 'Any', iconPath: 'icons/RuleAny.webp' },
-  { key: 'none', displayName: 'None', iconPath: 'icons/None.webp' },
-  { key: 'anyUndefined', displayName: 'Any Undefined', iconPath: 'icons/RuleUndef.webp' },
-  { key: 'overflow', displayName: 'Overflow', iconPath: 'icons/RuleOverflow.webp' },
-];
+export const ADDITIONAL_OUTPUT_RULE = {
+  any: { key: 'any', displayName: 'Any', iconPath: 'icons/RuleAny.webp' },
+  none: { key: 'none', displayName: 'None', iconPath: 'icons/None.webp' },
+  anyUndefined: { key: 'anyUndefined', displayName: 'Any Undefined', iconPath: 'icons/RuleUndef.webp' },
+  overflow: { key: 'overflow', displayName: 'Overflow', iconPath: 'icons/RuleOverflow.webp' },
+} as const satisfies Record<LogisticSmartProRules, SimpleItem>;
 
 type ItemOrRecipeComboBoxProps = {
   type: 'item' | 'recipe' | 'outputRule';
@@ -95,10 +96,16 @@ export default function ItemOrRecipeComboBox({ type, placeholder, defaultKey, on
   const [fullDataMap] = useState(() => {
     const dataMap: Map<string, ItemOrRecipe> = new Map();
     if (type === 'outputRule') {
-      additionalItemAsRule.forEach(item => dataMap.set(item.key, item));
-    }
-    for (const [key, value] of docsMapped[`${dataListType}s`]) {
-      dataMap.set(key, value);
+      for (const [key, value] of Object.entries(ADDITIONAL_OUTPUT_RULE)) {
+        dataMap.set(key, value);
+      }
+      for (const [key, value] of docsMapped.items) {
+        if (value.form === 'solid') dataMap.set(key, value);
+      }
+    } else {
+      for (const [key, value] of docsMapped[`${dataListType}s`]) {
+        dataMap.set(key, value);
+      }
     }
     return dataMap;
   });
@@ -119,16 +126,10 @@ export default function ItemOrRecipeComboBox({ type, placeholder, defaultKey, on
   const [displayText, setDisplayText] = useState(() => {
     let value = defaultKey;
     if (!value) return '';
-    if (type === 'outputRule' && !['any', 'none', 'anyUndefined', 'overflow'].includes(value as string)) {
-      // remove prefix with 'item-' for outputRule
-      value = value.slice(5);
-    }
     const data = fullDataMap.get(value);
-    if (!data) {
-      console.error('Invalid default value:', value);
-      return '';
-    }
-    return data.displayName;
+    if (data) return data.displayName;
+    console.error('Invalid default value:', value);
+    return '';
   });
   const [searchText, setSearchText] = useState('');
   const searchResult = useMemo(() => (searchText ? fuseInstance.search(searchText) : []), [fuseInstance, searchText]);
@@ -139,14 +140,23 @@ export default function ItemOrRecipeComboBox({ type, placeholder, defaultKey, on
   const [selectIndex, setSelectIndex] = useState(0);
   const page = Math.floor(selectIndex / PER_PAGE);
 
+  useEffect(() => {
+    let value = defaultKey;
+    if (!value) return;
+    const data = fullDataMap.get(value);
+    if (data) setDisplayText(data.displayName);
+    console.error('Invalid default value:', value);
+  }, [defaultKey]);
+
   const setValue = useCallback(
     (key?: string) => {
       if (!key) {
         const data = displayList[selectIndex];
         key = 'item' in data ? data.item.key : data.key;
       }
-      if (type === 'outputRule' && !['any', 'none', 'anyUndefined', 'overflow'].includes(key)) {
-        key = 'item-' + key;
+      if (!fullDataMap.has(key)) {
+        console.error('Invalid key:', key);
+        return;
       }
       onKeySelected(key); // Callback to parent
       setDisplayText(fullDataMap.get(key)?.displayName || '');
@@ -169,8 +179,9 @@ export default function ItemOrRecipeComboBox({ type, placeholder, defaultKey, on
       } else if (e.key === 'ArrowRight' && !isFocusInput) {
         newSelectIndex = Math.min(selectIndex + PER_PAGE, displayList.length - 1);
       } else if (e.key === 'Enter') {
-        // TODO: handle enter
         setValue(); // Get from selectIndex
+      } else if (e.key === 'Escape') {
+        setIsOpen(false);
       } else if (e.key.length === 1 || e.key === 'Backspace' || e.key === 'Delete' || e.key === ' ') {
         // letters, backspace, delete, space etc, focus search input
         inputRef.current?.focus();
@@ -198,10 +209,10 @@ export default function ItemOrRecipeComboBox({ type, placeholder, defaultKey, on
             setDisplayText('');
           }}
           onFocus={e => {
-            setIsOpen(true);
             // When the input is focused, and its the displayText, select all
             if (e.target.value === displayText) e.target.select();
           }}
+          onClick={() => setIsOpen(p => !p)}
           ref={inputRef}
         />
         {type === 'outputRule' ? (
@@ -211,7 +222,22 @@ export default function ItemOrRecipeComboBox({ type, placeholder, defaultKey, on
         )}
       </label>
       {isOpen && (
-        <div className='bg-base-200 rounded-box absolute bottom-full end-0 top-auto z-10 origin-bottom grid-flow-col shadow-lg'>
+        <div
+          className='bg-base-200 rounded-box absolute end-0 z-10 grid-flow-col shadow-lg'
+          style={
+            type === 'outputRule'
+              ? {
+                  top: '100%',
+                  bottom: 'auto',
+                  transformOrigin: 'top',
+                }
+              : {
+                  top: 'auto',
+                  bottom: '100%',
+                  transformOrigin: 'bottom',
+                }
+          }
+        >
           <ul
             className='w-80'
             style={

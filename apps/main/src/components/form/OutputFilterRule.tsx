@@ -1,28 +1,17 @@
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import Fuse from 'fuse.js';
+import { useCallback, useEffect, useState } from 'react';
 import { useAtom } from 'jotai';
-import { ChevronDown, Plus, X } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { isDeepEqual } from 'remeda';
-import { FactoryInterfaceDir, FactoryLogisticNodeData, LogisticSmartProRules, LogisticType } from '../../lib/data';
+import {
+  FactoryInterfaceDir,
+  FactoryLogisticNodeData,
+  LOGISTIC_SMART_PRO_RULES,
+  LogisticSmartProRules,
+  LogisticType,
+} from '../../lib/data';
 import { docsMappedAtom } from '../../lib/store';
 import { useEditorField } from '../rf/BaseNode';
-
-type ExcludedItemRules = Exclude<LogisticSmartProRules, `item-${string}`>;
-
-const ruleText = {
-  any: 'Any',
-  none: 'None',
-  anyUndefined: 'Any Undefined',
-  overflow: 'Overflow',
-} as const satisfies Record<ExcludedItemRules, string>;
-
-// TODO: Downscale version for dropdown icon
-const ruleIcon64 = {
-  any: 'icons/RuleAny.webp',
-  none: 'icons/None.webp',
-  anyUndefined: 'icons/RuleUndef.webp',
-  overflow: 'icons/RuleOverflow.webp',
-};
+import ItemOrRecipeComboBox, { ADDITIONAL_OUTPUT_RULE } from './ItemOrRecipeComboBox';
 
 type ExcludedLeftDir = Exclude<FactoryInterfaceDir, 'left'>;
 
@@ -32,41 +21,21 @@ const dirText = {
   bottom: 'Right',
 } as const satisfies Record<ExcludedLeftDir, string>;
 
-interface DropdownProps {
-  top: number;
-  left: number;
-  dir: ExcludedLeftDir;
-  index: number;
-}
-
 export function OutputFilterRule() {
-  const [dropdownProps, setDropdownProps] = useState<DropdownProps | undefined>(undefined); // if not undefined, drop down will show
   const [docsMapped] = useAtom(docsMappedAtom);
   const { currentValue: logisticType, setValue: setLogisticType } = useEditorField<LogisticType>('type');
   const [localRules, setLocalRules] = useState<FactoryLogisticNodeData['smartProRules'] | null>(null);
   const { currentValue: smartProRules = { right: ['any'] }, setValue: setSmartProRules } =
     useEditorField<FactoryLogisticNodeData['smartProRules']>('smartProRules');
-  const [warning, setWarning] = useState<string | null>(null);
-
-  const ruleList = useMemo(() => {
-    const ruleList: { key: string; name: string; iconPath?: string | null }[] = [];
-    for (const key in ruleText)
-      ruleList.push({ key, name: ruleText[key as ExcludedItemRules], iconPath: ruleIcon64[key as ExcludedItemRules] });
-    for (const [key, value] of docsMapped.items) ruleList.push({ key: `item-${key}`, name: value.displayName, iconPath: value.iconPath });
-    return ruleList;
-  }, [docsMapped]);
-  const ruleFuse = useMemo(() => new Fuse(ruleList, { keys: ['name'] }), [ruleList]);
-  const [search, setSearch] = useState('');
-  const filteredRules = useMemo(() => (search ? ruleFuse.search(search).map(({ item }) => item) : ruleList), [ruleFuse, ruleList, search]);
-  const filterUlElement = useRef<HTMLUListElement>(null);
+  const [warning, setWarning] = useState<string>('');
 
   useEffect(() => {
-    setTimeout(() => setWarning(null), 3000);
+    setTimeout(() => setWarning(''), 3000);
   }, [warning]);
 
   const onSelectRule = useCallback(
-    (rule: LogisticSmartProRules) => {
-      if (!localRules || !dropdownProps) {
+    (dir: ExcludedLeftDir, index: number, rule: LogisticSmartProRules | string) => {
+      if (!localRules) {
         return null;
       }
 
@@ -74,18 +43,18 @@ export function OutputFilterRule() {
       // If type is pro splitter, there can be multiple rules per direction
       // But rules like 'any', 'none' will remove the other rules in the same direction
       // and no duplicate rules in the same direction
-      const { dir, index } = dropdownProps;
       localRules[dir] ??= [];
       if (logisticType === 'splitterSmart') {
         setLocalRules({ ...localRules, [dir]: [rule] });
-      } else if (['any', 'none', 'anyUndefined', 'overflow'].includes(rule)) {
+      } else if (LOGISTIC_SMART_PRO_RULES.includes(rule as LogisticSmartProRules)) {
         // Special rules
         setLocalRules({ ...localRules, [dir]: [rule] });
       } else if (!localRules[dir].includes(rule)) {
-        const newRule: LogisticSmartProRules[] = [];
+        const newRule: (LogisticSmartProRules | string)[] = [];
         for (let i = 0; i < localRules[dir].length; i++) {
           if (i === index) newRule.push(rule);
-          else if (!['any', 'none', 'anyUndefined', 'overflow'].includes(localRules[dir][i])) newRule.push(localRules[dir][i]);
+          else if (!LOGISTIC_SMART_PRO_RULES.includes(localRules[dir][i] as LogisticSmartProRules))
+            newRule.push(localRules[dir][i] as LogisticSmartProRules);
         }
         if (index >= localRules[dir].length) {
           newRule.push(rule);
@@ -94,11 +63,8 @@ export function OutputFilterRule() {
       } else {
         setWarning('Rule already exists');
       }
-
-      setDropdownProps(undefined); // Hide dropdown
-      filterUlElement.current?.scrollTo({ behavior: 'smooth', top: 0 });
     },
-    [logisticType, localRules, dropdownProps],
+    [logisticType, localRules],
   );
 
   if (logisticType !== 'splitterSmart' && logisticType !== 'splitterPro') {
@@ -114,20 +80,12 @@ export function OutputFilterRule() {
             <div key={dir} className='flex w-28 flex-wrap justify-center gap-0.5'>
               <p className='w-full text-center'>{dirText[dir]}</p>
               {(smartProRules[dir] && smartProRules[dir].length > 0 ? smartProRules[dir] : ['none'])?.map((rule, index) => {
-                let imgPath: string | null = null;
-                if (rule.startsWith('item-')) {
-                  const itemKey = rule.slice(5);
-                  const item = docsMapped.items.get(itemKey);
-                  if (!item) {
-                    return `Item not found: ${itemKey}`;
-                  } else {
-                    imgPath = item.iconPath;
-                  }
-                } else if (rule in ruleText) {
-                  imgPath = ruleIcon64[rule as ExcludedItemRules];
+                const item = docsMapped.items.get(rule) ?? ADDITIONAL_OUTPUT_RULE[rule as LogisticSmartProRules];
+                if (!item) {
+                  console.error('Item not found', rule);
+                  return null;
                 }
-
-                return <img key={index} src={`/extracted/${imgPath}`} className='h-6 w-6' />;
+                return <img key={index} src={`/extracted/${item.iconPath}`} className='h-6 w-6' />;
               })}
             </div>
           ))}
@@ -145,7 +103,7 @@ export function OutputFilterRule() {
           {/* Overlay */}
           <div className='fixed inset-0 z-50 bg-black bg-opacity-50' />
           {/* Modal */}
-          <div className='bg-base-300 rounded-box fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 px-8 py-4 shadow-md'>
+          <div className='bg-base-100 rounded-box fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 px-8 py-4 shadow-md'>
             <h2 className='inline-block text-xl font-bold'>Output Filter</h2>
             <button
               className='btn btn-xs btn-ghost float-right'
@@ -165,81 +123,34 @@ export function OutputFilterRule() {
               {(['top', 'right', 'bottom'] as const).map(dir => (
                 <div key={dir} className='w-72'>
                   <h3 className='text-center font-semibold'>{dirText[dir]} Output</h3>
-                  <div className='bg-black p-1'>
+                  <div
+                    className='flex-no-wrap flex flex-col gap-y-2 bg-black px-2 py-1'
+                    style={logisticType === 'splitterPro' ? { minHeight: '20rem' } : {}}
+                  >
                     {(localRules[dir] && localRules[dir].length > 0 ? localRules[dir] : ['none']).map((rule, index) => {
-                      let imgPath: string | null = null;
-                      let text: string = '';
-                      if (rule.startsWith('item-')) {
-                        const itemKey = rule.slice(5);
-                        const item = docsMapped.items.get(itemKey);
-                        if (!item) {
-                          return `Item not found: ${itemKey}`;
-                        } else {
-                          imgPath = item.iconPath;
-                          text = item.displayName;
-                        }
-                      } else if (rule in ruleText) {
-                        imgPath = ruleIcon64[rule as ExcludedItemRules];
-                        text = ruleText[rule as ExcludedItemRules];
-                      } else {
-                        return `Invalid rule: ${rule}`;
-                      }
-
                       return (
-                        <Fragment key={index}>
-                          <div className='bg-base-300 flex w-full px-1'>
-                            <button
-                              className='btn btn-sm btn-ghost flex-1 justify-between rounded-none px-1'
-                              onClick={e => {
-                                const { bottom, left } = e.currentTarget.getBoundingClientRect();
-                                if (dropdownProps && dropdownProps.dir === dir && dropdownProps.index === index) {
-                                  setDropdownProps(undefined);
-                                } else {
-                                  setDropdownProps({ top: bottom, left, dir, index });
-                                  setSearch('');
-                                  filterUlElement.current?.scrollTo({ behavior: 'smooth', top: 0 });
-                                }
-                              }}
-                            >
-                              {imgPath && <img src={`/extracted/${imgPath}`} alt={text} className='h-6 w-6' />}
-                              <span className='flex-1 text-start'>{text}</span>
-                              <ChevronDown
-                                className='inline transition-transform data-[show=true]:rotate-180'
-                                size={24}
-                                data-show={dropdownProps && dropdownProps.dir === dir && dropdownProps.index === index}
-                              />
-                            </button>
-                            {logisticType === 'splitterPro' && rule !== 'none' && (
-                              <button
-                                className='btn btn-sm btn-ghost rounded-none p-0'
-                                onClick={() => {
-                                  setLocalRules({
-                                    ...localRules,
-                                    [dir]: localRules[dir]!.filter((_, i) => i !== index),
-                                  });
-                                }}
-                              >
-                                <X size={24} className='inline' />
-                              </button>
-                            )}
-                          </div>
-                        </Fragment>
+                        <ItemOrRecipeComboBox
+                          type='outputRule'
+                          defaultKey={rule}
+                          onKeySelected={key => onSelectRule(dir, index, key as LogisticSmartProRules)}
+                        />
+                        // TODO: Add remove button for each rule
                       );
                     })}
                     {
                       // SplitterPro gets additional button at the end to add new rule if the current rule is not any or none
                       logisticType === 'splitterPro' && (
                         <button
-                          className='btn btn-sm btn-ghost mt-6 w-full rounded-none'
-                          onClick={e => {
-                            const { bottom, left } = e.currentTarget.getBoundingClientRect();
-                            if (dropdownProps && dropdownProps.dir === dir && dropdownProps.index === (localRules[dir]?.length ?? 0) + 1) {
-                              setDropdownProps(undefined);
-                            } else {
-                              setDropdownProps({ top: bottom, left, dir, index: (localRules[dir]?.length ?? 0) + 1 });
-                              setSearch('');
-                              filterUlElement.current?.scrollTo({ behavior: 'smooth', top: 0 });
+                          className='btn btn-sm w-full'
+                          onClick={() => {
+                            if (
+                              !localRules[dir]?.length ||
+                              LOGISTIC_SMART_PRO_RULES.includes(localRules[dir][0] as LogisticSmartProRules)
+                            ) {
+                              setWarning('You are not allowed to add rule when the included rule that is not an item');
+                              return;
                             }
+                            onSelectRule(dir, (localRules[dir]?.length ?? 0) + 1, '');
                           }}
                         >
                           <Plus size={24} />
@@ -251,7 +162,7 @@ export function OutputFilterRule() {
                 </div>
               ))}
             </div>
-            {warning && <p className='text-center text-red-500'>{warning}</p>}
+            <p className='min-h-6 text-center text-red-500'>{warning}</p>
             {/* Save and Cancel Button */}
             <div className='mt-4 flex justify-center gap-4'>
               {!isDeepEqual(localRules, smartProRules) ? (
@@ -285,43 +196,6 @@ export function OutputFilterRule() {
                 </button>
               )}
             </div>
-          </div>
-          <div
-            className='bg-base-300 invisible fixed z-50 w-72 border-black shadow-lg'
-            style={
-              dropdownProps && {
-                top: dropdownProps.top + 4,
-                left: dropdownProps.left - 4,
-                visibility: 'visible',
-              }
-            }
-          >
-            <input
-              type='search'
-              placeholder='Search...'
-              className='input input-sm input-bordered mb-1 w-full'
-              value={search}
-              onChange={e => {
-                setSearch(e.target.value);
-                filterUlElement.current?.scrollTo({ behavior: 'smooth', top: 0 });
-              }}
-            />
-            <ul className='mt-1 h-48 w-full flex-nowrap overflow-y-scroll' ref={filterUlElement}>
-              {filteredRules.map(({ key }) => {
-                const { name, iconPath } = ruleList.find(rule => rule.key === key)!;
-                return (
-                  <button
-                    key={key}
-                    type='button'
-                    className='btn btn-sm btn-block btn-ghost items-center justify-start'
-                    onClick={() => onSelectRule(key as LogisticSmartProRules)}
-                  >
-                    {iconPath && <img src={`/extracted/${iconPath}`} alt={name} className='h-6 w-6' />}
-                    <span>{name}</span>
-                  </button>
-                );
-              })}
-            </ul>
           </div>
         </>
       )}
