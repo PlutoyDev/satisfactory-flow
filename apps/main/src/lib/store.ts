@@ -1,5 +1,6 @@
 import { Node, Edge, NodeChange, EdgeChange, Viewport } from '@xyflow/react';
 import type { ParsedOutput } from 'docs-parser';
+import Fuse from 'fuse.js';
 import { Atom, atom, getDefaultStore, PrimitiveAtom, SetStateAction, WritableAtom } from 'jotai';
 import { atomWithLocation } from 'jotai-location';
 import { computeFactoryGraph } from '../engines/itemSpeed';
@@ -67,21 +68,26 @@ export function appendStatusMessage(options: AppendStatusMessageOptions) {
 (window as any).appendStatusMessage = appendStatusMessage;
 
 // Read only atom to fetch parsedDocs.json and map it to a Map
-export type DocsMapped = { [key in keyof ParsedOutput]: ParsedOutput[key] extends Record<string, infer U> ? Map<string, U> : never };
 
 export const docsMappedAtom = atom(async () => {
   try {
     const res = await fetch('/extracted/parsedDocs.json');
     const data = (await res.json()) as ParsedOutput;
-    const mapped = {} as DocsMapped;
-    for (const key in data) {
-      mapped[key as keyof ParsedOutput] = new Map(Object.entries(data[key as keyof ParsedOutput]));
-    }
+    const mapped = {
+      recipes: new Map(Object.entries(data.recipes)),
+      productionMachines: new Map(Object.entries(data.productionMachines)),
+      items: new Map(Object.entries(data.items)),
+      generators: new Map(Object.entries(data.generators)),
+      itemFuseIndex: Fuse.parseIndex(data.itemFuseIndex),
+      recipeFuseIndex: Fuse.parseIndex(data.itemFuseIndex),
+    };
     return mapped;
   } catch (error) {
     throw error;
   }
 });
+
+export type DocsMapped = UsedAtom<typeof docsMappedAtom>[0];
 
 const _flowsAtom = atom<Map<string, FlowInfo>>(new Map());
 _flowsAtom.onMount = set =>

@@ -4,8 +4,8 @@ import { useAtom } from 'jotai';
 import { ArrowRight } from 'lucide-react';
 import { clockSpeedThouToPercentString, FactoryRecipeNodeData, resolveRecipeNodeData } from '../../lib/data';
 import { docsMappedAtom } from '../../lib/store';
+import ItemOrRecipeComboBox from '../form/ItemOrRecipeComboBox';
 import NumberInput from '../form/NumberInput';
-import RecipeComboBox from '../form/RecipeComboBox';
 import { RotationAndColorFields } from '../form/RotationAndColor';
 import { FactoryInterface, FactoryNodeWrapper } from './BaseNode';
 
@@ -147,7 +147,7 @@ export function RecipeNodeEditor() {
     <>
       <div className='flex w-full items-center justify-between'>
         <p className='label-text mr-4 text-lg'>Recipe: </p>
-        <RecipeComboBox />
+        <ItemOrRecipeComboBox type='recipe' onSelect={() => {}} />
       </div>
       <div className='flex w-full items-center justify-between'>
         <p className='label-text mr-4 text-lg'>Clock Speed: </p>

@@ -215,10 +215,10 @@ results.itemFuseIndex = itemFuse.toJSON();
 const recipeFuse = Fuse.createIndex(['displayName', 'producedIn', 'ingredients', 'products'], Object.values(results.recipes), {
   getFn: (obj, path) => {
     // Change the producedIn, ingredients, and products to display names instead of keys
-    if (path === 'producedIn') {
+    if (path[0] === 'producedIn') {
       return results.productionMachines[obj.producedIn]?.displayName;
-    } else if (path === 'ingredients' || path === 'products') {
-      return obj[path].map(({ itemKey }) => `${results.items[itemKey].displayName}`);
+    } else if (path[0] === 'ingredients' || path[0] === 'products') {
+      return obj[path[0]].map(({ itemKey }) => `${results.items[itemKey].displayName}`);
     }
     return Fuse.config.getFn(obj, path);
   },
