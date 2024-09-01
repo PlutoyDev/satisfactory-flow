@@ -1,5 +1,3 @@
-// import type Fuse from 'fuse.js';
-import { FuseIndex } from 'fuse.js';
 import type { transformFuel } from './generatorParser.js';
 
 // Export interfaces of the parsed
@@ -51,6 +49,4 @@ export interface ParsedOutput {
   productionMachines: Record<string, ProductionMachine>;
   items: Record<string, Item>;
   generators: Record<string, PowerGenerators>;
-  itemFuseIndex: ReturnType<FuseIndex<Item>['toJSON']>;
-  recipeFuseIndex: ReturnType<FuseIndex<Item>['toJSON']>;
 }

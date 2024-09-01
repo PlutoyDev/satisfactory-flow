@@ -111,15 +111,11 @@ export default function ItemOrRecipeComboBox({ type, placeholder, defaultKey, on
   });
   const [fuseInstance] = useState(
     () =>
-      new Fuse<ItemOrRecipe>(
-        Array.from(fullDataMap.values()),
-        {
-          keys: dataListType === 'recipe' ? ['displayName', 'producedIn', 'ingredients', 'products'] : ['displayName'],
-          includeScore: true,
-          includeMatches: true,
-        },
-        docsMapped[`${dataListType}FuseIndex`],
-      ),
+      new Fuse<ItemOrRecipe>(Array.from(fullDataMap.values()), {
+        keys: dataListType === 'recipe' ? ['displayName', 'producedIn', 'ingredients', 'products'] : ['displayName'],
+        includeScore: true,
+        includeMatches: true,
+      }),
   );
   const [isOpen, setIsOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);

@@ -1,6 +1,5 @@
 import { Node, Edge, NodeChange, EdgeChange, Viewport } from '@xyflow/react';
 import type { ParsedOutput } from 'docs-parser';
-import Fuse from 'fuse.js';
 import { Atom, atom, getDefaultStore, PrimitiveAtom, SetStateAction, WritableAtom } from 'jotai';
 import { atomWithLocation } from 'jotai-location';
 import { computeFactoryGraph } from '../engines/itemSpeed';
@@ -78,8 +77,6 @@ export const docsMappedAtom = atom(async () => {
       productionMachines: new Map(Object.entries(data.productionMachines)),
       items: new Map(Object.entries(data.items)),
       generators: new Map(Object.entries(data.generators)),
-      itemFuseIndex: Fuse.parseIndex(data.itemFuseIndex),
-      recipeFuseIndex: Fuse.parseIndex(data.itemFuseIndex),
     };
     return mapped;
   } catch (error) {
