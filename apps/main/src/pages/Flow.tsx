@@ -94,13 +94,13 @@ function FlowPage() {
             <Home />
             Back
           </a>
-          <p className='text-xs text-gray-500 ml-2'>Flow ID: {selectedFlow.flowId}</p>
-          <p className='text-xs text-gray-500 ml-2'>{isDebounceActionPending ? 'Saving...' : isSaved ? 'Saved' : 'Unsaved'}</p>
+          <p className='ml-2 text-xs text-gray-500'>Flow ID: {selectedFlow.flowId}</p>
+          <p className='ml-2 text-xs text-gray-500'>{isDebounceActionPending ? 'Saving...' : isSaved ? 'Saved' : 'Unsaved'}</p>
         </div>
         <div className='navbar-center'>
-          <h2 className='text-xl font-semibold '>{selFlowData?.name}</h2>
+          <h2 className='text-xl font-semibold'>{selFlowData?.name}</h2>
           {isReadOnly ? (
-            <span className='text-error text-xl ml-2'>(Read-only)</span>
+            <span className='text-error ml-2 text-xl'>(Read-only)</span>
           ) : (
             <button className='btn btn-ghost btn-xs ml-2' onClick={() => setRenaming(true)}>
               <FilePen size={24} />
@@ -234,13 +234,13 @@ function AlignmentLineOverlay() {
     <>
       {rfInstance && alignLineX && (
         <div
-          className='fixed pointer-events-none border-l border-success border-dashed'
+          className='border-success pointer-events-none fixed border-l border-dashed'
           style={{ left: rfInstance.flowToScreenPosition({ x: alignLineX, y: rfInstance.getViewport().y }).x, top: 0, bottom: 0 }}
         />
       )}
       {rfInstance && alignLineY && (
         <div
-          className='fixed pointer-events-none border-t border-success border-dashed'
+          className='border-success pointer-events-none fixed border-t border-dashed'
           style={{ top: rfInstance.flowToScreenPosition({ x: rfInstance.getViewport().x, y: alignLineY }).y, left: 0, right: 0 }}
         />
       )}
@@ -399,15 +399,15 @@ function PropertyEditorPanel({ isReadOnly }: { isReadOnly: boolean }) {
         selectedType={selectedType}
       >
         <div className='bg-base-300 rounded-box min-w-64 px-3 py-1'>
-          <h2 className='text-lg font-semibold inline'>Properties</h2>
-          <p className='float-right text-xs text-gray-500 mt-2'>
+          <h2 className='inline text-lg font-semibold'>Properties</h2>
+          <p className='float-right mt-2 text-xs text-gray-500'>
             {isReadOnly && <span className='text-error mr-2'>Read-only</span>}
             {selectedIds[0]}
           </p>
           <div className='divider m-0 mb-2 h-1' />
           <div className='flex flex-col gap-y-2'>{typeof Editor === 'function' ? <Editor /> : Editor}</div>
           {isReadOnly && (
-            <div className='absolute w-full h-full top-0 left-0 z-40 bg-base-300 bg-opacity-50 rounded-box min-w-64 px-3 py-1' />
+            <div className='bg-base-300 rounded-box absolute left-0 top-0 z-40 h-full w-full min-w-64 bg-opacity-50 px-3 py-1' />
           )}
         </div>
       </FactoryEditorContextProvider>
@@ -441,7 +441,7 @@ function ToolbarPanel(props: ToolbarPanelProps<['undo', 'redo', 'fullscreen'], [
 
   return (
     <Panel position='top-center'>
-      <div className='flex flex-row gap-x-2 shadow-2xl rounded-box px-2 bg-base-100'>
+      <div className='rounded-box bg-base-100 flex flex-row gap-x-2 px-2 shadow-2xl'>
         {(
           [
             [
@@ -532,14 +532,14 @@ function StatusMessagePanel() {
 
   return (
     <Panel position='bottom-center'>
-      <div className='flex flex-col gap-y-2 w-full'>
+      <div className='flex w-full flex-col gap-y-2'>
         {Array.from(statusMsgs).map(([key, { message, type }]) => {
           const { textClassName, icon } = StatusMessageTypeMap[type];
           return (
             <div
               key={key}
               style={{ textShadow: '0 2px 4px oklch(var(--b1))' }}
-              className={'flex flex-row gap-x-1 flex-nowrap justify-center items-center text-center ' + textClassName}
+              className={'flex flex-row flex-nowrap items-center justify-center gap-x-1 text-center ' + textClassName}
             >
               <p>{icon}</p>
               <p>{message}</p>
@@ -557,9 +557,9 @@ function RenameDialog({ name, onRename, onCancel }: { name: string; onRename: (n
   return (
     <>
       {/* Overlay */}
-      <div className='fixed bg-base-300 bg-opacity-80 w-full h-full top-0 left-0 z-40' onClick={() => onCancel()} />
+      <div className='bg-base-300 fixed left-0 top-0 z-40 h-full w-full bg-opacity-80' onClick={() => onCancel()} />
       {/* Dialog */}
-      <div className='fixed bg-base-300 bg-opacity-90 rounded-box w-96 p-4 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50'>
+      <div className='bg-base-300 rounded-box fixed left-1/2 top-1/2 z-50 w-96 -translate-x-1/2 -translate-y-1/2 transform bg-opacity-90 p-4'>
         <h2 className='text-lg font-semibold'>Rename Flow</h2>
         <input
           ref={inputRef}
@@ -574,7 +574,7 @@ function RenameDialog({ name, onRename, onCancel }: { name: string; onRename: (n
             }
           }}
         />
-        <div className='flex justify-end mt-2'>
+        <div className='mt-2 flex justify-end'>
           <button className='btn btn-sm btn-error' onClick={() => onCancel()}>
             Cancel
           </button>
@@ -625,9 +625,9 @@ function ExportDialog({ nodes, edges, close }: { nodes: Node[]; edges: Edge[]; c
   return (
     <>
       {/* Overlay */}
-      <div className='fixed bg-base-300 bg-opacity-80 w-full h-full top-0 left-0 z-40' onClick={() => close()} />
+      <div className='bg-base-300 fixed left-0 top-0 z-40 h-full w-full bg-opacity-80' onClick={() => close()} />
       {/* Dialog */}
-      <div className='fixed bg-base-300 bg-opacity-90 rounded-box w-[40rem] p-4 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50'>
+      <div className='bg-base-300 rounded-box fixed left-1/2 top-1/2 z-50 w-[40rem] -translate-x-1/2 -translate-y-1/2 transform bg-opacity-90 p-4'>
         <h2 className='text-lg font-semibold'>Export Flow</h2>
 
         <div className='form-control'>
@@ -641,15 +641,15 @@ function ExportDialog({ nodes, edges, close }: { nodes: Node[]; edges: Edge[]; c
             />
           </label>
         </div>
-        <textarea readOnly className='textarea mt-2 w-full h-80' value={stringifiedFlowData} onFocus={e => e.currentTarget.select()} />
+        <textarea readOnly className='textarea mt-2 h-80 w-full' value={stringifiedFlowData} onFocus={e => e.currentTarget.select()} />
         {statusText && (
           <div role='alert' className='alert'>
-            <span ref={() => setTimeout(() => setStatusText(''), 5000)} className='text-sm text-accent'>
+            <span ref={() => setTimeout(() => setStatusText(''), 5000)} className='text-accent text-sm'>
               {statusText}
             </span>
           </div>
         )}
-        <div className='flex justify-end mt-2 gap-x-4'>
+        <div className='mt-2 flex justify-end gap-x-4'>
           <button
             className='btn btn-sm btn-accent'
             onClick={() => navigator.clipboard.writeText(stringifiedFlowData).then(() => setStatusText('Copied!'))}

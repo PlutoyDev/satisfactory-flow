@@ -88,7 +88,7 @@ export default function ItemComboBox({ name = 'itemKey' }: ItemComboBoxProps) {
             </button>
           ))}
 
-          <div className='flex justify-center gap-2 w-full'>
+          <div className='flex w-full justify-center gap-2'>
             <button className='btn btn-sm rounded-full' disabled={itemPage === 0} onClick={() => setItemPage(0)}>
               <ChevronsLeft size={20} />
             </button>

@@ -1,6 +1,6 @@
 import { Node, NodeProps } from '@xyflow/react';
-import { FactoryNodeWrapper } from './BaseNode';
 import { RotationAndColorFields } from '../form/RotationAndColor';
+import { FactoryNodeWrapper } from './BaseNode';
 
 export function SinkNode(props: NodeProps<Node>) {
   return (
@@ -21,5 +21,5 @@ export function SinkNodeEditor() {
     <>
       <RotationAndColorFields />
     </>
-  )
+  );
 }

@@ -11,25 +11,25 @@ function ErrorFallback({ error }: FallbackProps) {
   const deployId = import.meta.env.VITE_DEPLOY_ID ?? 'undefiend';
 
   return (
-    <div className='rounded-box absolute left-1/2 top-1/2 w-[72rem] -translate-x-1/2 -translate-y-1/2 px-8 py-4 shadow-xl bg-base-200'>
+    <div className='rounded-box bg-base-200 absolute left-1/2 top-1/2 w-[72rem] -translate-x-1/2 -translate-y-1/2 px-8 py-4 shadow-xl'>
       <h1 className='w-full text-center text-4xl font-bold'>
         <span className='text-accent'>Satisfactory </span>
         Flow
       </h1>
       <div className=''>
-        <h2 className='text-xl font-bold text-error'>Oops, Something Went Wrong</h2>
+        <h2 className='text-error text-xl font-bold'>Oops, Something Went Wrong</h2>
         {/* Print Message */}
         {typeof error === 'string' ? (
-          <p className='text-lg text-neutral'>{error}</p>
+          <p className='text-neutral text-lg'>{error}</p>
         ) : typeof error === 'object' && error instanceof Error ? (
           <>
             {/* Stack trace */}
-            <details className='collapse collapse-arrow'>
-              <summary className='text-lg text-neutral collapse-title'>
-                <p className='text-lg text-neutral'>Error message: {error.message}</p>
-                <p className='text-sm text-neutral'>Click to see stack trace</p>
+            <details className='collapse-arrow collapse'>
+              <summary className='text-neutral collapse-title text-lg'>
+                <p className='text-neutral text-lg'>Error message: {error.message}</p>
+                <p className='text-neutral text-sm'>Click to see stack trace</p>
               </summary>
-              <pre className='text-sm text-neutral collapse-content max-h-[20rem] overflow-y-auto'>{error.stack}</pre>
+              <pre className='text-neutral collapse-content max-h-[20rem] overflow-y-auto text-sm'>{error.stack}</pre>
             </details>
           </>
         ) : null}
@@ -40,12 +40,12 @@ function ErrorFallback({ error }: FallbackProps) {
             create an issue on GitHub
           </a>{' '}
           with the following information:
-          <ul className='list-disc ml-8 font-mono'>
+          <ul className='ml-8 list-disc font-mono'>
             <li>The error message and stack trace</li>
             <li>What you were doing when the error occurred</li>
             <li>
               Environment Information:
-              <ul className='list-disc ml-4 '>
+              <ul className='ml-4 list-disc'>
                 <li>Branch: {branchName}</li>
                 <li>Commit SHA: {commitSha}</li>
                 <li>Deploy ID: {deployId}</li>

@@ -13,7 +13,7 @@ function HomePage() {
   const [view, setView] = useState<View>('select');
 
   return (
-    <div className='rounded-box absolute left-1/2 top-1/2 w-[28rem] -translate-x-1/2 -translate-y-1/2 px-8 py-4 shadow-xl bg-base-200 *:mt-2 *:*:mt-2'>
+    <div className='rounded-box bg-base-200 absolute left-1/2 top-1/2 w-[28rem] -translate-x-1/2 -translate-y-1/2 px-8 py-4 shadow-xl *:*:mt-2 *:mt-2'>
       <h1 className='w-full text-center text-4xl font-bold'>
         <span className='text-accent'>Satisfactory </span>
         Flow
@@ -65,11 +65,11 @@ function SelectView({ setView }: { setView: SetView }) {
         </div>
       </div>
       <p className='text-lg'>Or create a new flow:</p>
-      <button className='btn w-full btn-outline' onClick={() => setView('create')}>
+      <button className='btn btn-outline w-full' onClick={() => setView('create')}>
         New Flow
       </button>
       <p className='text-lg'>Or import a flow:</p>
-      <button className='btn w-full btn-outline' onClick={() => setView('import')}>
+      <button className='btn btn-outline w-full' onClick={() => setView('import')}>
         Import Flow
       </button>
     </>
@@ -83,9 +83,9 @@ function CreateView({ setView }: { setView: SetView }) {
         Flow Name:
         <input type='text' id='flowName' className='input input-sm' />
       </label>
-      <div className='flex justify-between w-full'>
+      <div className='flex w-full justify-between'>
         <button
-          className='btn w-2/5 btn-accent'
+          className='btn btn-accent w-2/5'
           onClick={() => {
             const name = (document.getElementById('flowName') as HTMLInputElement).value;
             createFlow(name);
@@ -94,7 +94,7 @@ function CreateView({ setView }: { setView: SetView }) {
         >
           Create Flow
         </button>
-        <button className='btn w-2/5 btn-error' onClick={() => setView('select')}>
+        <button className='btn btn-error w-2/5' onClick={() => setView('select')}>
           Cancel
         </button>
       </div>
@@ -176,7 +176,7 @@ function ImportView({ setView }: { setView: SetView }) {
             ref={importFileUploadRef}
             type='file'
             id='flowFile'
-            className='file-input file-input-ghost w-full file-input-sm'
+            className='file-input file-input-ghost file-input-sm w-full'
             accept='.json'
             onChange={e => {
               // Disable textarea if there is a file uploaded
@@ -200,18 +200,18 @@ function ImportView({ setView }: { setView: SetView }) {
           />
         </label>
       </div>
-      <ul className='list-disc list-inside text-sm text-error'>
+      <ul className='text-error list-inside list-disc text-sm'>
         {importErrors.map((error, i) => (
           <li key={i} style={{ textIndent: error.startsWith('\t') ? '1rem' : '0' }}>
             {error}
           </li>
         ))}
       </ul>
-      <div className='flex justify-between w-full'>
-        <button className='btn w-2/5 btn-accent' onClick={() => onImportButtonClick()}>
+      <div className='flex w-full justify-between'>
+        <button className='btn btn-accent w-2/5' onClick={() => onImportButtonClick()}>
           Import Flow
         </button>
-        <button className='btn w-2/5 btn-error' onClick={() => setView('select')}>
+        <button className='btn btn-error w-2/5' onClick={() => setView('select')}>
           Cancel
         </button>
       </div>

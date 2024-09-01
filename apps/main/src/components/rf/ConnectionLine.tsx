@@ -24,7 +24,7 @@ export function ConnectionLine({ fromX, fromY, toX, toY, fromPosition, toPositio
         className={`react-flow__connection-path ${isError ? 'stroke-rose-700' : connectionStatus === 'valid' ? 'stroke-success' : ''}`}
       />
       {connectionStatus === 'invalid' && (
-        <text x={labelX} y={labelY + 20} textAnchor='middle' className='fill-rose-700 bg-base-100 text-sm font-semibold'>
+        <text x={labelX} y={labelY + 20} textAnchor='middle' className='bg-base-100 fill-rose-700 text-sm font-semibold'>
           {connectionErrorReason}
         </text>
       )}

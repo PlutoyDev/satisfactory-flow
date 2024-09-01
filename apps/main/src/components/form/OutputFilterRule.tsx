@@ -109,9 +109,9 @@ export function OutputFilterRule() {
     <>
       {/* Mini display */}
       <label>
-        <div className='flex flex-row w-full justify-between items-start mb-2'>
+        <div className='mb-2 flex w-full flex-row items-start justify-between'>
           {(['top', 'right', 'bottom'] as const).map(dir => (
-            <div key={dir} className='flex flex-wrap w-28 justify-center gap-0.5'>
+            <div key={dir} className='flex w-28 flex-wrap justify-center gap-0.5'>
               <p className='w-full text-center'>{dirText[dir]}</p>
               {(smartProRules[dir] && smartProRules[dir].length > 0 ? smartProRules[dir] : ['none'])?.map((rule, index) => {
                 let imgPath: string | null = null;
@@ -134,7 +134,7 @@ export function OutputFilterRule() {
         </div>
         {/* Edit Button */}
         <button
-          className='btn btn-sm w-full btn-ghost'
+          className='btn btn-sm btn-ghost w-full'
           onClick={() => setLocalRules(smartProRules)} // Open Modal
         >
           Edit Output Filter
@@ -143,10 +143,10 @@ export function OutputFilterRule() {
       {localRules && (
         <>
           {/* Overlay */}
-          <div className='fixed inset-0 bg-black bg-opacity-50 z-50' />
+          <div className='fixed inset-0 z-50 bg-black bg-opacity-50' />
           {/* Modal */}
-          <div className='fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 px-8 py-4 shadow-md bg-base-300 z-50 rounded-box'>
-            <h2 className='text-xl font-bold inline-block'>Output Filter</h2>
+          <div className='bg-base-300 rounded-box fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 px-8 py-4 shadow-md'>
+            <h2 className='inline-block text-xl font-bold'>Output Filter</h2>
             <button
               className='btn btn-xs btn-ghost float-right'
               onClick={() => {
@@ -164,7 +164,7 @@ export function OutputFilterRule() {
             <div className='flex justify-center gap-4'>
               {(['top', 'right', 'bottom'] as const).map(dir => (
                 <div key={dir} className='w-72'>
-                  <h3 className='font-semibold text-center'>{dirText[dir]} Output</h3>
+                  <h3 className='text-center font-semibold'>{dirText[dir]} Output</h3>
                   <div className='bg-black p-1'>
                     {(localRules[dir] && localRules[dir].length > 0 ? localRules[dir] : ['none']).map((rule, index) => {
                       let imgPath: string | null = null;
@@ -187,9 +187,9 @@ export function OutputFilterRule() {
 
                       return (
                         <Fragment key={index}>
-                          <div className='bg-base-300 w-full flex px-1'>
+                          <div className='bg-base-300 flex w-full px-1'>
                             <button
-                              className='flex-1 btn btn-sm rounded-none justify-between btn-ghost px-1'
+                              className='btn btn-sm btn-ghost flex-1 justify-between rounded-none px-1'
                               onClick={e => {
                                 const { bottom, left } = e.currentTarget.getBoundingClientRect();
                                 if (dropdownProps && dropdownProps.dir === dir && dropdownProps.index === index) {
@@ -202,9 +202,9 @@ export function OutputFilterRule() {
                               }}
                             >
                               {imgPath && <img src={`/extracted/${imgPath}`} alt={text} className='h-6 w-6' />}
-                              <span className='text-start flex-1'>{text}</span>
+                              <span className='flex-1 text-start'>{text}</span>
                               <ChevronDown
-                                className='data-[show=true]:rotate-180 transition-transform inline'
+                                className='inline transition-transform data-[show=true]:rotate-180'
                                 size={24}
                                 data-show={dropdownProps && dropdownProps.dir === dir && dropdownProps.index === index}
                               />
@@ -230,7 +230,7 @@ export function OutputFilterRule() {
                       // SplitterPro gets additional button at the end to add new rule if the current rule is not any or none
                       logisticType === 'splitterPro' && (
                         <button
-                          className='btn btn-sm btn-ghost rounded-none w-full mt-6'
+                          className='btn btn-sm btn-ghost mt-6 w-full rounded-none'
                           onClick={e => {
                             const { bottom, left } = e.currentTarget.getBoundingClientRect();
                             if (dropdownProps && dropdownProps.dir === dir && dropdownProps.index === (localRules[dir]?.length ?? 0) + 1) {
@@ -251,9 +251,9 @@ export function OutputFilterRule() {
                 </div>
               ))}
             </div>
-            {warning && <p className='text-red-500 text-center'>{warning}</p>}
+            {warning && <p className='text-center text-red-500'>{warning}</p>}
             {/* Save and Cancel Button */}
-            <div className='flex justify-center gap-4 mt-4'>
+            <div className='mt-4 flex justify-center gap-4'>
               {!isDeepEqual(localRules, smartProRules) ? (
                 <>
                   <button
@@ -287,7 +287,7 @@ export function OutputFilterRule() {
             </div>
           </div>
           <div
-            className='fixed invisible w-72 shadow-lg bg-base-300 z-50 border-black'
+            className='bg-base-300 invisible fixed z-50 w-72 border-black shadow-lg'
             style={
               dropdownProps && {
                 top: dropdownProps.top + 4,

@@ -88,7 +88,7 @@ export default function RecipeComboBox({ name = 'recipeKey' }: RecipeComboBoxPro
               <RecipeDisplay recipe={recipe} docsMapped={docsMapped} />
             </button>
           ))}
-          <div className='flex justify-center gap-6 w-full'>
+          <div className='flex w-full justify-center gap-6'>
             <button className='btn btn-sm rounded-full' disabled={recipePage === 0} onClick={() => setRecipePage(0)}>
               <ChevronsLeft size={20} />
             </button>
