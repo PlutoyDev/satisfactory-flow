@@ -90,12 +90,12 @@ const interfaceText = {
 export function ItemNodeEditor() {
   const { currentValue: interfaceKind = 'both', setValue: setInterfaceKind } =
     useEditorField<FactoryItemNodeData['interfaceKind']>('interfaceKind');
-  // const { currentValue: itemKey, setValue: setItemKey } = useEditorField<string | undefined>('itemKey');
+  const { currentValue: itemKey, setValue: setItemKey } = useEditorField<string | undefined>('itemKey');
   return (
     <>
       <div className='flex w-full items-center justify-between'>
         <p className='label-text mr-4 text-lg'>Item: </p>
-        <ItemOrRecipeComboBox type='item' onSelect={() => {}} />
+        <ItemOrRecipeComboBox type='item' defaultKey={itemKey} onKeySelected={setItemKey} />
       </div>
       <div className='flex w-full items-center justify-between'>
         <p className='label-text mr-4 text-lg'>Item Speed: </p>

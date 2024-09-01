@@ -7,7 +7,7 @@ import { docsMappedAtom } from '../../lib/store';
 import ItemOrRecipeComboBox from '../form/ItemOrRecipeComboBox';
 import NumberInput from '../form/NumberInput';
 import { RotationAndColorFields } from '../form/RotationAndColor';
-import { FactoryInterface, FactoryNodeWrapper } from './BaseNode';
+import { FactoryInterface, FactoryNodeWrapper, useEditorField } from './BaseNode';
 
 /* 
 Sizes of machines (W x L), Taken from satisfactory wiki.
@@ -143,11 +143,12 @@ export function RecipeNode(props: NodeProps<Node<FactoryRecipeNodeData>>) {
 }
 
 export function RecipeNodeEditor() {
+  const { currentValue: recipeKey, setValue: setRecipeKey } = useEditorField<string | undefined>('recipeKey');
   return (
     <>
       <div className='flex w-full items-center justify-between'>
         <p className='label-text mr-4 text-lg'>Recipe: </p>
-        <ItemOrRecipeComboBox type='recipe' onSelect={() => {}} />
+        <ItemOrRecipeComboBox type='recipe' defaultKey={recipeKey} onKeySelected={setRecipeKey} />
       </div>
       <div className='flex w-full items-center justify-between'>
         <p className='label-text mr-4 text-lg'>Clock Speed: </p>

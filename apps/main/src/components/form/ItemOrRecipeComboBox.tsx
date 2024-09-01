@@ -15,9 +15,10 @@ type ItemOrRecipeListItemProps = {
   docsMapped: DocsMapped;
   selected: boolean;
   onClick: () => void;
+  onMouseEnter: () => void;
 };
 
-function ItemOrRecipeListItem({ data, docsMapped, selected, onClick }: ItemOrRecipeListItemProps) {
+function ItemOrRecipeListItem({ data, docsMapped, selected, onClick, onMouseEnter }: ItemOrRecipeListItemProps) {
   const listItem = 'item' in data ? data.item : data;
   const isRecipe = 'ingredients' in listItem;
   const isAltRecipe = isRecipe && listItem.displayName.startsWith('Alternate');
@@ -26,8 +27,10 @@ function ItemOrRecipeListItem({ data, docsMapped, selected, onClick }: ItemOrRec
     <button
       role='bottom'
       data-selected={selected}
-      className='btn btn-sm data-[selected=true]:btn-accent col-span-full w-full grid-cols-subgrid flex-nowrap justify-start text-start'
+      className='btn btn-sm data-[selected=true]:btn-accent group col-span-full w-full grid-cols-subgrid flex-nowrap justify-start text-start'
       style={{ display: isRecipe ? 'grid' : 'flex' }}
+      onClick={onClick}
+      onMouseEnter={onMouseEnter}
     >
       {isRecipe ? (
         Array.from({ length: 7 }).map((_, i) => {
@@ -55,7 +58,10 @@ function ItemOrRecipeListItem({ data, docsMapped, selected, onClick }: ItemOrRec
       {isAltRecipe ? (
         <>
           <p className='col-start-8'>{listItem.displayName.slice(11)}</p>
-          <span className='border-accent text-accent text-bold tooltip tooltip-right ml-2 rounded-sm border px-0.5' data-tip='Alternate'>
+          <span
+            className='border-accent text-accent text-bold tooltip tooltip-left ml-2 rounded-sm border px-0.5 group-data-[selected=true]:text-black'
+            data-tip='Alternate'
+          >
             A
           </span>
         </>
@@ -78,11 +84,11 @@ const additionalItemAsRule = [
 type ItemOrRecipeComboBoxProps = {
   type: 'item' | 'recipe' | 'outputRule';
   placeholder?: string;
-  defaultValue?: string;
-  onSelect: (value: string) => void;
+  defaultKey?: string;
+  onKeySelected: (key: string) => void;
 };
 
-export default function ItemOrRecipeComboBox({ type, placeholder, defaultValue, onSelect }: ItemOrRecipeComboBoxProps) {
+export default function ItemOrRecipeComboBox({ type, placeholder, defaultKey, onKeySelected }: ItemOrRecipeComboBoxProps) {
   const dataListType = type === 'recipe' ? 'recipe' : 'item';
   const [docsMapped] = useAtom(docsMappedAtom);
   // useState is used to prevent re-creation of the fullDataList and fuseInstance
@@ -110,21 +116,21 @@ export default function ItemOrRecipeComboBox({ type, placeholder, defaultValue, 
   );
   const [isOpen, setIsOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [searchText, setSearchText] = useState(() => {
-    let value = defaultValue;
+  const [displayText, setDisplayText] = useState(() => {
+    let value = defaultKey;
     if (!value) return '';
     if (type === 'outputRule' && !['any', 'none', 'anyUndefined', 'overflow'].includes(value as string)) {
       // remove prefix with 'item-' for outputRule
       value = value.slice(5);
     }
-    const dispayName = fullDataMap.get(value)?.displayName;
-    if (!dispayName) {
-      console.error(`Could not find displayName for ${value}`);
+    const data = fullDataMap.get(value);
+    if (!data) {
+      console.error('Invalid default value:', value);
       return '';
-    } else {
-      return dispayName;
     }
+    return data.displayName;
   });
+  const [searchText, setSearchText] = useState('');
   const searchResult = useMemo(() => (searchText ? fuseInstance.search(searchText) : []), [fuseInstance, searchText]);
   const displayList = useMemo(
     () => (searchText ? searchResult : Array.from(fullDataMap.values())),
@@ -132,7 +138,23 @@ export default function ItemOrRecipeComboBox({ type, placeholder, defaultValue, 
   );
   const [selectIndex, setSelectIndex] = useState(0);
   const page = Math.floor(selectIndex / PER_PAGE);
-  // const bestMatch = searchResult[0].score < 0.1 ? searchResult[0] : undefined;
+
+  const setValue = useCallback(
+    (key?: string) => {
+      if (!key) {
+        const data = displayList[selectIndex];
+        key = 'item' in data ? data.item.key : data.key;
+      }
+      if (type === 'outputRule' && !['any', 'none', 'anyUndefined', 'overflow'].includes(key)) {
+        key = 'item-' + key;
+      }
+      onKeySelected(key); // Callback to parent
+      setDisplayText(fullDataMap.get(key)?.displayName || '');
+      setSearchText('');
+      setIsOpen(false);
+    },
+    [displayList, fullDataMap, onKeySelected, selectIndex],
+  );
 
   const onKeyPress = useCallback(
     (e: KeyboardEvent) => {
@@ -148,31 +170,38 @@ export default function ItemOrRecipeComboBox({ type, placeholder, defaultValue, 
         newSelectIndex = Math.min(selectIndex + PER_PAGE, displayList.length - 1);
       } else if (e.key === 'Enter') {
         // TODO: handle enter
+        setValue(); // Get from selectIndex
       } else if (e.key.length === 1 || e.key === 'Backspace' || e.key === 'Delete' || e.key === ' ') {
         // letters, backspace, delete, space etc, focus search input
         inputRef.current?.focus();
       }
       if (newSelectIndex !== undefined) {
         setSelectIndex(newSelectIndex);
+        const selected = displayList[newSelectIndex];
+        setDisplayText('item' in selected ? selected.item.displayName : selected.displayName);
       }
     },
     [page, searchResult, selectIndex],
   );
 
   return (
-    <div
-      className='relative inline-block w-full'
-      onKeyDown={onKeyPress}
-      onFocus={e => (console.log(e), setIsOpen(true))}
-      onBlur={console.log}
-    >
+    <div className='relative inline-block w-full' onKeyDown={onKeyPress} onBlur={console.log}>
       <label className='input input-sm input-bordered flex items-center gap-2'>
         <input
           className='flex-1'
           type='text'
           placeholder={placeholder}
-          value={searchText}
-          onChange={e => (setSearchText(e.target.value), setSelectIndex(0))}
+          value={displayText ? displayText : searchText}
+          onChange={e => {
+            setSearchText(e.target.value);
+            setSelectIndex(0);
+            setDisplayText('');
+          }}
+          onFocus={e => {
+            setIsOpen(true);
+            // When the input is focused, and its the displayText, select all
+            if (e.target.value === displayText) e.target.select();
+          }}
           ref={inputRef}
         />
         {type === 'outputRule' ? (
@@ -184,10 +213,13 @@ export default function ItemOrRecipeComboBox({ type, placeholder, defaultValue, 
       {isOpen && (
         <div className='bg-base-200 rounded-box absolute bottom-full end-0 top-auto z-10 origin-bottom grid-flow-col shadow-lg'>
           <ul
-            style={{
-              display: type === 'recipe' ? 'grid' : undefined,
-              gridTemplateColumns: 'repeat(7, 2rem) auto min-content',
-              width: type === 'recipe' ? '28rem' : '20rem',
+            className='w-80'
+            style={
+              type === 'recipe' ? { display: 'grid', gridTemplateColumns: 'repeat(7, auto) 1fr min-content', width: '36rem' } : undefined
+            }
+            onWheel={e => {
+              if (e.deltaY < 0) setSelectIndex(p => Math.max(p - PER_PAGE, 0));
+              else setSelectIndex(p => Math.min(p + PER_PAGE, displayList.length - 1));
             }}
           >
             {displayList.length === 0
@@ -198,8 +230,10 @@ export default function ItemOrRecipeComboBox({ type, placeholder, defaultValue, 
                     data={data}
                     docsMapped={docsMapped}
                     selected={i === selectIndex % PER_PAGE}
-                    onClick={() => {
-                      console.log('clicked', data);
+                    onClick={() => setValue('item' in data ? data.item.key : data.key)}
+                    onMouseEnter={() => {
+                      setSelectIndex(page * PER_PAGE + i);
+                      setDisplayText('item' in data ? data.item.displayName : data.displayName);
                     }}
                   />
                 ))}
