@@ -1,4 +1,5 @@
 import { readFile, writeFile, mkdir, stat, rm } from 'fs/promises';
+import Fuse from 'fuse.js';
 import path from 'path';
 import { argv } from 'process';
 import sharp from 'sharp';
@@ -45,6 +46,8 @@ const results: ParsedOutput = {
   recipes: {},
   productionMachines: {},
   generators: {},
+  itemFuseIndex: null as unknown as ParsedOutput['itemFuseIndex'],
+  recipeFuseIndex: null as unknown as ParsedOutput['recipeFuseIndex'],
 };
 
 const itemClassNames = [
@@ -205,6 +208,22 @@ for (const [key, value] of Object.entries(iconMap)) {
 }
 
 await Promise.allSettled(promises);
+
+// Fuse indexes
+const itemFuse = Fuse.createIndex(['displayName'], Object.values(results.items));
+results.itemFuseIndex = itemFuse.toJSON();
+const recipeFuse = Fuse.createIndex(['displayName', 'producedIn', 'ingredients', 'products'], Object.values(results.recipes), {
+  getFn: (obj, path) => {
+    // Change the producedIn, ingredients, and products to display names instead of keys
+    if (path === 'producedIn') {
+      return results.productionMachines[obj.producedIn]?.displayName;
+    } else if (path === 'ingredients' || path === 'products') {
+      return obj[path].map(({ itemKey }) => `${results.items[itemKey].displayName}`);
+    }
+    return Fuse.config.getFn(obj, path);
+  },
+});
+results.recipeFuseIndex = recipeFuse.toJSON();
 
 const outputPath = path.join(outputDirPath, 'parsedDocs.json');
 await writeFile(outputPath, JSON.stringify(results));
