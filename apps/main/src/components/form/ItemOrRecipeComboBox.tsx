@@ -4,12 +4,32 @@ import { KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from
 import type { Recipe, Item } from 'docs-parser';
 import Fuse, { FuseResult } from 'fuse.js';
 import { useAtom } from 'jotai';
-import { ArrowRight, ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ChevronUp, Trash, X } from 'lucide-react';
+import { ArrowRight, ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ChevronUp, X } from 'lucide-react';
 import { LogisticSmartProRules } from '../../lib/data';
 import { DocsMapped, docsMappedAtom } from '../../lib/store';
 
 type SimpleItem = Pick<Item, 'displayName' | 'iconPath' | 'key'>;
 type ItemOrRecipe = SimpleItem | Recipe;
+
+function StyledSpan({ text, matches }: { text: string; matches?: Exclude<FuseResult<ItemOrRecipe>['matches'], undefined>[number] }) {
+  if (!matches) return text;
+  const { indices, value } = matches;
+  const isAltRecipe = value?.startsWith('Alternate');
+  const result: (JSX.Element | string)[] = [];
+  let lastIndex = 0;
+  for (let [start, end] of indices) {
+    if (isAltRecipe) {
+      if (end < 11) continue;
+      start = Math.max(start - 11, 0);
+      end -= 11;
+    }
+    result.push(<span className='font-light'>{text.slice(lastIndex, start)}</span>);
+    result.push(<span className='font-bold'>{text.slice(start, end + 1)}</span>);
+    lastIndex = end + 1;
+  }
+  result.push(<span>{text.slice(lastIndex)}</span>);
+  return <>{result}</>;
+}
 
 type ItemOrRecipeListItemProps = {
   data: FuseResult<ItemOrRecipe> | ItemOrRecipe;
@@ -23,6 +43,8 @@ function ItemOrRecipeListItem({ data, docsMapped, selected, onClick, onMouseEnte
   const listItem = 'item' in data ? data.item : data;
   const isRecipe = 'ingredients' in listItem;
   const isAltRecipe = isRecipe && listItem.displayName.startsWith('Alternate');
+  const searchMatches =
+    'matches' in data && data.matches ? Object.fromEntries(data.matches.map(m => [(m.key ?? '') + (m.refIndex ?? ''), m])) : undefined;
 
   return (
     <button
@@ -38,7 +60,9 @@ function ItemOrRecipeListItem({ data, docsMapped, selected, onClick, onMouseEnte
           if (i === 4) {
             return <ArrowRight key={i} size={24} className='col-start-5' />;
           }
-          const itemKey = i < 4 ? (listItem as Recipe).ingredients[3 - i]?.itemKey : (listItem as Recipe).products[i - 5]?.itemKey;
+          const itemType = i < 4 ? 'ingredients' : 'products';
+          const itemIndex = i < 4 ? 3 - i : i - 5;
+          const itemKey = i < 4 ? (listItem as Recipe).ingredients[itemIndex]?.itemKey : (listItem as Recipe).products[itemIndex]?.itemKey;
           if (!itemKey) return null;
 
           const item = docsMapped.items.get(itemKey);
@@ -48,7 +72,10 @@ function ItemOrRecipeListItem({ data, docsMapped, selected, onClick, onMouseEnte
               src={'/extracted/' + item?.iconPath}
               alt={item?.displayName}
               className='size-6'
-              style={{ gridColumnStart: i + 1 }}
+              style={{
+                gridColumnStart: i + 1,
+                opacity: !searchMatches ? 1 : `${itemType}${itemIndex}` in searchMatches ? 1 : 0.3,
+              }}
             />
           );
         })
@@ -64,10 +91,14 @@ function ItemOrRecipeListItem({ data, docsMapped, selected, onClick, onMouseEnte
           >
             A
           </span>
-          <p className='col-start-9'>{listItem.displayName.slice(11)}</p>
+          <p className='col-start-9'>
+            <StyledSpan text={listItem.displayName.slice(11)} matches={searchMatches?.displayName} />
+          </p>
         </>
       ) : (
-        <p className='col-start-9'>{listItem.displayName}</p>
+        <p className='col-start-9'>
+          <StyledSpan text={listItem.displayName} matches={searchMatches?.displayName} />
+        </p>
       )}
     </button>
   );
@@ -113,9 +144,22 @@ export default function ItemOrRecipeComboBox({ type, placeholder, defaultKey, on
   const [fuseInstance] = useState(
     () =>
       new Fuse<ItemOrRecipe>(Array.from(fullDataMap.values()), {
-        keys: dataListType === 'recipe' ? ['displayName', 'producedIn', 'ingredients', 'products'] : ['displayName'],
+        keys:
+          dataListType === 'recipe'
+            ? ['displayName', { name: 'producedIn', weight: 0.2 }, { name: 'ingredients', weight: 0.8 }, 'products']
+            : ['displayName'],
         includeScore: true,
         includeMatches: true,
+        getFn: (obj, path) => {
+          const p = Array.isArray(path) ? path[0] : path;
+          const objAsRecipe = obj as Recipe;
+          if (p === 'producedIn') {
+            return docsMapped.productionMachines.get(objAsRecipe.producedIn)?.displayName ?? '';
+          } else if (p === 'ingredients' || p === 'products') {
+            return objAsRecipe[p].map(i => docsMapped.items.get(i.itemKey)?.displayName ?? '');
+          }
+          return Fuse.config.getFn(obj, path);
+        },
       }),
   );
   const [isOpen, setIsOpen] = useState(false);
@@ -137,11 +181,16 @@ export default function ItemOrRecipeComboBox({ type, placeholder, defaultKey, on
     if (!value) return;
     const data = fullDataMap.get(value);
     if (data) {
-      setDisplayText(data.displayName);
       if (type !== 'recipe') setDisplayIconPath((data as SimpleItem).iconPath);
+      setDisplayText(data.displayName);
+      return;
     }
     console.error('Invalid default value:', value);
   }, [defaultKey, isOpen]);
+
+  useEffect(() => {
+    console.log('displayList', displayList);
+  }, [displayList]);
 
   const setValue = useCallback(
     (key?: string) => {
@@ -180,6 +229,7 @@ export default function ItemOrRecipeComboBox({ type, placeholder, defaultKey, on
       } else if (e.key.length === 1 || e.key === 'Backspace' || e.key === 'Delete' || e.key === ' ') {
         // letters, backspace, delete, space etc, focus search input
         inputRef.current?.focus();
+        setIsOpen(true);
       }
       if (newSelectIndex !== undefined) {
         setSelectIndex(newSelectIndex);
@@ -207,7 +257,7 @@ export default function ItemOrRecipeComboBox({ type, placeholder, defaultKey, on
           className='flex-1'
           type='text'
           placeholder={placeholder}
-          value={displayText ? displayText : searchText}
+          value={searchText ? searchText : displayText}
           onChange={e => {
             setSearchText(e.target.value);
             setSelectIndex(0);
