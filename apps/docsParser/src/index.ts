@@ -2,7 +2,7 @@ import { readFile, writeFile, mkdir, stat, rm } from 'fs/promises';
 import path from 'path';
 import { argv } from 'process';
 import sharp from 'sharp';
-import { parseProductionMachine } from './buildableParser.js';
+import { parseProductionMachine, presetProductionMachineIcons } from './buildableParser.js';
 import { parsePowerGenerator } from './generatorParser.js';
 import { parseItem } from './itemParser.js';
 import { parseRecipe } from './recipeParser.js';
@@ -75,6 +75,8 @@ for (const doc of docs) {
     results.items = Object.assign(results.items, parseItem(doc.Classes));
   } else if (className === 'FGRecipe') {
     results.recipes = parseRecipe(doc.Classes);
+  } else if (className === 'FGBuildingDescriptor') {
+    presetProductionMachineIcons(doc.Classes);
   } else if (
     ['FGBuildableManufacturer', 'FGBuildableManufacturerVariablePower', 'FGBuildableResourceExtractor', 'FGBuildableWaterPump'].includes(
       className,
@@ -163,26 +165,45 @@ for (const recipe of Object.values(results.recipes)) {
 // Handle image conversion of items
 await mkdir(path.join(outputDirPath, 'icons'), { recursive: true });
 const promises: Promise<any>[] = [];
+async function convertImage(subpath: string) {
+  const originalPath = path.join(extractedDirPath, `${subpath}.png`);
+  try {
+    await stat(originalPath);
+    const newName = subpath.split('/').pop()?.replace('IconDesc_', '').split('_').slice(0, -1).join('_');
+    const newPath = path.join(outputDirPath, 'icons', `${newName}.webp`);
+    // Use sharp to convert to webp
+    await sharp(originalPath).resize({ width: 64, height: 64 }).webp({ force: true, effort: 6 }).toFile(newPath);
+    return newPath.substring(outputDirPath.length + 1);
+  } catch (e) {
+    // @ts-ignore
+    if (e && typeof e === 'object' && e.code === 'ENOENT') {
+      console.error("File doesn't exist", originalPath);
+      return null;
+    }
+    throw e;
+  }
+}
 // Item icons
 for (const item of Object.values(results.items)) {
   if (item.iconPath) {
     const subpath = item.iconPath.substring(28).split('.')[0];
-    const originalPath = path.join(extractedDirPath, `${subpath}.png`);
-    const pr = stat(originalPath)
-      .then(async () => {
-        const newName = subpath.split('/').pop()?.replace('IconDesc_', '').split('_').slice(0, -1).join('_');
-        const newPath = path.join(outputDirPath, 'icons', `${newName}.webp`);
-        // Use sharp to convert to webp
-        await sharp(originalPath).resize({ width: 64, height: 64 }).webp({ force: true, effort: 6 }).toFile(newPath);
-        item.iconPath = newPath.substring(outputDirPath.length + 1);
-      })
-      .catch(() => {
-        console.log("File doesn't exist", originalPath);
-        item.iconPath = null;
-      });
+    const pr = convertImage(subpath);
     promises.push(pr);
+  } else {
+    console.error('Missing icon for item:', item.key);
   }
 }
+// Production Machine Icon
+for (const machine of Object.values(results.productionMachines)) {
+  if (machine.iconPath) {
+    const subpath = machine.iconPath.substring(28).split('.')[0];
+    const pr = convertImage(subpath);
+    promises.push(pr);
+  } else {
+    console.error('Missing icon for production machine:', machine.key);
+  }
+}
+
 // Monochrome icons
 const iconMap = {
   'TXUI_MIcon_SortRule_Any.png': 'RuleAny.webp',

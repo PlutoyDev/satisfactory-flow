@@ -15,6 +15,7 @@ export interface Recipe {
 export interface ProductionMachine {
   key: string;
   displayName: string;
+  iconPath: string | null;
   /** Power in MW */
   powerConsumption: number;
   /** Power in MW */

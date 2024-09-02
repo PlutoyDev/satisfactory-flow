@@ -19,6 +19,16 @@ export const productionMachineAsDescClassNames = productionMachines.map(machine 
 const productionMachineAsBuildClassNames = productionMachines.map(machine => 'Build_' + machine);
 
 export const productionMachineRecipe: Record<string, Recipe> = {};
+export const productionMachineIcons: Record<string, string> = {};
+
+export function presetProductionMachineIcons(buildableArr: Record<string, unknown>[]) {
+  for (const buildable of buildableArr) {
+    let key = buildable['ClassName'] as string;
+    if (!key) continue;
+    if (!productionMachineAsDescClassNames.includes(key)) continue; // FGBuildingDescriptor prefix is Desc_
+    productionMachineIcons[key] = buildable['mPersistentBigIcon'] as string;
+  }
+}
 
 const mapperObject = {
   ClassName: {
@@ -49,6 +59,7 @@ export function parseProductionMachine(buildableArr: Record<string, unknown>[]) 
 
       const parsedBuildable = {
         ingredients: productionMachineRecipe[descClassName].ingredients,
+        iconPath: productionMachineIcons[descClassName] ?? null,
       } as ProductionMachine;
 
       for (const [key, value] of Object.entries(buildable)) {
