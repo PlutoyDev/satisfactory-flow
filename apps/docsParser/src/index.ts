@@ -187,7 +187,7 @@ async function convertImage(subpath: string) {
 for (const item of Object.values(results.items)) {
   if (item.iconPath) {
     const subpath = item.iconPath.substring(28).split('.')[0];
-    const pr = convertImage(subpath);
+    const pr = convertImage(subpath).then(newPath => (item.iconPath = newPath));
     promises.push(pr);
   } else {
     console.error('Missing icon for item:', item.key);
@@ -197,7 +197,7 @@ for (const item of Object.values(results.items)) {
 for (const machine of Object.values(results.productionMachines)) {
   if (machine.iconPath) {
     const subpath = machine.iconPath.substring(28).split('.')[0];
-    const pr = convertImage(subpath);
+    const pr = convertImage(subpath).then(newPath => (machine.iconPath = newPath));
     promises.push(pr);
   } else {
     console.error('Missing icon for production machine:', machine.key);
