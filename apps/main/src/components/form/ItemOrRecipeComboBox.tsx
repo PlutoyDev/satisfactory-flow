@@ -128,13 +128,16 @@ export default function ItemOrRecipeComboBox({ type, placeholder, defaultKey, on
     [fullDataMap, searchResult, searchText],
   );
   const [selectIndex, setSelectIndex] = useState(0);
+  const selectedItem = 'item' in displayList[selectIndex] ? displayList[selectIndex].item : displayList[selectIndex];
   const page = Math.floor(selectIndex / PER_PAGE);
 
   useEffect(() => {
     let value = defaultKey;
     if (!value) return;
     const data = fullDataMap.get(value);
-    if (data) return setDisplayText(data.displayName);
+    if (data) {
+      setDisplayText(data.displayName);
+    }
     console.error('Invalid default value:', value);
   }, [defaultKey, isOpen]);
 
@@ -198,6 +201,13 @@ export default function ItemOrRecipeComboBox({ type, placeholder, defaultKey, on
       }}
     >
       <label className='input input-sm input-bordered flex items-center gap-2'>
+        {type !== 'recipe' && selectedItem && (
+          <img
+            src={'/extracted/' + (selectedItem as SimpleItem).iconPath}
+            alt={(selectedItem as SimpleItem).displayName}
+            className='h-6 w-6'
+          />
+        )}
         <input
           className='flex-1'
           type='text'
