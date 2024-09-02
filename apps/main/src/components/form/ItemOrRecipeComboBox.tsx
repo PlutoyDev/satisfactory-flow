@@ -45,6 +45,7 @@ function ItemOrRecipeListItem({ data, docsMapped, selected, onClick, onMouseEnte
   const isAltRecipe = isRecipe && listItem.displayName.startsWith('Alternate');
   const searchMatches =
     'matches' in data && data.matches ? Object.fromEntries(data.matches.map(m => [(m.key ?? '') + (m.refIndex ?? ''), m])) : undefined;
+  const recipeMachine = isRecipe && docsMapped.productionMachines.get((listItem as Recipe).producedIn);
 
   return (
     <button
@@ -82,23 +83,34 @@ function ItemOrRecipeListItem({ data, docsMapped, selected, onClick, onMouseEnte
       ) : (
         <img src={'/extracted/' + (listItem as SimpleItem).iconPath} alt={(listItem as SimpleItem).displayName} className='h-6 w-6' />
       )}
-
       {isAltRecipe ? (
         <>
+          <p className='col-start-8'>
+            <StyledSpan text={listItem.displayName.slice(11)} matches={searchMatches?.displayName} />
+          </p>
           <span
-            className='border-accent text-accent text-bold tooltip tooltip-right tooltip-accent col-start-8 ml-2 rounded-sm border px-0.5 group-data-[selected=true]:text-black'
+            className='border-accent text-accent text-bold tooltip tooltip-left col-start-9 ml-2 rounded-sm border px-0.5 group-data-[selected=true]:text-black'
             data-tip='Alternate'
           >
             A
           </span>
-          <p className='col-start-9'>
-            <StyledSpan text={listItem.displayName.slice(11)} matches={searchMatches?.displayName} />
-          </p>
         </>
       ) : (
-        <p className='col-start-9'>
+        <p className='col-start-8'>
           <StyledSpan text={listItem.displayName} matches={searchMatches?.displayName} />
         </p>
+      )}
+
+      {recipeMachine && (
+        <span className='tooltip tooltip-left tooltip-info col-start-10' data-tip={recipeMachine.displayName}>
+          <img
+            className='h-6 w-6'
+            src={'/extracted/' + recipeMachine.iconPath}
+            alt={recipeMachine.displayName}
+            aria-label={recipeMachine.displayName}
+            style={{ opacity: !searchMatches ? 1 : searchMatches.producedIn ? 1 : 0.3 }}
+          />
+        </span>
       )}
     </button>
   );
@@ -300,7 +312,9 @@ export default function ItemOrRecipeComboBox({ type, placeholder, defaultKey, on
         >
           <ul
             className='w-80'
-            style={type === 'recipe' ? { display: 'grid', gridTemplateColumns: 'repeat(8, auto) 1fr', width: '30rem' } : undefined}
+            style={
+              type === 'recipe' ? { display: 'grid', gridTemplateColumns: 'repeat(7, auto) 1fr auto auto', width: '36rem' } : undefined
+            }
             onWheel={e => {
               if (e.deltaY < 0) setSelectIndex(p => Math.max(p - PER_PAGE, 0));
               else setSelectIndex(p => Math.min(p + PER_PAGE, displayList.length - 1));
