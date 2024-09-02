@@ -233,7 +233,8 @@ function FlowPage() {
             }}
             // Keyboard
             deleteKeyCode={['Delete', 'Backspace']}
-            selectionKeyCode={['Shift', 'Control']}
+            selectionKeyCode={['Shift', 'Control', 'Meta']}
+            multiSelectionKeyCode={['Shift', 'Control', 'Meta']}
             // Clipboard
             onCut={onCutOrCopy}
             onCopy={onCutOrCopy}
