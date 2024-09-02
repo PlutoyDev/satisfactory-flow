@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import { useAtom } from 'jotai';
+import { DollarSign } from 'lucide-react';
 import { JSONError } from 'parse-json';
 import { ZodError } from 'zod';
 import examples from '../examples';
@@ -13,15 +14,65 @@ function HomePage() {
   const [view, setView] = useState<View>('select');
 
   return (
-    <div className='rounded-box bg-base-200 absolute left-1/2 top-1/2 w-[28rem] -translate-x-1/2 -translate-y-1/2 px-8 py-4 shadow-xl *:*:mt-2 *:mt-2'>
-      <h1 className='w-full text-center text-4xl font-bold'>
-        <span className='text-accent'>Satisfactory </span>
-        Flow
-      </h1>
-      {view === 'select' && <SelectView setView={setView} />}
-      {view === 'create' && <CreateView setView={setView} />}
-      {view === 'import' && <ImportView setView={setView} />}
-    </div>
+    <>
+      {/* Center floating div */}
+      <div className='rounded-box bg-base-200 absolute left-1/2 top-1/2 w-[36rem] -translate-x-1/2 -translate-y-1/2 px-8 py-4 shadow-xl *:*:mt-2 *:mt-2'>
+        <h1 className='w-full text-center text-4xl font-bold'>
+          <span className='text-accent'>Satisfactory </span>
+          Flow
+        </h1>
+        {view === 'select' && <SelectView setView={setView} />}
+        {view === 'create' && <CreateView setView={setView} />}
+        {view === 'import' && <ImportView setView={setView} />}
+      </div>
+      {/* Bottom-Left section */}
+      <div className='absolute bottom-4 left-0 p-4 opacity-30'>
+        <h3 className='text-sm'>Made With:</h3>
+        <div className='ml-2 mt-2 flex gap-2'>
+          {/* React Icon */}
+          <a href='https://reactjs.org/' target='_blank' rel='noreferrer' className='flex items-center gap-1 p-2'>
+            <img src='/reactjs-icon.svg' alt='React Icon' className='h-8 w-8' />
+            React
+          </a>
+          {/* Reactflow Icon */}
+          <a href='https://reactflow.dev/' target='_blank' rel='noreferrer' className='flex items-center gap-1 p-2'>
+            <img src='/reactflow-icon.svg' alt='Reactflow Icon' className='h-8 w-8' />
+            React Flow
+          </a>
+        </div>
+      </div>
+      {/* Bottom Center */}
+      <div className='absolute bottom-0 left-1/2 flex -translate-x-1/2 transform flex-col items-center opacity-30'>
+        <div>
+          <h3 className='text-sm'>Thank you</h3>
+          <a href='https://coffeestain.com/' target='_blank' rel='noreferrer' className='flex items-center gap-1 p-2'>
+            <img src='/coffeestain-logo.png' alt='Coffee Stain Studios Logo' className='max-h-8' />
+            Coffee Stain Studios
+          </a>
+        </div>
+        <p className='text-center'>For creating such an amazing game and inspiring me to create tools like this</p>
+        <p className='text-center text-[0.5rem]'>
+          This project is not affiliated with Coffee Stain Studios. Satisfactory is a trademark of Coffee Stain Studios.
+        </p>
+        <p className='text-center text-[0.5rem]'>Assets used in this project are property of Coffee Stain Studios.</p>
+      </div>
+      {/* Bottom Right */}
+      <div className='absolute bottom-4 right-4 flex flex-row p-4'>
+        <a
+          href='https://github.com/PlutoyDev/satisfactory-flow'
+          target='_blank'
+          rel='noreferrer'
+          className='flex items-center gap-1 p-2 opacity-30'
+        >
+          <img src='/github-icon.svg' alt='GitHub Icon' className='h-8 w-8' />
+          Contribute / Discuss
+        </a>
+        <button className='btn btn-ghost tooltip flex items-center gap-1 p-2' disabled>
+          <DollarSign />
+          Support
+        </button>
+      </div>
+    </>
   );
 }
 
