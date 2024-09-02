@@ -10,11 +10,11 @@ import {
   AlignEndVertical,
   AlignStartHorizontal,
   AlignStartVertical,
-  AlignVerticalDistributeCenter,
   ArrowRightFromLine,
   Check,
   Clipboard,
   Copy,
+  Download,
   FilePen,
   Fullscreen,
   Home,
@@ -619,7 +619,7 @@ function RenameDialog({ name, onRename, onCancel }: { name: string; onRename: (n
       {/* Overlay */}
       <div className='bg-base-300 fixed left-0 top-0 z-40 h-full w-full bg-opacity-80' onClick={() => onCancel()} />
       {/* Dialog */}
-      <div className='bg-base-300 rounded-box fixed left-1/2 top-1/2 z-50 w-96 -translate-x-1/2 -translate-y-1/2 transform bg-opacity-90 p-4'>
+      <div className='bg-base-200 rounded-box fixed left-1/2 top-1/2 z-50 w-96 -translate-x-1/2 -translate-y-1/2 transform p-4'>
         <h2 className='text-lg font-semibold'>Rename Flow</h2>
         <input
           ref={inputRef}
@@ -635,17 +635,19 @@ function RenameDialog({ name, onRename, onCancel }: { name: string; onRename: (n
           }}
         />
         <div className='mt-2 flex justify-end'>
-          <button className='btn btn-sm btn-error' onClick={() => onCancel()}>
-            Cancel
-          </button>
           <button
-            className='btn btn-sm btn-accent ml-2'
+            className='btn btn-sm btn-accent'
             onClick={() => {
               const newName = (inputRef.current as HTMLInputElement).value;
               if (newName) onRename(newName);
             }}
           >
+            <FilePen />
             Rename
+          </button>
+          <button className='btn btn-sm btn-error ml-2' onClick={() => onCancel()}>
+            <X />
+            Cancel
           </button>
         </div>
       </div>
@@ -687,7 +689,7 @@ function ExportDialog({ nodes, edges, close }: { nodes: Node[]; edges: Edge[]; c
       {/* Overlay */}
       <div className='bg-base-300 fixed left-0 top-0 z-40 h-full w-full bg-opacity-80' onClick={() => close()} />
       {/* Dialog */}
-      <div className='bg-base-300 rounded-box fixed left-1/2 top-1/2 z-50 w-[40rem] -translate-x-1/2 -translate-y-1/2 transform bg-opacity-90 p-4'>
+      <div className='bg-base-200 rounded-box fixed left-1/2 top-1/2 z-50 w-[40rem] -translate-x-1/2 -translate-y-1/2 transform p-4'>
         <h2 className='text-lg font-semibold'>Export Flow</h2>
 
         <div className='form-control'>
@@ -714,10 +716,11 @@ function ExportDialog({ nodes, edges, close }: { nodes: Node[]; edges: Edge[]; c
             className='btn btn-sm btn-accent'
             onClick={() => navigator.clipboard.writeText(stringifiedFlowData).then(() => setStatusText('Copied!'))}
           >
+            <Copy />
             Copy
           </button>
           <button
-            className='btn btn-sm btn-accent'
+            className='btn btn-sm btn-info'
             onClick={() => {
               const blob = new Blob([stringifiedFlowData], { type: 'application/json' });
               const url = URL.createObjectURL(blob);
@@ -728,9 +731,11 @@ function ExportDialog({ nodes, edges, close }: { nodes: Node[]; edges: Edge[]; c
               URL.revokeObjectURL(url);
             }}
           >
-            Save
+            <Download />
+            Download
           </button>
           <button className='btn btn-sm btn-error' onClick={() => close()}>
+            <X />
             Close
           </button>
         </div>
