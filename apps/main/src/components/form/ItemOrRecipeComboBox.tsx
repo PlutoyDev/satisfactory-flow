@@ -119,14 +119,8 @@ export default function ItemOrRecipeComboBox({ type, placeholder, defaultKey, on
   );
   const [isOpen, setIsOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [displayText, setDisplayText] = useState(() => {
-    let value = defaultKey;
-    if (!value) return '';
-    const data = fullDataMap.get(value);
-    if (data) return data.displayName;
-    console.error('Invalid default value:', value);
-    return '';
-  });
+  const comboBoxRef = useRef<HTMLDivElement>(null);
+  const [displayText, setDisplayText] = useState('');
   const [searchText, setSearchText] = useState('');
   const searchResult = useMemo(() => (searchText ? fuseInstance.search(searchText) : []), [fuseInstance, searchText]);
   const displayList = useMemo(
@@ -142,7 +136,7 @@ export default function ItemOrRecipeComboBox({ type, placeholder, defaultKey, on
     const data = fullDataMap.get(value);
     if (data) return setDisplayText(data.displayName);
     console.error('Invalid default value:', value);
-  }, [defaultKey]);
+  }, [defaultKey, isOpen]);
 
   const setValue = useCallback(
     (key?: string) => {
@@ -194,7 +188,15 @@ export default function ItemOrRecipeComboBox({ type, placeholder, defaultKey, on
   );
 
   return (
-    <div className='relative inline-block w-full' onKeyDown={onKeyPress} onBlur={console.log}>
+    <div
+      className='relative inline-block w-full'
+      onKeyDown={onKeyPress}
+      onBlur={e => {
+        if (e.relatedTarget && !comboBoxRef.current?.contains(e.relatedTarget as Node)) {
+          setTimeout(() => setIsOpen(false), 100);
+        }
+      }}
+    >
       <label className='input input-sm input-bordered flex items-center gap-2'>
         <input
           className='flex-1'
