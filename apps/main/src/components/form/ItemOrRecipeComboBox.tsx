@@ -4,7 +4,7 @@ import { KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from
 import type { Recipe, Item } from 'docs-parser';
 import Fuse, { FuseResult } from 'fuse.js';
 import { useAtom } from 'jotai';
-import { ArrowRight, ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ChevronUp } from 'lucide-react';
+import { ArrowRight, ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ChevronUp, Trash, X } from 'lucide-react';
 import { LogisticSmartProRules } from '../../lib/data';
 import { DocsMapped, docsMappedAtom } from '../../lib/store';
 
@@ -87,9 +87,10 @@ type ItemOrRecipeComboBoxProps = {
   placeholder?: string;
   defaultKey?: string;
   onKeySelected: (key: string) => void;
+  onRemoveClick?: () => void;
 };
 
-export default function ItemOrRecipeComboBox({ type, placeholder, defaultKey, onKeySelected }: ItemOrRecipeComboBoxProps) {
+export default function ItemOrRecipeComboBox({ type, placeholder, defaultKey, onKeySelected, onRemoveClick }: ItemOrRecipeComboBoxProps) {
   const dataListType = type === 'recipe' ? 'recipe' : 'item';
   const [docsMapped] = useAtom(docsMappedAtom);
   // useState is used to prevent re-creation of the fullDataList and fuseInstance
@@ -121,6 +122,7 @@ export default function ItemOrRecipeComboBox({ type, placeholder, defaultKey, on
   const inputRef = useRef<HTMLInputElement>(null);
   const comboBoxRef = useRef<HTMLDivElement>(null);
   const [displayText, setDisplayText] = useState('');
+  const [displayIconPath, setDisplayIconPath] = useState<string | null | undefined>(null);
   const [searchText, setSearchText] = useState('');
   const searchResult = useMemo(() => (searchText ? fuseInstance.search(searchText) : []), [fuseInstance, searchText]);
   const displayList = useMemo(
@@ -128,7 +130,6 @@ export default function ItemOrRecipeComboBox({ type, placeholder, defaultKey, on
     [fullDataMap, searchResult, searchText],
   );
   const [selectIndex, setSelectIndex] = useState(0);
-  const selectedItem = 'item' in displayList[selectIndex] ? displayList[selectIndex].item : displayList[selectIndex];
   const page = Math.floor(selectIndex / PER_PAGE);
 
   useEffect(() => {
@@ -137,6 +138,7 @@ export default function ItemOrRecipeComboBox({ type, placeholder, defaultKey, on
     const data = fullDataMap.get(value);
     if (data) {
       setDisplayText(data.displayName);
+      if (type !== 'recipe') setDisplayIconPath((data as SimpleItem).iconPath);
     }
     console.error('Invalid default value:', value);
   }, [defaultKey, isOpen]);
@@ -152,7 +154,6 @@ export default function ItemOrRecipeComboBox({ type, placeholder, defaultKey, on
         return;
       }
       onKeySelected(key); // Callback to parent
-      setDisplayText(fullDataMap.get(key)?.displayName || '');
       setSearchText('');
       setIsOpen(false);
     },
@@ -195,19 +196,13 @@ export default function ItemOrRecipeComboBox({ type, placeholder, defaultKey, on
       className='relative inline-block w-full'
       onKeyDown={onKeyPress}
       onBlur={e => {
-        if (e.relatedTarget && !comboBoxRef.current?.contains(e.relatedTarget as Node)) {
+        if (e.relatedTarget && !comboBoxRef.current?.contains(e.relatedTarget as Node) && e.relatedTarget.tagName !== 'BUTTON') {
           setTimeout(() => setIsOpen(false), 100);
         }
       }}
     >
       <label className='input input-sm input-bordered flex items-center gap-2'>
-        {type !== 'recipe' && selectedItem && (
-          <img
-            src={'/extracted/' + (selectedItem as SimpleItem).iconPath}
-            alt={(selectedItem as SimpleItem).displayName}
-            className='h-6 w-6'
-          />
-        )}
+        {type !== 'recipe' && displayIconPath && <img src={'/extracted/' + displayIconPath} alt={displayText} className='h-6 w-6' />}
         <input
           className='flex-1'
           type='text'
@@ -226,7 +221,12 @@ export default function ItemOrRecipeComboBox({ type, placeholder, defaultKey, on
           ref={inputRef}
         />
         {type === 'outputRule' ? (
-          <ChevronDown className='transition-transform data-[open=true]:rotate-180' data-open={isOpen} />
+          <>
+            <ChevronDown className='transition-transform data-[open=true]:rotate-180' data-open={isOpen} />
+            <button className='btn btn-ghost btn-sm tooltop rounded-none' aria-label='Remove' onClick={() => onRemoveClick?.()}>
+              <X />
+            </button>
+          </>
         ) : (
           <ChevronUp className='transition-transform data-[open=true]:rotate-180' data-open={isOpen} />
         )}

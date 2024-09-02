@@ -133,8 +133,8 @@ export function OutputFilterRule() {
                           type='outputRule'
                           defaultKey={rule}
                           onKeySelected={key => onSelectRule(dir, index, key as LogisticSmartProRules)}
+                          onRemoveClick={() => setLocalRules({ ...localRules, [dir]: localRules[dir]!.filter((_, i) => i !== index) })}
                         />
-                        // TODO: Add remove button for each rule
                       );
                     })}
                     {
