@@ -1,4 +1,4 @@
-import { Fragment, ReactNode, Suspense, useCallback, useMemo, useRef, useState } from 'react';
+import { Fragment, ReactNode, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Background, ConnectionMode, Edge, Node, Panel, ReactFlow, useReactFlow } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import debounce from 'debounce';
@@ -66,7 +66,7 @@ import {
 
 function FlowPage() {
   const [isDraggingNode] = useAtom(isDraggingNodeAtom);
-  const [, setReactFlowInstance] = useAtom(reactflowInstanceAtom);
+  const [rfInstance, setReactFlowInstance] = useAtom(reactflowInstanceAtom);
   const [selectedFlow, setSelectedFlow] = useAtom(selectedFlowAtom);
   const [selFlowData, setSelFlowData] = useAtom(selectedFlowDataAtom);
   const [isRenaming, setRenaming] = useState(false);
@@ -81,6 +81,79 @@ function FlowPage() {
   const [viewport, setViewport] = useAtom(viewportAtom);
   const [selectedIds] = useAtom(selectedIdsAtom);
   const copyableOrCutable = selectedIds.length > 0;
+
+  const toggleFullscreen = useCallback(() => {
+    const isExiting = document.fullscreenElement === rfParentRef.current;
+    try {
+      if (isExiting) document.exitFullscreen();
+      else rfParentRef.current?.requestFullscreen({ navigationUI: 'hide' });
+      appendStatusMessage({
+        type: 'info',
+        message: isExiting ? 'Exited fullscreen' : 'Entered fullscreen',
+        key: 'fullscreen',
+        hideAfter: 2000,
+      });
+    } catch (e) {
+      appendStatusMessage({
+        type: 'warning',
+        message: `Failed to ${isExiting ? 'exit' : 'enter'} fullscreen`,
+        key: 'fullscreen',
+        hideAfter: 2000,
+      });
+      console.error(e);
+    }
+  }, [rfParentRef]);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const lcKey = e.key.toLowerCase();
+
+      if (e.ctrlKey) {
+        if (lcKey === 'z') {
+          applyHistoryAction('undo');
+          appendStatusMessage({ type: 'info', message: 'Undo', key: 'undo', hideAfter: 1000 });
+        } else if (lcKey === 'y') {
+          applyHistoryAction('redo');
+          appendStatusMessage({ type: 'info', message: 'Redo', key: 'redo', hideAfter: 1000 });
+        } else if (lcKey === '=' || lcKey === '+') {
+          e.preventDefault();
+          rfInstance?.zoomIn({ duration: 100 });
+        } else if (lcKey === '-' || lcKey === '_') {
+          e.preventDefault();
+          rfInstance?.zoomOut({ duration: 100 });
+        } else if (lcKey === '0') {
+          rfInstance?.fitView({ padding: 0.4, duration: 100 });
+          appendStatusMessage({ type: 'info', message: 'Fitted view', key: 'fit-view', hideAfter: 1000 });
+        } else if (lcKey === 'a') {
+          e.preventDefault();
+          applyNodeChanges(nodes.map(node => ({ type: 'select', id: node.id, selected: true })));
+          applyEdgeChanges(edges.map(edge => ({ type: 'select', id: edge.id, selected: true })));
+          appendStatusMessage({ type: 'info', message: 'Selected all', key: 'select-all', hideAfter: 1000 });
+        } else if (lcKey === 's') {
+          e.preventDefault();
+          appendStatusMessage({
+            type: 'info',
+            message: 'Automatically saved, no need to save manually',
+            key: 'auto-save',
+            hideAfter: 2000,
+          });
+        }
+      } else if (lcKey === 'f11') {
+        e.preventDefault();
+        toggleFullscreen();
+      } else if (lcKey === 'w' || lcKey === 'a' || lcKey === 's' || lcKey === 'd') {
+        setViewport(viewport => {
+          if (!viewport) return;
+          const step = 36 * (lcKey === 'w' || lcKey === 'a' ? 1 : -1) * (e.shiftKey ? 6 : 1);
+          const isVertical = lcKey === 'w' || lcKey === 's';
+          return { ...viewport, [isVertical ? 'y' : 'x']: viewport[isVertical ? 'y' : 'x'] + step };
+        });
+      }
+    };
+
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [rfInstance, setViewport]);
 
   if (!selectedFlow) {
     return <div>404 Not Found</div>;
@@ -158,7 +231,7 @@ function FlowPage() {
               e.preventDefault();
               e.dataTransfer.dropEffect = 'move';
             }}
-            // Keyboard Props
+            // Keyboard
             deleteKeyCode={['Delete', 'Backspace']}
             selectionKeyCode={['Shift', 'Control']}
             // Clipboard
@@ -181,21 +254,7 @@ function FlowPage() {
               isReadOnly={isReadOnly}
               // onCopy={() => excuteClipboardAction('copy')}
               // onPaste={() => excuteClipboardAction('paste')}
-              onFullscreen={() => {
-                const isExiting = document.fullscreenElement === rfParentRef.current;
-                try {
-                  if (isExiting) document.exitFullscreen();
-                  else rfParentRef.current?.requestFullscreen({ navigationUI: 'hide' });
-                } catch (e) {
-                  appendStatusMessage({
-                    type: 'warning',
-                    message: `Failed to ${isExiting ? 'exit' : 'enter'} fullscreen`,
-                    key: 'fullscreen',
-                    hideAfter: 2000,
-                  });
-                  console.error(e);
-                }
-              }}
+              onFullscreen={toggleFullscreen}
             />
             <AlignmentLineOverlay />
             {isRenaming && (
