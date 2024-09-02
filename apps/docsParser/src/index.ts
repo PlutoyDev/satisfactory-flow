@@ -6,7 +6,7 @@ import { parseProductionMachine, presetProductionMachineIcons } from './buildabl
 import { parsePowerGenerator } from './generatorParser.js';
 import { parseItem } from './itemParser.js';
 import { parseRecipe } from './recipeParser.js';
-import { ParsedOutput } from './types.js';
+import { ParsedOutput, ParsedOutputObjects } from './types.js';
 
 const cwd = process.cwd();
 // In case I forget to run the script from the correct directory
@@ -40,7 +40,7 @@ if (!docs || !Array.isArray(docs)) {
 
 const nativeClassRegex = /FactoryGame\.(.*)'/; //Sample: ///Script/CoreUObject.Class'/Script/FactoryGame.FGItemDescriptor'
 
-const results: ParsedOutput = {
+const objectResult: ParsedOutputObjects = {
   items: {},
   recipes: {},
   productionMachines: {},
@@ -72,9 +72,9 @@ for (const doc of docs) {
   }
   const className = match[1];
   if (itemClassNames.includes(className)) {
-    results.items = Object.assign(results.items, parseItem(doc.Classes));
+    objectResult.items = Object.assign(objectResult.items, parseItem(doc.Classes));
   } else if (className === 'FGRecipe') {
-    results.recipes = parseRecipe(doc.Classes);
+    objectResult.recipes = parseRecipe(doc.Classes);
   } else if (className === 'FGBuildingDescriptor') {
     presetProductionMachineIcons(doc.Classes);
   } else if (
@@ -82,9 +82,9 @@ for (const doc of docs) {
       className,
     )
   ) {
-    results.productionMachines = Object.assign(results.productionMachines, parseProductionMachine(doc.Classes));
+    objectResult.productionMachines = Object.assign(objectResult.productionMachines, parseProductionMachine(doc.Classes));
   } else if (className === 'FGBuildableGeneratorFuel' || className === 'FGBuildableGeneratorNuclear') {
-    results.generators = Object.assign(results.generators, parsePowerGenerator(doc.Classes));
+    objectResult.generators = Object.assign(objectResult.generators, parsePowerGenerator(doc.Classes));
   }
 
   classesList.push({
@@ -95,8 +95,8 @@ for (const doc of docs) {
 
 function sortRecipes(recipeIds: string[]) {
   return recipeIds.sort((a, b) => {
-    const recipeA = results.recipes[a];
-    const recipeB = results.recipes[b];
+    const recipeA = objectResult.recipes[a];
+    const recipeB = objectResult.recipes[b];
     // Sort by isAlternate, then by ingredients length, then by products length, then by recipe name
     if (recipeA.displayName.startsWith('Alternate') && !recipeB.displayName.startsWith('Alternate')) {
       return 1;
@@ -118,10 +118,10 @@ function sortRecipes(recipeIds: string[]) {
 
 // PostProcess
 // Add recipeKeys to items and resources
-for (const item of Object.values(results.items)) {
+for (const item of Object.values(objectResult.items)) {
   const productOf: string[] = [];
   const ingredientOf: string[] = [];
-  for (const [recipeKey, { ingredients, products }] of Object.entries(results.recipes)) {
+  for (const [recipeKey, { ingredients, products }] of Object.entries(objectResult.recipes)) {
     if (products?.some(product => product.itemKey === item.key)) {
       productOf.push(recipeKey);
     }
@@ -143,11 +143,11 @@ for (const item of Object.values(results.items)) {
   }
 }
 
-for (const recipe of Object.values(results.recipes)) {
+for (const recipe of Object.values(objectResult.recipes)) {
   // Check if the recipe ingredients/products are in the items list
   if (recipe.ingredients) {
     for (const ingredient of recipe.ingredients) {
-      if (!results.items[ingredient.itemKey]) {
+      if (!objectResult.items[ingredient.itemKey]) {
         console.error(`Missing item for recipe ingredient: ${ingredient.itemKey}`);
       }
     }
@@ -155,7 +155,7 @@ for (const recipe of Object.values(results.recipes)) {
 
   if (recipe.products) {
     for (const product of recipe.products) {
-      if (!results.items[product.itemKey]) {
+      if (!objectResult.items[product.itemKey]) {
         console.error(`Missing item for recipe product: ${product.itemKey}`);
       }
     }
@@ -184,7 +184,7 @@ async function convertImage(subpath: string) {
   }
 }
 // Item icons
-for (const item of Object.values(results.items)) {
+for (const item of Object.values(objectResult.items)) {
   if (item.iconPath) {
     const subpath = item.iconPath.substring(28).split('.')[0];
     const pr = convertImage(subpath).then(newPath => (item.iconPath = newPath));
@@ -194,7 +194,7 @@ for (const item of Object.values(results.items)) {
   }
 }
 // Production Machine Icon
-for (const machine of Object.values(results.productionMachines)) {
+for (const machine of Object.values(objectResult.productionMachines)) {
   if (machine.iconPath) {
     const subpath = machine.iconPath.substring(28).split('.')[0];
     const pr = convertImage(subpath).then(newPath => (machine.iconPath = newPath));
@@ -227,13 +227,32 @@ for (const [key, value] of Object.entries(iconMap)) {
 
 await Promise.allSettled(promises);
 
-// Fuse indexes
+// Sorting the results
+// item by number of recipe uses and produce it
+// recipes by isAlternate, then by ingredients length, then by products length
+const entriesResult: ParsedOutput = {
+  items: Object.entries(objectResult.items).sort((a, b) => {
+    const aUses = (a[1].productOf?.length ?? 0) + (a[1].ingredientOf?.length ?? 0);
+    const bUses = (b[1].productOf?.length ?? 0) + (b[1].ingredientOf?.length ?? 0);
+    return bUses - aUses;
+  }),
+  recipes: Object.entries(objectResult.recipes).sort((a, b) => {
+    const aIsAlt = a[1].displayName.startsWith('Alternate');
+    const bIsAlt = b[1].displayName.startsWith('Alternate');
+    if (a[1].ingredients.length !== b[1].ingredients.length) return a[1].ingredients.length - b[1].ingredients.length;
+    else if (a[1].products.length !== b[1].products.length) return a[1].products.length - b[1].products.length;
+    else if (aIsAlt !== bIsAlt) return aIsAlt ? -1 : 1;
+    else return 0;
+  }),
+  productionMachines: Object.entries(objectResult.productionMachines),
+  generators: Object.entries(objectResult.generators),
+};
 
 const outputPath = path.join(outputDirPath, 'parsedDocs.json');
-await writeFile(outputPath, JSON.stringify(results));
+await writeFile(outputPath, JSON.stringify(entriesResult));
 
 // non-minified version
 if (argv.includes('--pretty') || argv.includes('-p')) {
   const outputPathPretty = path.join(outputDirPath, 'parsedDocsPretty.json');
-  await writeFile(outputPathPretty, JSON.stringify(results, null, 2));
+  await writeFile(outputPathPretty, JSON.stringify(entriesResult, null, 2));
 }

@@ -45,9 +45,16 @@ export interface PowerGenerators {
   fuel: ReturnType<typeof transformFuel>; // Circular imports are allowed for type only imports
 }
 
-export interface ParsedOutput {
+export interface ParsedOutputObjects {
   recipes: Record<string, Recipe>;
   productionMachines: Record<string, ProductionMachine>;
   items: Record<string, Item>;
   generators: Record<string, PowerGenerators>;
+}
+
+export interface ParsedOutput {
+  recipes: [string, Recipe][];
+  productionMachines: [string, ProductionMachine][];
+  items: [string, Item][];
+  generators: [string, PowerGenerators][];
 }

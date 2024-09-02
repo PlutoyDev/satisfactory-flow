@@ -73,10 +73,10 @@ export const docsMappedAtom = atom(async () => {
     const res = await fetch('/extracted/parsedDocs.json');
     const data = (await res.json()) as ParsedOutput;
     const mapped = {
-      recipes: new Map(Object.entries(data.recipes)),
-      productionMachines: new Map(Object.entries(data.productionMachines)),
-      items: new Map(Object.entries(data.items)),
-      generators: new Map(Object.entries(data.generators)),
+      recipes: new Map(data.recipes),
+      productionMachines: new Map(data.productionMachines),
+      items: new Map(data.items),
+      generators: new Map(data.generators),
     };
     return mapped;
   } catch (error) {
