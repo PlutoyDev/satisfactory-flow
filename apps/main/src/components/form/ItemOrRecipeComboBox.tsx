@@ -58,16 +58,16 @@ function ItemOrRecipeListItem({ data, docsMapped, selected, onClick, onMouseEnte
 
       {isAltRecipe ? (
         <>
-          <p className='col-start-8'>{listItem.displayName.slice(11)}</p>
           <span
-            className='border-accent text-accent text-bold tooltip tooltip-left ml-2 rounded-sm border px-0.5 group-data-[selected=true]:text-black'
+            className='border-accent text-accent text-bold tooltip tooltip-right tooltip-accent col-start-8 ml-2 rounded-sm border px-0.5 group-data-[selected=true]:text-black'
             data-tip='Alternate'
           >
             A
           </span>
+          <p className='col-start-9'>{listItem.displayName.slice(11)}</p>
         </>
       ) : (
-        <p className='col-start-8'>{listItem.displayName}</p>
+        <p className='col-start-9'>{listItem.displayName}</p>
       )}
     </button>
   );
@@ -175,8 +175,9 @@ export default function ItemOrRecipeComboBox({ type, placeholder, defaultKey, on
       } else if (e.key === 'ArrowRight' && !isFocusInput) {
         newSelectIndex = Math.min(selectIndex + PER_PAGE, displayList.length - 1);
       } else if (e.key === 'Enter') {
-        setValue(); // Get from selectIndex
-      } else if (e.key === 'Escape') {
+        if (isOpen) setValue();
+        else setIsOpen(true);
+      } else if (e.key === 'Escape' && isOpen) {
         setIsOpen(false);
       } else if (e.key.length === 1 || e.key === 'Backspace' || e.key === 'Delete' || e.key === ' ') {
         // letters, backspace, delete, space etc, focus search input
@@ -186,9 +187,10 @@ export default function ItemOrRecipeComboBox({ type, placeholder, defaultKey, on
         setSelectIndex(newSelectIndex);
         const selected = displayList[newSelectIndex];
         setDisplayText('item' in selected ? selected.item.displayName : selected.displayName);
+        setIsOpen(true);
       }
     },
-    [page, searchResult, selectIndex],
+    [page, searchResult, selectIndex, displayList, isOpen, setValue],
   );
 
   return (
@@ -236,9 +238,7 @@ export default function ItemOrRecipeComboBox({ type, placeholder, defaultKey, on
         >
           <ul
             className='w-80'
-            style={
-              type === 'recipe' ? { display: 'grid', gridTemplateColumns: 'repeat(7, auto) 1fr min-content', width: '36rem' } : undefined
-            }
+            style={type === 'recipe' ? { display: 'grid', gridTemplateColumns: 'repeat(8, auto) 1fr', width: '30rem' } : undefined}
             onWheel={e => {
               if (e.deltaY < 0) setSelectIndex(p => Math.max(p - PER_PAGE, 0));
               else setSelectIndex(p => Math.min(p + PER_PAGE, displayList.length - 1));
