@@ -78,51 +78,47 @@ function HomePage() {
 
 export default HomePage;
 
-function NavigateToFlowButton({ flowName, flowId, source }: { flowName: string; flowId: string; source: 'db' | 'example' }) {
-  const [, setSelectedFlow] = useAtom(selectedFlowAtom);
-  return (
-    <a
-      className='btn btn-sm btn-outline rounded-badge'
-      href={`/flows/${source}/${flowId}`}
-      onClick={e => {
-        e.preventDefault();
-        setSelectedFlow({ flowId, source });
-      }}
-    >
-      {flowName}
-    </a>
-  );
-}
-
 function SelectView({ setView }: { setView: SetView }) {
+  const [, setSelectedFlow] = useAtom(selectedFlowAtom);
   const [flows] = useAtom(flowsAtom);
+
   return (
     <>
       <p className='text-lg font-bold'>Select Flow</p>
       <div className='grid grid-cols-[auto_auto] gap-2'>
-        <p className='justify-self-end'>Created: </p>
-        <div className='col-start-2 flex flex-wrap gap-1'>
-          {flows.length > 0 ? (
-            flows.map(({ id, name }) => <NavigateToFlowButton key={id} flowId={id} flowName={name} source='db' />)
-          ) : (
-            <p>No flows created yet.</p>
-          )}
-        </div>
-        <p className='justify-self-end'>Examples: </p>
-        <div className='col-start-2 flex flex-wrap'>
-          {Array.from(examples.values()).map(({ id, name }) => (
-            <NavigateToFlowButton key={id} flowId={id} flowName={name} source='example' />
-          ))}
-        </div>
+        {([flows, Array.from(examples.values())] as const).map((flows, i) => (
+          <>
+            <p className='justify-self-end'>{i === 0 ? 'Created: ' : 'Examples: '}</p>
+            <div className='col-start-2 flex flex-wrap gap-1'>
+              {flows.length > 0 ? (
+                flows.map(({ id, name }) => {
+                  const source = i === 0 ? 'db' : 'example';
+                  return (
+                    <a
+                      className='btn btn-sm btn-outline rounded-badge'
+                      href={`/flows/${source}/${id}`}
+                      onClick={e => (e.preventDefault(), setSelectedFlow({ flowId: id, source }))}
+                    >
+                      {name}
+                    </a>
+                  );
+                })
+              ) : (
+                <p>No flows created yet.</p>
+              )}
+            </div>
+          </>
+        ))}
       </div>
-      <p className='text-lg'>Or create a new flow:</p>
-      <button className='btn btn-outline w-full' onClick={() => setView('create')}>
-        New Flow
-      </button>
-      <p className='text-lg'>Or import a flow:</p>
-      <button className='btn btn-outline w-full' onClick={() => setView('import')}>
-        Import Flow
-      </button>
+      <div className='flex flex-row items-center justify-around'>
+        <button className='btn btn-outline w-2/5' onClick={() => setView('create')}>
+          Create a Flow
+        </button>
+        <div className='divider divider-horizontal'>OR</div>
+        <button className='btn btn-outline w-2/5' onClick={() => setView('import')}>
+          Import a Flow
+        </button>
+      </div>
     </>
   );
 }
