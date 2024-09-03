@@ -5,7 +5,7 @@ import { JSONError } from 'parse-json';
 import { ZodError } from 'zod';
 import examples from '../examples';
 import { parseFlowData } from '../lib/data';
-import { createFlow, flowsAtom, selectedFlowAtom } from '../lib/store';
+import { createFlow, deleteFlow, flowsAtom, selectedFlowAtom } from '../lib/store';
 
 type View = 'create' | 'import' | 'select' | 'edit';
 type SetView = (view: View) => void;
@@ -305,12 +305,15 @@ function EditView({ setView }: { setView: SetView }) {
           <p className='text-sm text-gray-500'>This action cannot be undone.</p>
           <div className='flex w-full justify-between'>
             <button
-              className='btn btn-error w-2/5'
+              className='btn btn-error w-2/5 truncate'
               onClick={() => {
-                // TODO: Delete flow
+                deleteFlow(localSelectFlow);
+                setLocalSelectFlow(null);
+                setOldName('');
+                setNewName('');
               }}
             >
-              TODO: Delete {oldName}
+              Delete {oldName}
             </button>
             <button className='btn btn-accent w-2/5' onClick={() => setIsDeleting(false)}>
               Cancel
@@ -320,7 +323,7 @@ function EditView({ setView }: { setView: SetView }) {
       ) : (
         <>
           <p className='text-lg font-bold'>Flow detail</p>
-          <p className='inline indent-3 text-sm text-gray-500'>Flow ID: {localSelectFlow}</p>
+          <p className='inline indent-3 text-sm text-gray-500'>Flow ID: {localSelectFlow ?? 'None selected'}</p>
           <button
             className='btn btn-sm rounded-badge btn-outline btn-error ml-4'
             onClick={() => setIsDeleting(true)}

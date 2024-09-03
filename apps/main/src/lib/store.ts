@@ -18,6 +18,7 @@ import {
 } from './data';
 import {
   delEdges,
+  deleteFlowInDb,
   delNodes,
   getEdges,
   getFlows,
@@ -105,6 +106,17 @@ export const flowsAtom = atom(
     }
   },
 );
+
+export function deleteFlow(id: string) {
+  const flows = store.get(_flowsAtom);
+  const flow = flows.get(id);
+  if (flow) {
+    const newFlows = new Map(flows);
+    newFlows.delete(id);
+    store.set(_flowsAtom, newFlows);
+    deleteFlowInDb(id);
+  }
+}
 
 const flowSource = ['db', 'example', 'import'] as const;
 type FlowSource = (typeof flowSource)[number];

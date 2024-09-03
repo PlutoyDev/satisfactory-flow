@@ -1,5 +1,5 @@
 import type { Node, Edge } from '@xyflow/react';
-import { openDB, DBSchema } from 'idb';
+import { openDB, DBSchema, deleteDB } from 'idb';
 import { filter, map, mapToObj, pipe } from 'remeda';
 import { MainNodeProp, MainEdgeProp, FlowProperties, FlowInfo, pickMainNodeProp, pickMainEdgeProp } from './data';
 
@@ -134,6 +134,11 @@ export async function openFlowDb(flowId: string, throwIfNotExists = true) {
       }
     },
   });
+}
+
+export async function deleteFlowInDb(flowId: string) {
+  const dbName = `flow-${flowId}`;
+  return Promise.all([deleteDB(dbName), openMainDb().then(mainDb => mainDb.delete('flows', flowId))]);
 }
 
 type FlowDb = Awaited<ReturnType<typeof openFlowDb>>;
