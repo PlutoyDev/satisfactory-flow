@@ -223,6 +223,7 @@ export default function ItemOrRecipeComboBox({ type, placeholder, defaultKey, on
 
   const onKeyPress = useCallback(
     (e: KeyboardEvent) => {
+      e.stopPropagation();
       let newSelectIndex: number | undefined;
       const isFocusInput = document.activeElement === inputRef.current;
       if (e.key === 'ArrowDown') {
