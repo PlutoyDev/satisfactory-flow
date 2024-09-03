@@ -7,7 +7,7 @@ import examples from '../examples';
 import { parseFlowData } from '../lib/data';
 import { createFlow, flowsAtom, selectedFlowAtom } from '../lib/store';
 
-type View = 'create' | 'import' | 'select';
+type View = 'create' | 'import' | 'select' | 'edit';
 type SetView = (view: View) => void;
 
 function HomePage() {
@@ -16,7 +16,7 @@ function HomePage() {
   return (
     <>
       {/* Center floating div */}
-      <div className='rounded-box bg-base-200 absolute left-1/2 top-1/2 w-[36rem] -translate-x-1/2 -translate-y-1/2 px-8 py-4 shadow-xl *:*:mt-2 *:mt-2'>
+      <div className='rounded-box bg-base-200 absolute left-1/2 top-1/2 w-[40rem] -translate-x-1/2 -translate-y-1/2 px-8 py-4 shadow-xl *:*:mt-2 *:mt-2'>
         <h1 className='w-full text-center text-4xl font-bold'>
           <span className='text-accent'>Satisfactory </span>
           Flow
@@ -24,6 +24,7 @@ function HomePage() {
         {view === 'select' && <SelectView setView={setView} />}
         {view === 'create' && <CreateView setView={setView} />}
         {view === 'import' && <ImportView setView={setView} />}
+        {view === 'edit' && <EditView setView={setView} />}
       </div>
       {/* Bottom-Left section */}
       <div className='absolute bottom-4 left-0 p-4 opacity-30'>
@@ -54,7 +55,6 @@ function HomePage() {
         <p className='text-center text-[0.5rem]'>
           This project is not affiliated with Coffee Stain Studios. Satisfactory is a trademark of Coffee Stain Studios.
         </p>
-        <p className='text-center text-[0.5rem]'>Assets used in this project are property of Coffee Stain Studios.</p>
       </div>
       {/* Bottom Right */}
       <div className='absolute bottom-4 right-4 flex flex-row p-4'>
@@ -84,11 +84,14 @@ function SelectView({ setView }: { setView: SetView }) {
 
   return (
     <>
-      <p className='text-lg font-bold'>Select Flow</p>
-      <div className='grid grid-cols-[auto_auto] gap-2'>
+      <p className='inline text-lg font-bold'>Select Flow </p>
+      <button className='btn btn-outline btn-sm rounded-badge float-right' onClick={() => setView('edit')}>
+        Edit flow list
+      </button>
+      <div className='mb-4 grid grid-cols-[auto_auto] gap-2'>
         {([flows, Array.from(examples.values())] as const).map((flows, i) => (
           <>
-            <p className='justify-self-end'>{i === 0 ? 'Created: ' : 'Examples: '}</p>
+            <p className='place-self-center'>{i === 0 ? 'Created: ' : 'Examples: '}</p>
             <div className='col-start-2 flex flex-wrap gap-1'>
               {flows.length > 0 ? (
                 flows.map(({ id, name }) => {
@@ -97,7 +100,7 @@ function SelectView({ setView }: { setView: SetView }) {
                     <a
                       className='btn btn-sm btn-outline rounded-badge'
                       href={`/flows/${source}/${id}`}
-                      onClick={e => (e.preventDefault(), setSelectedFlow({ flowId: id, source }))}
+                      onClick={e => (e.preventDefault(), setSelectedFlow({ source, flowId: id }))}
                     >
                       {name}
                     </a>
@@ -262,6 +265,96 @@ function ImportView({ setView }: { setView: SetView }) {
           Cancel
         </button>
       </div>
+    </>
+  );
+}
+
+function EditView({ setView }: { setView: SetView }) {
+  const [localSelectFlow, setLocalSelectFlow] = useState<string | null>(null);
+  const [newName, setNewName] = useState<string>('');
+  const [oldName, setOldName] = useState<string>('');
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const [flows, updateOneFlow] = useAtom(flowsAtom);
+  // Edit the flow listing like delete, rename, full import/export
+
+  return (
+    <>
+      <p className='inline text-lg font-bold'>Flow: </p>
+      <div className='col-start-2 mb-8 ml-4 flex flex-wrap gap-1'>
+        {flows.map(({ id, name }) => {
+          return (
+            <button
+              data-selected={localSelectFlow === id}
+              className='btn btn-sm btn-outline rounded-badge data-[selected=true]:btn-active'
+              onClick={() => {
+                setLocalSelectFlow(id);
+                setNewName(name);
+                setOldName(name);
+                setIsDeleting(false);
+              }}
+              key={id}
+            >
+              {name}
+            </button>
+          );
+        })}
+      </div>
+      {isDeleting && localSelectFlow ? (
+        <>
+          <p className='text-lg font-bold'>Are you sure you want to delete "{oldName}"?</p>
+          <p className='text-sm text-gray-500'>This action cannot be undone.</p>
+          <div className='flex w-full justify-between'>
+            <button
+              className='btn btn-error w-2/5'
+              onClick={() => {
+                // TODO: Delete flow
+              }}
+            >
+              TODO: Delete {oldName}
+            </button>
+            <button className='btn btn-accent w-2/5' onClick={() => setIsDeleting(false)}>
+              Cancel
+            </button>
+          </div>
+        </>
+      ) : (
+        <>
+          <p className='text-lg font-bold'>Flow detail</p>
+          <p className='inline indent-3 text-sm text-gray-500'>Flow ID: {localSelectFlow}</p>
+          <button
+            className='btn btn-sm rounded-badge btn-outline btn-error ml-4'
+            onClick={() => setIsDeleting(true)}
+            disabled={!localSelectFlow}
+          >
+            Delete {oldName}
+          </button>
+          <label htmlFor='flowName' className='form-control w-full'>
+            Rename:
+            <input type='text' id='flowName' className='input input-sm' value={newName} onChange={e => setNewName(e.target.value)} />
+          </label>
+
+          {!localSelectFlow || newName === oldName ? (
+            <button
+              className='btn btn-success mx-auto flex w-2/5'
+              onClick={() => {
+                setView('select');
+              }}
+            >
+              Done
+            </button>
+          ) : (
+            <button
+              className='btn btn-success mx-auto flex w-2/5'
+              onClick={() => {
+                updateOneFlow(localSelectFlow!, { name: newName });
+                setOldName(newName);
+              }}
+            >
+              Save new name
+            </button>
+          )}
+        </>
+      )}
     </>
   );
 }

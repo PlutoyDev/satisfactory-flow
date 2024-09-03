@@ -91,7 +91,20 @@ _flowsAtom.onMount = set =>
   void getFlows()
     .then(flows => new Map(flows.map(flow => [flow.id, flow])))
     .then(set);
-export const flowsAtom = atom(get => Array.from(get(_flowsAtom).values()).filter(flow => !flow.id.startsWith('imported-')));
+export const flowsAtom = atom(
+  get => Array.from(get(_flowsAtom).values()).filter(flow => !flow.id.startsWith('imported-')),
+  (get, set, id: string, update: Partial<FlowInfo>) => {
+    const flows = get(_flowsAtom);
+    const flow = flows.get(id);
+    if (flow) {
+      const newFlow = { ...flow, ...update };
+      const newFlows = new Map(flows);
+      newFlows.set(id, newFlow);
+      set(_flowsAtom, newFlows);
+      setFlow(newFlow);
+    }
+  },
+);
 
 const flowSource = ['db', 'example', 'import'] as const;
 type FlowSource = (typeof flowSource)[number];
