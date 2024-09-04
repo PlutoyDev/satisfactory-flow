@@ -7,6 +7,19 @@ import parseJson from 'parse-json';
 import { pick } from 'remeda';
 import { z } from 'zod';
 
+export const FACTORY_NODE_TYPES = ['item', 'recipe', 'logistic', 'sink'] as const;
+export type FactoryNodeType = (typeof FACTORY_NODE_TYPES)[number];
+
+/*
+Hard Coded data for the app
+*/
+export const FACTORY_NODE_DEFAULT_COLORS = {
+  item: '#76BABF',
+  recipe: '#F6AD55',
+  logistic: '#71DA8F',
+  sink: '#52525b',
+} as const satisfies Record<FactoryNodeType, string>;
+
 /*
 Data type using for computation
 

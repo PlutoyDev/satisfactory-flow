@@ -1,6 +1,7 @@
 import { RotateCw, RotateCcw } from 'lucide-react';
 import { FactoryBaseNodeData } from '../../lib/data';
-import { FACTORY_NODE_DEFAULT_COLORS, useEditorField } from '../rf/BaseNode';
+import { FACTORY_NODE_DEFAULT_COLORS } from '../../lib/data';
+import { useEditorField } from '../rf/BaseNode';
 
 export function RotationAndColorFields() {
   const { currentValue: bgColor, setValue: setBgColor, nodeOrEdge } = useEditorField<FactoryBaseNodeData['bgColor']>('bgColor', true);

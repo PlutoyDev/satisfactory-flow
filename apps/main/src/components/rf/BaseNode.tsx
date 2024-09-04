@@ -1,17 +1,7 @@
 import { createContext, ReactNode, useContext, useEffect, useRef } from 'react';
 import { Handle, NodeProps, Position, Node, useUpdateNodeInternals, Edge } from '@xyflow/react';
-import { FACTORY_INTERFACE_DIR, FactoryInterfaceDir, FactoryInterfaceType, FactoryItemForm, joinIntoHandleId } from '../../lib/data';
+import { FACTORY_INTERFACE_DIR, FACTORY_NODE_DEFAULT_COLORS, FactoryInterfaceDir, FactoryInterfaceType, FactoryItemForm, FactoryNodeType, joinIntoHandleId } from '../../lib/data';
 import { FactoryBaseNodeData } from '../../lib/data';
-
-export const FACTORY_NODE_TYPES = ['item', 'recipe', 'logistic', 'sink'] as const;
-export type FactoryNodeType = (typeof FACTORY_NODE_TYPES)[number];
-
-export const FACTORY_NODE_DEFAULT_COLORS = {
-  item: '#76BABF',
-  recipe: '#F6AD55',
-  logistic: '#71DA8F',
-  sink: '#52525b',
-} as const satisfies Record<FactoryNodeType, string>;
 
 /* 
   Wrapper for custom node that providies rendering of:
