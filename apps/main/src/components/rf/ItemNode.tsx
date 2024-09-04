@@ -1,12 +1,12 @@
-import { useMemo } from 'react';
 import { NodeProps, Node } from '@xyflow/react';
 import { useAtom } from 'jotai';
+import { getFactoryInterfaceForItemNode } from '../../engines/interface';
 import { FactoryItemNodeData, resolveItemNodeData, speedThouToString } from '../../lib/data';
 import { docsMappedAtom } from '../../lib/store';
 import ItemOrRecipeComboBox from '../form/ItemOrRecipeComboBox';
 import NumberInput from '../form/NumberInput';
 import { RotationAndColorFields } from '../form/RotationAndColor';
-import { FactoryInterface, FactoryNodeWrapper, useEditorField } from './BaseNode';
+import { FactoryNodeWrapper, useEditorField } from './BaseNode';
 
 const defaultSize = 96;
 // const MachineSize = {
@@ -19,32 +19,25 @@ const defaultSize = 96;
 // } as const satisfies Record<string, [number, number]>;
 
 export function ItemNode(props: NodeProps<Node<FactoryItemNodeData>>) {
-  const { itemKey, interfaceKind, speedThou } = resolveItemNodeData(props.data);
+  const { itemKey, speedThou } = resolveItemNodeData(props.data);
   const [docsMapped] = useAtom(docsMappedAtom);
 
   const item = itemKey && docsMapped.items.get(itemKey);
 
-  const interfaces = useMemo(() => {
-    if (!item) return {};
-    const interfaces: FactoryInterface = {};
-    const itemForm = item.form === 'solid' ? 'solid' : 'fluid';
+  const interfaces = getFactoryInterfaceForItemNode({
+    nodeId: props.id,
+    data: props.data,
+    docsMapped,
+  });
 
-    if (interfaceKind === 'both' || interfaceKind === 'in') {
-      interfaces.left = [{ type: 'in', form: itemForm }];
-    }
-    if (interfaceKind === 'both' || interfaceKind === 'out') {
-      interfaces.right = [{ type: 'out', form: itemForm }];
-    }
-    return interfaces;
-  }, [item, interfaceKind]);
-
-  if (!itemKey) {
+  if (!interfaces) {
     return (
       <FactoryNodeWrapper {...props} size={defaultSize}>
         <p>Unset</p>
       </FactoryNodeWrapper>
     );
   }
+
   if (!item) {
     return (
       <FactoryNodeWrapper {...props} size={defaultSize}>

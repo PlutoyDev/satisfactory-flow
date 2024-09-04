@@ -1,41 +1,16 @@
-import { useMemo } from 'react';
 import { NodeProps, Node } from '@xyflow/react';
-import {
-  type FactoryItemForm,
-  type FactoryInterfaceType,
-  FACTORY_INTERFACE_DIR,
-  LogisticType,
-  type FactoryLogisticNodeData,
-  resolveLogisticNodeData,
-} from '../../lib/data';
+import { getFactoryInterfaceForLogisticNode } from '../../engines/interface';
+import { LogisticType, type FactoryLogisticNodeData } from '../../lib/data';
 import { OutputFilterRule } from '../form/OutputFilterRule';
 import { RotationAndColorFields } from '../form/RotationAndColor';
-import { FactoryInterface, FactoryNodeWrapper, useEditorField } from './BaseNode';
+import { FactoryNodeWrapper, useEditorField } from './BaseNode';
 
 const defaultSize = 96;
 
 export function LogisticNode(props: NodeProps<Node<FactoryLogisticNodeData>>) {
-  const { type: logisticType, pipeJuncInt } = resolveLogisticNodeData(props.data);
+  const interfaces = getFactoryInterfaceForLogisticNode({ nodeId: props.id, data: props.data });
 
-  const interfaces = useMemo(() => {
-    if (!logisticType) return {};
-    const interfaces: FactoryInterface = {};
-    for (const dir of FACTORY_INTERFACE_DIR) {
-      let itemForm: FactoryItemForm;
-      let intType: FactoryInterfaceType;
-      if (logisticType === 'pipeJunc') {
-        itemForm = 'fluid';
-        intType = dir === 'left' ? 'in' : (pipeJuncInt[dir] ?? 'out');
-      } else {
-        itemForm = 'solid';
-        intType = (logisticType === 'merger' ? dir !== 'right' : dir === 'left') ? 'in' : 'out';
-      }
-      interfaces[dir] = [{ type: intType, form: itemForm }];
-    }
-    return interfaces;
-  }, [logisticType, pipeJuncInt]);
-
-  if (!logisticType) {
+  if (!interfaces) {
     return (
       <FactoryNodeWrapper {...props} size={defaultSize}>
         <p className='text-xs'>Unset</p>

@@ -2,12 +2,13 @@ import { Fragment, useMemo } from 'react';
 import { Node, NodeProps } from '@xyflow/react';
 import { useAtom } from 'jotai';
 import { ArrowRight } from 'lucide-react';
+import { getFactoryInterfaceForRecipeNode } from '../../engines/interface';
 import { clockSpeedThouToPercentString, FACTORY_MACHINE_PROPERTIES, FactoryRecipeNodeData, resolveRecipeNodeData } from '../../lib/data';
 import { docsMappedAtom } from '../../lib/store';
 import ItemOrRecipeComboBox from '../form/ItemOrRecipeComboBox';
 import NumberInput from '../form/NumberInput';
 import { RotationAndColorFields } from '../form/RotationAndColor';
-import { FactoryInterface, FactoryNodeWrapper, useEditorField } from './BaseNode';
+import { FactoryNodeWrapper, useEditorField } from './BaseNode';
 
 /* 
 Multiply by 24px/m to get the size in pixels
@@ -25,15 +26,13 @@ export function RecipeNode(props: NodeProps<Node<FactoryRecipeNodeData>>) {
   const [docsMapped] = useAtom(docsMappedAtom);
 
   const recipe = recipeKey && docsMapped.recipes.get(recipeKey);
-
   const swapSides = rotIdx % 2 === 1; // Left becomes top, right becomes bottom
   const flipSides = rotIdx / 2 >= 1; // Left becomes right, top becomes bottom
 
-  const { elements, interfaces } = useMemo(() => {
-    if (!recipe) return { elements: [], interfaces: {} as FactoryInterface };
+  const { elements } = useMemo(() => {
+    if (!recipe) return { elements: [] };
     const { ingredients, products } = recipe;
     const elements: JSX.Element[] = [];
-    const interfaces: FactoryInterface = {};
     const itemsLength = ingredients.length + products.length;
 
     for (let i = 0; i < itemsLength; i++) {
@@ -46,8 +45,6 @@ export function RecipeNode(props: NodeProps<Node<FactoryRecipeNodeData>>) {
         displayName = item.displayName;
         span = 12 / ingredients.length;
         start = (swapSides !== flipSides ? ingredients.length - 1 - i : i) * span;
-        interfaces.left ??= [];
-        interfaces.left.push({ type: 'in', form: item.form === 'solid' ? 'solid' : 'fluid' });
       } else {
         const itemKey = products[products.length - (i - ingredients.length) - 1].itemKey;
         const item = docsMapped.items.get(itemKey)!;
@@ -55,8 +52,6 @@ export function RecipeNode(props: NodeProps<Node<FactoryRecipeNodeData>>) {
         displayName = item.displayName;
         span = 12 / products.length;
         start = (swapSides !== flipSides ? products.length - 1 - (i - ingredients.length) : i - ingredients.length) * span;
-        interfaces.right ??= [];
-        interfaces.right.push({ type: 'out', form: item.form === 'solid' ? 'solid' : 'fluid' });
       }
 
       elements.push(
@@ -78,8 +73,10 @@ export function RecipeNode(props: NodeProps<Node<FactoryRecipeNodeData>>) {
         </Fragment>,
       );
     }
-    return { elements, interfaces };
-  }, [docsMapped, recipe, rotIdx, swapSides, flipSides]);
+    return { elements };
+  }, [docsMapped, recipe, rotIdx]);
+
+  const interfaces = getFactoryInterfaceForRecipeNode({ nodeId: props.id, data: props.data, docsMapped })!;
 
   if (!recipeKey) {
     return (
@@ -89,7 +86,7 @@ export function RecipeNode(props: NodeProps<Node<FactoryRecipeNodeData>>) {
     );
   }
 
-  if (!recipe) {
+  if (!recipe || !interfaces) {
     return (
       <FactoryNodeWrapper {...props} size={defaultSize}>
         <p>Recipe not found</p>
