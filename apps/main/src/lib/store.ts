@@ -2,7 +2,7 @@ import { Node, Edge, NodeChange, EdgeChange, Viewport } from '@xyflow/react';
 import type { ParsedOutput } from 'docs-parser';
 import { Atom, atom, getDefaultStore, PrimitiveAtom, SetStateAction, WritableAtom } from 'jotai';
 import { atomWithLocation } from 'jotai-location';
-import { computeFactoryGraph } from '../engines/itemSpeed';
+// import { computeFactoryGraph } from '../engines/itemSpeed';
 import examples from '../examples';
 import {
   generateId,
@@ -352,7 +352,7 @@ export async function deboucedAction(force?: true) {
         _debouncedIds.clear();
         const nodes = store.get(nodesMapAtom);
         const edges = store.get(edgesMapAtom);
-        const docsMapped = await store.get(docsMappedAtom);
+        // const docsMapped = await store.get(docsMappedAtom);
 
         const updatedNodes: Node[] = [];
         const updatedEdges: Edge[] = [];
@@ -373,7 +373,7 @@ export async function deboucedAction(force?: true) {
           }
         }
 
-        computeFactoryGraph({ docsMapped, nodeMap: nodes, edgeMap: edges });
+        // computeFactoryGraph({ docsMapped, nodeMap: nodes, edgeMap: edges });
         store.set(nodesMapAtom, new Map(nodes));
         store.set(edgesMapAtom, new Map(edges));
 
