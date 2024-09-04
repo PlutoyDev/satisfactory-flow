@@ -33,7 +33,7 @@ type FactoryInterfaceParams<Data extends FactoryBaseNodeData = FactoryBaseNodeDa
   memo?: boolean; //Control if store the result in a store
 };
 
-const memoDefault = false; // Default value of toMemo, usefull when testing
+const memoDefault = true; // Default value of toMemo, usefull when testing
 
 export function getFactoryInterfaceForItemNode({
   nodeId,

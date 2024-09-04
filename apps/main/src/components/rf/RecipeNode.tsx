@@ -76,7 +76,18 @@ export function RecipeNode(props: NodeProps<Node<FactoryRecipeNodeData>>) {
     return { elements };
   }, [docsMapped, recipe, rotIdx]);
 
-  const interfaces = getFactoryInterfaceForRecipeNode({ nodeId: props.id, data: props.data, docsMapped })!;
+  const size = useMemo(
+    () =>
+      recipe && recipe.producedIn in FACTORY_MACHINE_PROPERTIES
+        ? ([FACTORY_MACHINE_PROPERTIES[recipe.producedIn].length * 24, FACTORY_MACHINE_PROPERTIES[recipe.producedIn].width * 24] as [
+            number,
+            number,
+          ])
+        : defaultSize,
+    [recipeKey, docsMapped],
+  );
+
+  const interfaces = getFactoryInterfaceForRecipeNode({ nodeId: props.id, data: props.data, docsMapped });
 
   if (!recipeKey) {
     return (
@@ -95,13 +106,6 @@ export function RecipeNode(props: NodeProps<Node<FactoryRecipeNodeData>>) {
   }
 
   const machineName = docsMapped.productionMachines.get(recipe.producedIn)!.displayName;
-  const size =
-    recipe.producedIn in FACTORY_MACHINE_PROPERTIES
-      ? ([FACTORY_MACHINE_PROPERTIES[recipe.producedIn].length * 24, FACTORY_MACHINE_PROPERTIES[recipe.producedIn].width * 24] as [
-          number,
-          number,
-        ])
-      : defaultSize;
 
   return (
     <FactoryNodeWrapper {...props} factoryInterfaces={interfaces} size={size}>
