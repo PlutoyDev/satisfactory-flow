@@ -2,7 +2,7 @@ import { Fragment, useMemo } from 'react';
 import { Node, NodeProps } from '@xyflow/react';
 import { useAtom } from 'jotai';
 import { ArrowRight } from 'lucide-react';
-import { clockSpeedThouToPercentString, FactoryRecipeNodeData, resolveRecipeNodeData } from '../../lib/data';
+import { clockSpeedThouToPercentString, FACTORY_MACHINE_PROPERTIES, FactoryRecipeNodeData, resolveRecipeNodeData } from '../../lib/data';
 import { docsMappedAtom } from '../../lib/store';
 import ItemOrRecipeComboBox from '../form/ItemOrRecipeComboBox';
 import NumberInput from '../form/NumberInput';
@@ -10,17 +10,6 @@ import { RotationAndColorFields } from '../form/RotationAndColor';
 import { FactoryInterface, FactoryNodeWrapper, useEditorField } from './BaseNode';
 
 /* 
-Sizes of machines (W x L), Taken from satisfactory wiki.
-  Smelter 6 x 9
-  Constructor 7.9 x 9.9
-  Foundry 10 x 9
-  Assembler 10 x 15
-  Manufacturer 18 x 20
-  Packager 8 x 8
-  Refinery 10 x 20
-  Blender 18 x 16
-  Particle Accelerator 24 x 38
-
 Multiply by 24px/m to get the size in pixels
 Width of machine is the "height" in the node, and the length is the "width" in the node
 
@@ -28,18 +17,6 @@ TIP for vscode: using multi-cusor, append *18 to each number and highlight the m
   Open the command palette (Ctrl+Shift+P or Cmd+Shift+P or F1) and use "Emmet: Evaluate Math Expression"
   It will evaluate each math expression and replace it with the result (e.g. 6*24 -> 144)
 */
-
-const MachineSize = {
-  Build_SmelterMk1_C: [216, 144],
-  Build_ConstructorMk1_C: [240, 192],
-  Build_FoundryMk1_C: [216, 240],
-  Build_AssemblerMk1_C: [360, 240],
-  Build_ManufacturerMk1_C: [480, 432],
-  Build_Packager_C: [192, 192],
-  Build_OilRefinery_C: [480, 240],
-  Build_Blender_C: [384, 432],
-  Build_HadronCollider_C: [912, 576],
-} as const satisfies Record<string, [number, number]>;
 
 const defaultSize = 90;
 
@@ -121,7 +98,13 @@ export function RecipeNode(props: NodeProps<Node<FactoryRecipeNodeData>>) {
   }
 
   const machineName = docsMapped.productionMachines.get(recipe.producedIn)!.displayName;
-  const size = MachineSize[recipe.producedIn as keyof typeof MachineSize] ?? defaultSize;
+  const size =
+    recipe.producedIn in FACTORY_MACHINE_PROPERTIES
+      ? ([FACTORY_MACHINE_PROPERTIES[recipe.producedIn].length * 24, FACTORY_MACHINE_PROPERTIES[recipe.producedIn].width * 24] as [
+          number,
+          number,
+        ])
+      : defaultSize;
 
   return (
     <FactoryNodeWrapper {...props} factoryInterfaces={interfaces} size={size}>

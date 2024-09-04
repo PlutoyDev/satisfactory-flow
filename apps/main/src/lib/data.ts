@@ -20,6 +20,42 @@ export const FACTORY_NODE_DEFAULT_COLORS = {
   sink: '#52525b',
 } as const satisfies Record<FactoryNodeType, string>;
 
+interface FactoryMachineProperty {
+  width: number;
+  length: number;
+  solidIn: number;
+  solidOut: number;
+  fluidIn: number;
+  fluidOut: number;
+}
+
+/*
+Sizes of machines (W x L), Taken from Satisfactory wiki.
+  Smelter 6 x 9
+  Constructor 7.9 x 9.9
+  Foundry 10 x 9
+  Assembler 10 x 15
+  Manufacturer 18 x 20
+  Packager 8 x 8
+  Refinery 10 x 20
+  Blender 18 x 16
+  Particle Accelerator 24 x 38
+*/
+
+export const FACTORY_MACHINE_PROPERTIES: Record<string, FactoryMachineProperty> = {
+  Build_SmelterMk1_C: { width: 6, length: 9, solidIn: 1, solidOut: 1, fluidIn: 0, fluidOut: 0 },
+  Build_ConstructorMk1_C: { width: 8, length: 10, solidIn: 1, solidOut: 1, fluidIn: 0, fluidOut: 0 },
+  Build_FoundryMk1_C: { width: 10, length: 9, solidIn: 2, solidOut: 1, fluidIn: 0, fluidOut: 0 },
+  Build_AssemblerMk1_C: { width: 10, length: 15, solidIn: 2, solidOut: 1, fluidIn: 0, fluidOut: 0 },
+  Build_ManufacturerMk1_C: { width: 18, length: 20, solidIn: 4, solidOut: 1, fluidIn: 0, fluidOut: 0 },
+  Build_Packager_C: { width: 8, length: 8, solidIn: 1, solidOut: 1, fluidIn: 1, fluidOut: 1 },
+  Build_OilRefinery_C: { width: 10, length: 20, solidIn: 1, solidOut: 1, fluidIn: 1, fluidOut: 1 },
+  Build_Blender_C: { width: 18, length: 16, solidIn: 2, solidOut: 1, fluidIn: 2, fluidOut: 1 },
+  Build_HadronCollider_C: { width: 24, length: 38, solidIn: 2, solidOut: 1, fluidIn: 1, fluidOut: 0 },
+  // TODO (1.0): Add Converter { width: ??, length: ??, solidIn: 2, solidOut: 1, fluidIn: 0, fluidOut: 1 },
+  // TODO (1.0): Add Quantum Encoder { width: ??, length: ??, solidIn: 3, solidOut: 1, fluidIn: 1, fluidOut: 1 },
+};
+
 /*
 Data type using for computation
 
