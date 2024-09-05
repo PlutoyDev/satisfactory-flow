@@ -12,6 +12,6 @@ stat('public/extracted/parsedDocs.json').catch(() => {
 export default defineConfig({
   plugins: [react()],
   test: {
-    environment: 'jsdom',
+    environment: 'node',
   },
 });

@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "parseDocs": "pnpm run --filter docs-parser start",
-    "dev": "pnpm run --filter main dev"
+    "dev": "pnpm run --filter main dev",
+    "test": "pnpm run --filter main test"
   },
   "keywords": [],
   "author": "Plutoy",
