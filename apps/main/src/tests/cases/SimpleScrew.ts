@@ -39,7 +39,7 @@ export default {
     {
       id: 'I5XrBFifmO3j-zsi',
       type: 'item',
-      data: { speedThou: 30000, interfaceKind: 'both', itemKey: 'Desc_IronIngot_C' },
+      data: { speedThou: 30000, interfaceKind: 'out', itemKey: 'Desc_IronIngot_C' },
       position: { x: 660, y: 690 },
     },
     {
@@ -93,7 +93,7 @@ export default {
     {
       id: 'v7VgDusNsBK9WBGC',
       type: 'item',
-      data: { speedThou: 120000, interfaceKind: 'both', itemKey: 'Desc_IronScrew_C' },
+      data: { speedThou: 120000, interfaceKind: 'in', itemKey: 'Desc_IronScrew_C' },
       position: { x: 2598, y: 690 },
     },
     {

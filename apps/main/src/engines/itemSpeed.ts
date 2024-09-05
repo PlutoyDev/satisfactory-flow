@@ -18,34 +18,37 @@ type InputItemSpeed = { [itemKey: string]: number };
 type OutputItemSpeed = { [handleId: string]: InputItemSpeed };
 
 type ItemSpeedResult = {
-  input: InputItemSpeed;
-  output: OutputItemSpeed;
+  expectedInput: InputItemSpeed; // Expected input of this node based on the input and expected output
+  output: OutputItemSpeed; // Output of this node base on the input and expected output
+  efficiency?: number; // Efficiency of the node (only for recipe node)
 };
 
 type FactoryItemSpeedParams = {
   node: ExtendedNode;
   docsMapped: DocsMapped;
-  input: InputItemSpeed; // Sum of all the output of the connected nodes
-  output: OutputItemSpeed;
+  input: InputItemSpeed; // Supply of the connected nodes
+  expectedOutput: OutputItemSpeed; // Demand of the connected nodes
 };
 
 export function calFactoryItemSpeedForItemNode(params: FactoryItemSpeedParams): ItemSpeedResult | null {
-  const { node, docsMapped, input, output } = params;
+  const { node, docsMapped, input, expectedOutput } = params;
   const { itemKey, speedThou, interfaceKind } = node.data as ResolvedFactoryItemNodeData;
 
   if (!itemKey) return null;
   const item = docsMapped.items.get(itemKey)!;
 
-  const res: ItemSpeedResult = { input: {}, output: {} };
+  const res: ItemSpeedResult = { expectedInput: {}, output: {} };
 
   if (interfaceKind === 'both' || interfaceKind === 'in') {
-    res.input[itemKey] = speedThou;
+    res.expectedInput[itemKey] = speedThou;
   }
 
   if (interfaceKind === 'both' || interfaceKind === 'out') {
     const itemForm = item.form === 'solid' ? 'solid' : 'fluid';
     res.output = { [`right-${itemForm}-out-0`]: { [itemKey]: speedThou } };
   }
+
+  // TODO: For interfaceKind = both, penalize the efficiency if the input and output are not the same
 
   return res;
 }

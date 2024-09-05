@@ -20,7 +20,7 @@ for (const edge of SimpleScrew.edges) {
   edgesMap.set(edge.id, edge);
 }
 
-const ironIngotsItemNode = nodesMap.get('I5XrBFifmO3j-zsi')!;
+const ironIngotsItemNode = nodesMap.get('I5XrBFifmO3j-zsi')!; // Output only
 const ironIngotsSplitter0 = nodesMap.get('36aEjWC4FRlHV4_P')!;
 const ironIngotsSplitter1 = nodesMap.get('9no2X_unrLinSyNs')!;
 const ironRodConstructor0 = nodesMap.get('p9jVVxZhHUPoTMsF')!;
@@ -28,6 +28,7 @@ const ironRodConstructor1 = nodesMap.get('-kFW0_k0UaCLiMiN')!;
 const ironRodMerger0 = nodesMap.get('b_ogjtRaWd4tlnSc')!;
 const ironRodMerger1 = nodesMap.get('pe8Zk59_FyZ2QoNk')!;
 // TODO add more nodes and move it to SimpleScrew, I'm too lazy to do it now :D
+const screwItemNode = nodesMap.get('v7VgDusNsBK9WBGC')!; // Input only
 
 if (
   !ironIngotsItemNode ||
@@ -49,15 +50,37 @@ if (!docsMapped.items.has(IRON_INGOT_KEY) || !docsMapped.items.has(IRON_ROD_KEY)
   throw new Error('Item not found');
 }
 
-test('speed for item nodes', () => {
-  // Node: "I5XrBFifmO3j-zsi" is item node
-  const node = nodesMap.get('I5XrBFifmO3j-zsi');
-  if (!node) {
-    throw new Error('Node not found');
-  }
+test('iron ingot item node: no output provided', () => {
+  const result = calFactoryItemSpeedForItemNode({ node: ironIngotsItemNode, docsMapped, input: {}, expectedOutput: {} });
+  expect(result).toEqual({ expectedInput: {}, output: { 'right-solid-out-0': { [IRON_INGOT_KEY]: 30000 } } });
+});
 
-  expect(calFactoryItemSpeedForItemNode({ node: ironIngotsItemNode, docsMapped, input: {}, output: {} })).toEqual({
-    input: { Desc_IronIngot_C: 30000 },
-    output: { 'right-solid-out-0': { Desc_IronIngot_C: 30000 } },
+test('iron ingot item node: with matching output provided', () => {
+  const result = calFactoryItemSpeedForItemNode({
+    node: ironIngotsItemNode,
+    docsMapped,
+    input: {},
+    expectedOutput: { 'right-solid-out-0': { [IRON_INGOT_KEY]: 30000 } },
   });
+  expect(result).toEqual({ expectedInput: {}, output: { 'right-solid-out-0': { [IRON_INGOT_KEY]: 30000 } } }); // Output is the same as provided
+});
+
+test('iron ingot item node: with lower output provided', () => {
+  const result = calFactoryItemSpeedForItemNode({
+    node: ironIngotsItemNode,
+    docsMapped,
+    input: {},
+    expectedOutput: { 'right-solid-out-0': { [IRON_INGOT_KEY]: 27000 } },
+  });
+  expect(result).toEqual({ expectedInput: {}, output: { 'right-solid-out-0': { [IRON_INGOT_KEY]: 27000 } } });
+});
+
+test('iron ingot item node: with higher output provided', () => {
+  const result = calFactoryItemSpeedForItemNode({
+    node: ironIngotsItemNode,
+    docsMapped,
+    input: {},
+    expectedOutput: { 'right-solid-out-0': { [IRON_INGOT_KEY]: 31000 } },
+  });
+  expect(result).toEqual({ expectedInput: {}, output: { 'right-solid-out-0': { [IRON_INGOT_KEY]: 30000 } } });
 });
