@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import react from '@vitejs/plugin-react';
 import { stat } from 'fs/promises';
 import { defineConfig } from 'vite';
@@ -10,4 +11,7 @@ stat('public/extracted/parsedDocs.json').catch(() => {
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
+  test: {
+    environment: 'jsdom',
+  },
 });
