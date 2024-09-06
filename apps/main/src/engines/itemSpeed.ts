@@ -38,17 +38,39 @@ export function calFactoryItemSpeedForItemNode(params: FactoryItemSpeedParams): 
   const item = docsMapped.items.get(itemKey)!;
 
   const res: ItemSpeedResult = { expectedInput: {}, output: {} };
+  let outputSpeed: number | undefined;
+  let inputSpeed: number | undefined;
 
   if (interfaceKind === 'both' || interfaceKind === 'in') {
-    res.expectedInput[itemKey] = speedThou;
+    const providedItemSpeed = input[itemKey];
+    if (providedItemSpeed) {
+      // If the provided input is less than the speed, then the input is the provided input
+      // Otherwise, the input is the speed.
+      inputSpeed = Math.min(speedThou, providedItemSpeed);
+      res.expectedInput[itemKey] = inputSpeed;
+    } else {
+      res.expectedInput[itemKey] = inputSpeed = speedThou;
+    }
   }
 
   if (interfaceKind === 'both' || interfaceKind === 'out') {
     const itemForm = item.form === 'solid' ? 'solid' : 'fluid';
-    res.output = { [`right-${itemForm}-out-0`]: { [itemKey]: speedThou } };
+    const handleId = `right-${itemForm}-out-0`;
+    const expectedItemSpeed = expectedOutput[handleId]?.[itemKey];
+    if (expectedItemSpeed) {
+      // If the expected output is less than the speed, then the output speed is the expected output speed
+      // Otherwise, the output speed is the speed.
+      outputSpeed = Math.min(speedThou, expectedItemSpeed);
+      res.output[handleId] = { [itemKey]: outputSpeed };
+      res.efficiency = outputSpeed / speedThou;
+    } else {
+      res.output[handleId] = { [itemKey]: speedThou };
+    }
   }
 
-  // TODO: For interfaceKind = both, penalize the efficiency if the input and output are not the same
+  if (interfaceKind === 'both' && inputSpeed && outputSpeed && inputSpeed !== outputSpeed) {
+    // TODO: For interfaceKind = both and inputSpeed !== outputSpeed, penalize the efficiency and the speeds
+  }
 
   return res;
 }

@@ -62,7 +62,7 @@ test('iron ingot item node: with matching output provided', () => {
     input: {},
     expectedOutput: { 'right-solid-out-0': { [IRON_INGOT_KEY]: 30000 } },
   });
-  expect(result).toEqual({ expectedInput: {}, output: { 'right-solid-out-0': { [IRON_INGOT_KEY]: 30000 } } }); // Output is the same as provided
+  expect(result).toEqual({ efficiency: 1, expectedInput: {}, output: { 'right-solid-out-0': { [IRON_INGOT_KEY]: 30000 } } }); // Output is the same as provided
 });
 
 test('iron ingot item node: with lower output provided', () => {
@@ -72,7 +72,7 @@ test('iron ingot item node: with lower output provided', () => {
     input: {},
     expectedOutput: { 'right-solid-out-0': { [IRON_INGOT_KEY]: 27000 } },
   });
-  expect(result).toEqual({ expectedInput: {}, output: { 'right-solid-out-0': { [IRON_INGOT_KEY]: 27000 } } });
+  expect(result).toEqual({ efficiency: 27000 / 30000, expectedInput: {}, output: { 'right-solid-out-0': { [IRON_INGOT_KEY]: 27000 } } });
 });
 
 test('iron ingot item node: with higher output provided', () => {
@@ -82,5 +82,5 @@ test('iron ingot item node: with higher output provided', () => {
     input: {},
     expectedOutput: { 'right-solid-out-0': { [IRON_INGOT_KEY]: 31000 } },
   });
-  expect(result).toEqual({ expectedInput: {}, output: { 'right-solid-out-0': { [IRON_INGOT_KEY]: 30000 } } });
+  expect(result).toEqual({ efficiency: 1, expectedInput: {}, output: { 'right-solid-out-0': { [IRON_INGOT_KEY]: 30000 } } });
 });
