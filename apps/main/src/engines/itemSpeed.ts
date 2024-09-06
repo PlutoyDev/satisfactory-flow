@@ -14,16 +14,16 @@ import { DocsMapped, ExtendedNode } from '../lib/store';
 // it doesn't matter which input the item is fed to the node (unless its fluid)
 // but output will only output to a sepicific handleId
 
-type InputItemSpeed = { [itemKey: string]: number };
-type OutputItemSpeed = { [handleId: string]: InputItemSpeed };
+export type InputItemSpeed = { [itemKey: string]: number };
+export type OutputItemSpeed = { [handleId: string]: InputItemSpeed };
 
-type ItemSpeedResult = {
+export type ItemSpeedResult = {
   expectedInput: InputItemSpeed; // Expected input of this node based on the input and expected output
   output: OutputItemSpeed; // Output of this node base on the input and expected output
   efficiency?: number; // Efficiency of the node (only for recipe node)
 };
 
-type FactoryItemSpeedParams = {
+export type FactoryItemSpeedParams = {
   node: ExtendedNode;
   docsMapped: DocsMapped;
   input: InputItemSpeed; // Supply of the connected nodes
@@ -42,15 +42,12 @@ export function calFactoryItemSpeedForItemNode(params: FactoryItemSpeedParams): 
   let inputSpeed: number | undefined;
 
   if (interfaceKind === 'both' || interfaceKind === 'in') {
-    const providedItemSpeed = input[itemKey];
-    if (providedItemSpeed) {
-      // If the provided input is less than the speed, then the input is the provided input
-      // Otherwise, the input is the speed.
-      inputSpeed = Math.min(speedThou, providedItemSpeed);
+    const providedItemSpeed = input[itemKey] ?? 0;
+    // If the provided input is less than the speed, it will still expect the speed
+    // but the efficiency will be penalized
+    inputSpeed = speedThou;
       res.expectedInput[itemKey] = inputSpeed;
-    } else {
-      res.expectedInput[itemKey] = inputSpeed = speedThou;
-    }
+    res.efficiency = Math.min(1, providedItemSpeed / speedThou);
   }
 
   if (interfaceKind === 'both' || interfaceKind === 'out') {

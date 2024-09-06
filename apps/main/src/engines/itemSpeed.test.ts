@@ -96,3 +96,46 @@ describe('iron ingot item node', () => {
     expect(result).toEqual({ efficiency: 0, expectedInput: {}, output: { 'right-solid-out-0': { [IRON_INGOT_KEY]: 0 } } });
   });
 });
+
+describe('screw item node', () => {
+  test('no input provided', () => {
+    const result = calFactoryItemSpeedForItemNode({ node: screwItemNode, docsMapped, input: {} });
+    expect(result).toEqual({ efficiency: 0, expectedInput: { [SCREW_KEY]: 120_000 }, output: {} });
+  });
+
+  test('with matching input provided', () => {
+    const result = calFactoryItemSpeedForItemNode({
+      node: screwItemNode,
+      docsMapped,
+      input: { [SCREW_KEY]: 120_000 },
+    });
+    expect(result).toEqual({ efficiency: 1, expectedInput: { [SCREW_KEY]: 120_000 }, output: {} });
+  });
+
+  test('with lower input provided', () => {
+    const result = calFactoryItemSpeedForItemNode({
+      node: screwItemNode,
+      docsMapped,
+      input: { [SCREW_KEY]: 100_000 },
+    });
+    expect(result).toEqual({ efficiency: 100_000 / 120_000, expectedInput: { [SCREW_KEY]: 120_000 }, output: {} });
+  });
+
+  test('with higher input provided', () => {
+    const result = calFactoryItemSpeedForItemNode({
+      node: screwItemNode,
+      docsMapped,
+      input: { [SCREW_KEY]: 150_000 },
+    });
+    expect(result).toEqual({ efficiency: 1, expectedInput: { [SCREW_KEY]: 120_000 }, output: {} });
+  });
+
+  test('with wrong input provided', () => {
+    const result = calFactoryItemSpeedForItemNode({
+      node: screwItemNode,
+      docsMapped,
+      input: { [IRON_ROD_KEY]: 120_000 },
+    });
+    expect(result).toEqual({ efficiency: 0, expectedInput: { [SCREW_KEY]: 120_000 }, output: {} });
+  });
+});
