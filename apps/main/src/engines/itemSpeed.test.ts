@@ -1,4 +1,4 @@
-import { test, expect } from 'vitest';
+import { test, expect, describe } from 'vitest';
 import type { ExtendedNode } from '../lib/store';
 import SimpleScrew from '../tests/cases/SimpleScrew';
 import { docsMapped } from '../tests/lib';
@@ -50,37 +50,39 @@ if (!docsMapped.items.has(IRON_INGOT_KEY) || !docsMapped.items.has(IRON_ROD_KEY)
   throw new Error('Item not found');
 }
 
-test('iron ingot item node: no output provided', () => {
-  const result = calFactoryItemSpeedForItemNode({ node: ironIngotsItemNode, docsMapped, input: {}, expectedOutput: {} });
-  expect(result).toEqual({ expectedInput: {}, output: { 'right-solid-out-0': { [IRON_INGOT_KEY]: 30000 } } });
-});
-
-test('iron ingot item node: with matching output provided', () => {
-  const result = calFactoryItemSpeedForItemNode({
-    node: ironIngotsItemNode,
-    docsMapped,
-    input: {},
-    expectedOutput: { 'right-solid-out-0': { [IRON_INGOT_KEY]: 30000 } },
+describe('iron ingot item node', () => {
+  test('no output provided', () => {
+    const result = calFactoryItemSpeedForItemNode({ node: ironIngotsItemNode, docsMapped, input: {}, expectedOutput: {} });
+    expect(result).toEqual({ expectedInput: {}, output: { 'right-solid-out-0': { [IRON_INGOT_KEY]: 30000 } } });
   });
-  expect(result).toEqual({ efficiency: 1, expectedInput: {}, output: { 'right-solid-out-0': { [IRON_INGOT_KEY]: 30000 } } }); // Output is the same as provided
-});
 
-test('iron ingot item node: with lower output provided', () => {
-  const result = calFactoryItemSpeedForItemNode({
-    node: ironIngotsItemNode,
-    docsMapped,
-    input: {},
-    expectedOutput: { 'right-solid-out-0': { [IRON_INGOT_KEY]: 27000 } },
+  test('with matching output provided', () => {
+    const result = calFactoryItemSpeedForItemNode({
+      node: ironIngotsItemNode,
+      docsMapped,
+      input: {},
+      expectedOutput: { 'right-solid-out-0': { [IRON_INGOT_KEY]: 30000 } },
+    });
+    expect(result).toEqual({ efficiency: 1, expectedInput: {}, output: { 'right-solid-out-0': { [IRON_INGOT_KEY]: 30000 } } }); // Output is the same as provided
   });
-  expect(result).toEqual({ efficiency: 27000 / 30000, expectedInput: {}, output: { 'right-solid-out-0': { [IRON_INGOT_KEY]: 27000 } } });
-});
 
-test('iron ingot item node: with higher output provided', () => {
-  const result = calFactoryItemSpeedForItemNode({
-    node: ironIngotsItemNode,
-    docsMapped,
-    input: {},
-    expectedOutput: { 'right-solid-out-0': { [IRON_INGOT_KEY]: 31000 } },
+  test('with lower output provided', () => {
+    const result = calFactoryItemSpeedForItemNode({
+      node: ironIngotsItemNode,
+      docsMapped,
+      input: {},
+      expectedOutput: { 'right-solid-out-0': { [IRON_INGOT_KEY]: 27000 } },
+    });
+    expect(result).toEqual({ efficiency: 27000 / 30000, expectedInput: {}, output: { 'right-solid-out-0': { [IRON_INGOT_KEY]: 27000 } } });
   });
-  expect(result).toEqual({ efficiency: 1, expectedInput: {}, output: { 'right-solid-out-0': { [IRON_INGOT_KEY]: 30000 } } });
+
+  test('with higher output provided', () => {
+    const result = calFactoryItemSpeedForItemNode({
+      node: ironIngotsItemNode,
+      docsMapped,
+      input: {},
+      expectedOutput: { 'right-solid-out-0': { [IRON_INGOT_KEY]: 31000 } },
+    });
+    expect(result).toEqual({ efficiency: 1, expectedInput: {}, output: { 'right-solid-out-0': { [IRON_INGOT_KEY]: 30000 } } });
+  });
 });
