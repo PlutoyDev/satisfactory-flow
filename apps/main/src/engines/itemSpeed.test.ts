@@ -572,7 +572,7 @@ describe('iron rod merger node', () => {
     expect(result).toEqual({
       expectedInput: { [IRON_ROD_KEY]: 30_000 },
       output: {
-        ['right-solid-in-0']: { [IRON_ROD_KEY]: 30_000 },
+        ['right-solid-out-0']: { [IRON_ROD_KEY]: 30_000 },
       },
     } satisfies ItemSpeedResult);
   });
@@ -582,7 +582,7 @@ describe('iron rod merger node', () => {
       node: ironRodMerger0,
       docsMapped,
       input: {},
-      expectedOutput: { ['right-solid-in-0']: { [IRON_ROD_KEY]: 30_000 } },
+      expectedOutput: { ['right-solid-out-0']: { [IRON_ROD_KEY]: 30_000 } },
     });
     expect(result).toEqual({
       expectedInput: { [IRON_ROD_KEY]: 30_000 },
@@ -598,7 +598,7 @@ describe('iron rod merger node', () => {
     });
     expect(result).toEqual({
       expectedInput: { [IRON_ROD_KEY]: 15_000, [IRON_INGOT_KEY]: 15_000 },
-      output: { ['right-solid-in-0']: { [IRON_ROD_KEY]: 15_000, [IRON_INGOT_KEY]: 15_000 } },
+      output: { ['right-solid-out-0']: { [IRON_ROD_KEY]: 15_000, [IRON_INGOT_KEY]: 15_000 } },
     } satisfies ItemSpeedResult);
   });
 
@@ -607,11 +607,11 @@ describe('iron rod merger node', () => {
       node: ironRodMerger0,
       docsMapped,
       input: { [IRON_ROD_KEY]: 15_000, [IRON_INGOT_KEY]: 15_000 },
-      expectedOutput: { ['right-solid-in-0']: { [IRON_ROD_KEY]: 15_000, [IRON_INGOT_KEY]: 15_000 } },
+      expectedOutput: { ['right-solid-out-0']: { [IRON_ROD_KEY]: 15_000, [IRON_INGOT_KEY]: 15_000 } },
     });
     expect(result).toEqual({
       expectedInput: { [IRON_ROD_KEY]: 15_000, [IRON_INGOT_KEY]: 15_000 },
-      output: { ['right-solid-in-0']: { [IRON_ROD_KEY]: 15_000, [IRON_INGOT_KEY]: 15_000 } },
+      output: { ['right-solid-out-0']: { [IRON_ROD_KEY]: 15_000, [IRON_INGOT_KEY]: 15_000 } },
     } satisfies ItemSpeedResult);
   });
 
@@ -620,11 +620,11 @@ describe('iron rod merger node', () => {
       node: ironRodMerger0,
       docsMapped,
       input: { [IRON_ROD_KEY]: 15_000, [IRON_INGOT_KEY]: 15_000 },
-      expectedOutput: { ['right-solid-in-0']: { [IRON_ROD_KEY]: 10_000, [IRON_INGOT_KEY]: 10_000 } },
+      expectedOutput: { ['right-solid-out-0']: { [IRON_ROD_KEY]: 10_000, [IRON_INGOT_KEY]: 10_000 } },
     });
     expect(result).toEqual({
       expectedInput: { [IRON_ROD_KEY]: 10_000, [IRON_INGOT_KEY]: 10_000 },
-      output: { ['right-solid-in-0']: { [IRON_ROD_KEY]: 15_000, [IRON_INGOT_KEY]: 15_000 } },
+      output: { ['right-solid-out-0']: { [IRON_ROD_KEY]: 15_000, [IRON_INGOT_KEY]: 15_000 } },
     } satisfies ItemSpeedResult);
   });
 
@@ -633,11 +633,11 @@ describe('iron rod merger node', () => {
       node: ironRodMerger0,
       docsMapped,
       input: { [IRON_ROD_KEY]: 15_000, [IRON_INGOT_KEY]: 15_000 },
-      expectedOutput: { ['right-solid-in-0']: { [IRON_ROD_KEY]: 20_000, [IRON_INGOT_KEY]: 20_000 } },
+      expectedOutput: { ['right-solid-out-0']: { [IRON_ROD_KEY]: 20_000, [IRON_INGOT_KEY]: 20_000 } },
     });
     expect(result).toEqual({
       expectedInput: { [IRON_ROD_KEY]: 20_000, [IRON_INGOT_KEY]: 20_000 },
-      output: { ['right-solid-in-0']: { [IRON_ROD_KEY]: 15_000, [IRON_INGOT_KEY]: 15_000 } },
+      output: { ['right-solid-out-0']: { [IRON_ROD_KEY]: 15_000, [IRON_INGOT_KEY]: 15_000 } },
     } satisfies ItemSpeedResult);
   });
 });
