@@ -27,7 +27,7 @@ type FactoryItemSpeedParams = {
   node: ExtendedNode;
   docsMapped: DocsMapped;
   input: InputItemSpeed; // Supply of the connected nodes
-  expectedOutput: OutputItemSpeed; // Demand of the connected nodes
+  expectedOutput?: OutputItemSpeed; // Demand of the connected nodes
 };
 
 export function calFactoryItemSpeedForItemNode(params: FactoryItemSpeedParams): ItemSpeedResult | null {
@@ -56,10 +56,11 @@ export function calFactoryItemSpeedForItemNode(params: FactoryItemSpeedParams): 
   if (interfaceKind === 'both' || interfaceKind === 'out') {
     const itemForm = item.form === 'solid' ? 'solid' : 'fluid';
     const handleId = `right-${itemForm}-out-0`;
-    const expectedItemSpeed = expectedOutput[handleId]?.[itemKey];
-    if (expectedItemSpeed) {
-      // If the expected output is less than the speed, then the output speed is the expected output speed
-      // Otherwise, the output speed is the speed.
+    if (expectedOutput) {
+      // If expectedOutput is provided, this node is expected to provide the expected output but only to the max of the specified speed.
+      // if the expected output is more than the speed, the output is the speed, its efficiency is 1 (the efficiency will be penalized in the following nodes)
+      // if the expected output is less than the speed, the output is the expected output and the efficiency is penalized
+      const expectedItemSpeed = expectedOutput[handleId]?.[itemKey] ?? 0;
       outputSpeed = Math.min(speedThou, expectedItemSpeed);
       res.output[handleId] = { [itemKey]: outputSpeed };
       res.efficiency = outputSpeed / speedThou;

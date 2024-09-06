@@ -52,7 +52,7 @@ if (!docsMapped.items.has(IRON_INGOT_KEY) || !docsMapped.items.has(IRON_ROD_KEY)
 
 describe('iron ingot item node', () => {
   test('no output provided', () => {
-    const result = calFactoryItemSpeedForItemNode({ node: ironIngotsItemNode, docsMapped, input: {}, expectedOutput: {} });
+    const result = calFactoryItemSpeedForItemNode({ node: ironIngotsItemNode, docsMapped, input: {} });
     expect(result).toEqual({ expectedInput: {}, output: { 'right-solid-out-0': { [IRON_INGOT_KEY]: 30000 } } });
   });
 
@@ -84,5 +84,15 @@ describe('iron ingot item node', () => {
       expectedOutput: { 'right-solid-out-0': { [IRON_INGOT_KEY]: 31000 } },
     });
     expect(result).toEqual({ efficiency: 1, expectedInput: {}, output: { 'right-solid-out-0': { [IRON_INGOT_KEY]: 30000 } } });
+  });
+
+  test('with wrong output provided', () => {
+    const result = calFactoryItemSpeedForItemNode({
+      node: ironIngotsItemNode,
+      docsMapped,
+      input: {},
+      expectedOutput: { 'right-solid-out-0': { [IRON_ROD_KEY]: 15000 } },
+    });
+    expect(result).toEqual({ efficiency: 0, expectedInput: {}, output: { 'right-solid-out-0': { [IRON_INGOT_KEY]: 0 } } });
   });
 });
