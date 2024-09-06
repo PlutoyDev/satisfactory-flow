@@ -33,6 +33,7 @@ const ironRodConstructor1 = nodesMap.get('-kFW0_k0UaCLiMiN')!;
 const ironRodMerger0 = nodesMap.get('b_ogjtRaWd4tlnSc')!;
 const ironRodMerger1 = nodesMap.get('pe8Zk59_FyZ2QoNk')!;
 // TODO add more nodes and move it to SimpleScrew, I'm too lazy to do it now :D
+const scewConstructor0 = nodesMap.get('Lge0TU0skMb1MPiT')!;
 const screwItemNode = nodesMap.get('v7VgDusNsBK9WBGC')!; // Input only
 
 if (
@@ -42,7 +43,9 @@ if (
   !ironRodConstructor0 ||
   !ironRodConstructor1 ||
   !ironRodMerger0 ||
-  !ironRodMerger1
+  !ironRodMerger1 ||
+  !scewConstructor0 ||
+  !screwItemNode
 ) {
   throw new Error('Node not found');
 }
@@ -323,4 +326,63 @@ describe('iron rod constructor node', () => {
       output: { ['right-solid-out-0']: { [IRON_ROD_KEY]: 30_000 } },
     } satisfies ItemSpeedResult);
   });
+});
+
+describe('screw constructor node', () => {
+  // Screw recipe, 10 / min rods => 40 / min screws
+  test('best efficiency', () => {
+    const result = calFactoryItemSpeedForRecipeNode({
+      node: scewConstructor0,
+      docsMapped,
+      input: { [IRON_ROD_KEY]: 10_000 },
+      expectedOutput: { ['right-solid-out-0']: { [SCREW_KEY]: 40_000 } },
+    });
+    expect(result).toEqual({
+      efficiency: 1,
+      expectedInput: { [IRON_ROD_KEY]: 10_000 },
+      output: { ['right-solid-out-0']: { [SCREW_KEY]: 40_000 } },
+    } satisfies ItemSpeedResult);
+  });
+
+  test('inefficient due to insufficient input', () => {
+    const result = calFactoryItemSpeedForRecipeNode({
+      node: scewConstructor0,
+      docsMapped,
+      input: { [IRON_ROD_KEY]: 5_000 },
+      expectedOutput: { ['right-solid-out-0']: { [SCREW_KEY]: 40_000 } },
+    });
+    expect(result).toEqual({
+      efficiency: 5_000 / 10_000,
+      expectedInput: { [IRON_ROD_KEY]: 10_000 },
+      output: { ['right-solid-out-0']: { [SCREW_KEY]: 20_000 } },
+    } satisfies ItemSpeedResult);
+  });
+
+  test('inefficient due to insufficient demand', () => {
+    const result = calFactoryItemSpeedForRecipeNode({
+      node: scewConstructor0,
+      docsMapped,
+      input: { [IRON_ROD_KEY]: 10_000 },
+      expectedOutput: { ['right-solid-out-0']: { [SCREW_KEY]: 20_000 } },
+    });
+    expect(result).toEqual({
+      efficiency: 20_000 / 40_000,
+      expectedInput: { [IRON_ROD_KEY]: 5_000 },
+      output: { ['right-solid-out-0']: { [SCREW_KEY]: 20_000 } },
+    } satisfies ItemSpeedResult);
+  });
+
+  test('underclocked with best efficiency', () => {
+    const result = calFactoryItemSpeedForRecipeNode({
+      node: { ...scewConstructor0, data: { ...scewConstructor0.data, clockSpeedThou: 50_00_000 } },
+      docsMapped,
+      input: { [IRON_ROD_KEY]: 10_000 },
+      expectedOutput: { ['right-solid-out-0']: { [SCREW_KEY]: 40_000 } },
+    });
+    expect(result).toEqual({
+      efficiency: 1,
+      expectedInput: { [IRON_ROD_KEY]: 5_000 },
+      output: { ['right-solid-out-0']: { [SCREW_KEY]: 20_000 } },
+    } satisfies ItemSpeedResult);
+  })
 });
