@@ -74,6 +74,88 @@ export function calFactoryItemSpeedForItemNode(params: FactoryItemSpeedParams): 
 }
 
 export function calFactoryItemSpeedForRecipeNode(params: FactoryItemSpeedParams): ItemSpeedResult | null {
+  const { node, docsMapped, input, expectedOutput } = params;
+  const { recipeKey, clockSpeedThou } = node.data as ResolvedFactoryRecipeNodeData;
+
+  if (!recipeKey) {
+    return null;
+  }
+  const recipe = docsMapped.recipes.get(recipeKey)!;
+
+  // const res: ItemSpeedResult = { expectedInput: {}, output: {}, efficiency: 1 };
+  // Recipe ingredients and products list are gives item key and amount
+  // The amount how much will be consumed or produced in one manufactoringDuration
+  // Special cases for fluid, the amount specified is in liters while the display in m3 (1000 liters)
+  // The manufactoringDuration is the time it takes to make the product
+  // The machine can be overclocked/underclocked to change the manufactoringDuration
+  // The higher the clockSpeed the shorter the manufactoringDuration (inversely proportional)
+  // ? Mouse over either manufactoringDuration or clockSpeed to see more information
+
+  const { ingredients, products, manufactoringDuration } = recipe;
+  const res: ItemSpeedResult = { expectedInput: {}, output: {} };
+  const durationThou = manufactoringDuration / (clockSpeedThou / 100_00); // Duration in thousandths of a second
+  const idealSpeedThous: { outputHandleId?: string; itemKey: string; speedThou: number }[] = [];
+
+  let efficiencyDueToInputs = 1;
+  for (const ingredient of ingredients) {
+    const { itemKey, amount } = ingredient;
+    const item = docsMapped.items.get(itemKey);
+    if (!item) {
+      throw new Error(`Item ${itemKey} not found`);
+    }
+
+    const itemForm = item.form === 'solid' ? 'solid' : 'fluid';
+    const speedThou = ((amount / durationThou) * 60) / (itemForm === 'solid' ? 1 : 1000);
+    efficiencyDueToInputs = Math.min(efficiencyDueToInputs, (input[itemKey] ?? 0) / speedThou);
+    if (expectedOutput) {
+      idealSpeedThous.push({ itemKey, speedThou });
+    } else {
+      res.expectedInput[itemKey] = speedThou;
+    }
+  }
+
+  let efficiencyDueToOutputs = 1;
+  let outCounts = 0;
+  for (const product of products) {
+    const { itemKey, amount } = product;
+    const item = docsMapped.items.get(itemKey);
+    if (!item) {
+      throw new Error(`Item ${itemKey} not found`);
+    }
+
+    const itemForm = item.form === 'solid' ? 'solid' : 'fluid';
+    const speedThou = ((amount / durationThou) * 60) / (itemForm === 'solid' ? 1 : 1000);
+    const handleId = `right-${itemForm}-out-${outCounts++}`;
+    if (expectedOutput) {
+      efficiencyDueToOutputs = Math.min(efficiencyDueToOutputs, (expectedOutput[handleId]?.[itemKey] ?? 0) / speedThou);
+      idealSpeedThous.push({ outputHandleId: handleId, itemKey, speedThou });
+    } else {
+      res.output[handleId] = { [itemKey]: speedThou * efficiencyDueToInputs };
+    }
+  }
+
+  // We have the ideal speeds for all the ingredients and products now
+  // As well as the efficiency of this node
+  // We can now calculate the actual input and output speeds
+  const overallEfficiency = expectedOutput ? Math.min(efficiencyDueToInputs, efficiencyDueToOutputs) : efficiencyDueToInputs;
+  res.efficiency = overallEfficiency;
+
+  if (expectedOutput) {
+    for (const idealSpeed of idealSpeedThous) {
+      const { itemKey, speedThou, outputHandleId } = idealSpeed;
+      if (!outputHandleId) {
+        // Ingredient
+        if (expectedOutput) {
+          res.expectedInput[itemKey] = speedThou * efficiencyDueToOutputs;
+        }
+      } else {
+        // Product
+        res.output[outputHandleId] = { [itemKey]: speedThou * overallEfficiency };
+      }
+    }
+  }
+
+  return res;
 }
 
 export function calFactoryItemSpeedForLogisticNode(params: FactoryItemSpeedParams): ItemSpeedResult | null {
