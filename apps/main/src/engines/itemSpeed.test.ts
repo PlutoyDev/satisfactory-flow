@@ -641,3 +641,172 @@ describe('iron rod merger node', () => {
     } satisfies ItemSpeedResult);
   });
 });
+
+describe('smart splitter test', () => {
+  // The most complicated logic to test, sorry for the absurd amount of tests
+  // Case 1 - Smart Splitter with 1 specified item (bottom), overflow (right)
+  const mockSplitterProSpecifiedItem = {
+    ...ironIngotsSplitter1,
+    data: { ...ironIngotsSplitter1.data, type: 'splitterSmart', smartProRules: { bottom: [IRON_INGOT_KEY], right: ['overflow'] } },
+  };
+
+  test('supplying specified item, no output demand', () => {
+    const result = calFactoryItemSpeedForLogisticNode({
+      node: mockSplitterProSpecifiedItem,
+      docsMapped,
+      input: { [IRON_INGOT_KEY]: 30_000 },
+    });
+    expect(result).toEqual({
+      expectedInput: { [IRON_INGOT_KEY]: 30_000 },
+      output: {
+        ['bottom-solid-out-0']: { [IRON_INGOT_KEY]: 30_000 },
+        ['right-solid-out-0']: { [IRON_INGOT_KEY]: 30_000 },
+      },
+    } satisfies ItemSpeedResult);
+  });
+
+  test('supplying specified item, demanding specified item', () => {
+    const result = calFactoryItemSpeedForLogisticNode({
+      node: mockSplitterProSpecifiedItem,
+      docsMapped,
+      input: { [IRON_INGOT_KEY]: 30_000 },
+      expectedOutput: { ['bottom-solid-out-0']: { [IRON_INGOT_KEY]: 30_000 }, ['right-solid-out-0']: { [IRON_INGOT_KEY]: 30_000 } },
+    });
+    expect(result).toEqual({
+      expectedInput: { [IRON_INGOT_KEY]: 30_000 },
+      output: { ['bottom-solid-out-0']: { [IRON_INGOT_KEY]: 30_000 } }, // Nothing is being overflowed
+    } satisfies ItemSpeedResult);
+  });
+
+  test('oversupplying specified item, demanding less of specified item', () => {
+    const result = calFactoryItemSpeedForLogisticNode({
+      node: mockSplitterProSpecifiedItem,
+      docsMapped,
+      input: { [IRON_INGOT_KEY]: 30_000 },
+      expectedOutput: { ['bottom-solid-out-0']: { [IRON_INGOT_KEY]: 10_000 }, ['right-solid-out-0']: { [IRON_INGOT_KEY]: 30_000 } },
+    });
+    expect(result).toEqual({
+      expectedInput: { [IRON_INGOT_KEY]: 30_000 },
+      output: { ['bottom-solid-out-0']: { [IRON_INGOT_KEY]: 10_000 }, ['right-solid-out-0']: { [IRON_INGOT_KEY]: 20_000 } },
+    } satisfies ItemSpeedResult);
+  });
+
+  test('supplying unspeficied item, no output demand', () => {
+    const result = calFactoryItemSpeedForLogisticNode({
+      node: mockSplitterProSpecifiedItem,
+      docsMapped,
+      input: { [IRON_ROD_KEY]: 30_000 },
+    });
+    expect(result).toEqual({
+      expectedInput: { [IRON_ROD_KEY]: 30_000 },
+      output: {
+        ['right-solid-out-0']: { [IRON_ROD_KEY]: 30_000 },
+      },
+    } satisfies ItemSpeedResult);
+  });
+
+  test('supplying unspeficied item, overflowing unspecifed item', () => {
+    const result = calFactoryItemSpeedForLogisticNode({
+      node: mockSplitterProSpecifiedItem,
+      docsMapped,
+      input: { [IRON_ROD_KEY]: 30_000 },
+      expectedOutput: { ['right-solid-out-0']: { [IRON_ROD_KEY]: 30_000 } },
+    });
+    expect(result).toEqual({
+      expectedInput: { [IRON_ROD_KEY]: 30_000 },
+      output: { ['right-solid-out-0']: { [IRON_ROD_KEY]: 30_000 } },
+    } satisfies ItemSpeedResult);
+  });
+
+  test('supplying unspeficied item and oversupplying specified item, overflowing the rest', () => {
+    const result = calFactoryItemSpeedForLogisticNode({
+      node: mockSplitterProSpecifiedItem,
+      docsMapped,
+      input: { [IRON_ROD_KEY]: 10_000, [IRON_INGOT_KEY]: 15_000 },
+      expectedOutput: {
+        ['right-solid-out-0']: { [IRON_ROD_KEY]: 10_000, [IRON_INGOT_KEY]: 15_000 },
+        ['bottom-solid-out-0']: { [IRON_INGOT_KEY]: 10_000 },
+      },
+    });
+    expect(result).toEqual({
+      expectedInput: { [IRON_ROD_KEY]: 10_000, [IRON_INGOT_KEY]: 15_000 },
+      output: {
+        ['right-solid-out-0']: { [IRON_ROD_KEY]: 10_000, [IRON_INGOT_KEY]: 5_000 }, // Overflowed
+        ['bottom-solid-out-0']: { [IRON_INGOT_KEY]: 10_000 }, // Specified
+      },
+    } satisfies ItemSpeedResult);
+  });
+
+  // Case 2 - Smart Splitter with 1 specified item (bottom), anyUndefined (top)
+  const mockSplitterProAnyUndefined = {
+    ...ironIngotsSplitter1,
+    data: { ...ironIngotsSplitter1.data, type: 'splitterSmart', smartProRules: { bottom: [IRON_INGOT_KEY], top: ['anyUndefined'] } },
+  };
+  const COPPER_INGOT_KEY = 'Desc_CopperIngot_C';
+
+  test('supplying specified item and 2 other items, no output demand', () => {
+    const result = calFactoryItemSpeedForLogisticNode({
+      node: mockSplitterProAnyUndefined,
+      docsMapped,
+      input: { [IRON_ROD_KEY]: 10_000, [IRON_INGOT_KEY]: 15_000, [COPPER_INGOT_KEY]: 20_000 },
+    });
+    expect(result).toEqual({
+      expectedInput: { [IRON_ROD_KEY]: 10_000, [IRON_INGOT_KEY]: 15_000, [COPPER_INGOT_KEY]: 20_000 },
+      output: {
+        ['bottom-solid-out-0']: { [IRON_INGOT_KEY]: 15_000 },
+        ['top-solid-out-0']: { [IRON_ROD_KEY]: 10_000, [COPPER_INGOT_KEY]: 20_000 },
+      },
+    } satisfies ItemSpeedResult);
+  });
+
+  test('supplying specified item and 2 other items, demanding specified item at wrong output', () => {
+    const result = calFactoryItemSpeedForLogisticNode({
+      node: mockSplitterProAnyUndefined,
+      docsMapped,
+      input: { [IRON_ROD_KEY]: 10_000, [IRON_INGOT_KEY]: 15_000, [COPPER_INGOT_KEY]: 20_000 },
+      expectedOutput: { ['top-solid-out-0']: { [IRON_INGOT_KEY]: 15_000 } },
+    });
+    expect(result).toEqual({
+      expectedInput: {}, // Zero input (since the output is not being consumed)
+      output: {
+        ['bottom-solid-out-0']: { [IRON_INGOT_KEY]: 15_000 },
+        ['top-solid-out-0']: { [IRON_ROD_KEY]: 10_000, [COPPER_INGOT_KEY]: 20_000 },
+      },
+    } satisfies ItemSpeedResult);
+  });
+
+  test('supplying specified item and 2 other items, demanding specified item at correct output', () => {
+    const result = calFactoryItemSpeedForLogisticNode({
+      node: mockSplitterProAnyUndefined,
+      docsMapped,
+      input: { [IRON_ROD_KEY]: 10_000, [IRON_INGOT_KEY]: 15_000, [COPPER_INGOT_KEY]: 20_000 },
+      expectedOutput: { ['bottom-solid-out-0']: { [IRON_INGOT_KEY]: 15_000 } },
+    });
+    expect(result).toEqual({
+      expectedInput: { [IRON_INGOT_KEY]: 15_000 },
+      output: {
+        ['bottom-solid-out-0']: { [IRON_INGOT_KEY]: 15_000 },
+        ['top-solid-out-0']: { [IRON_ROD_KEY]: 10_000, [COPPER_INGOT_KEY]: 20_000 },
+      },
+    } satisfies ItemSpeedResult);
+  });
+
+  test('supplying specified item and 2 other items, demanding specified item at correct output as well as the rest', () => {
+    const result = calFactoryItemSpeedForLogisticNode({
+      node: mockSplitterProAnyUndefined,
+      docsMapped,
+      input: { [IRON_ROD_KEY]: 10_000, [IRON_INGOT_KEY]: 15_000, [COPPER_INGOT_KEY]: 20_000 },
+      expectedOutput: {
+        ['bottom-solid-out-0']: { [IRON_INGOT_KEY]: 15_000 },
+        ['top-solid-out-0']: { [IRON_ROD_KEY]: 10_000, [COPPER_INGOT_KEY]: 20_000 },
+      },
+    });
+    expect(result).toEqual({
+      expectedInput: { [IRON_INGOT_KEY]: 15_000, [IRON_ROD_KEY]: 10_000, [COPPER_INGOT_KEY]: 20_000 },
+      output: {
+        ['bottom-solid-out-0']: { [IRON_INGOT_KEY]: 15_000 },
+        ['top-solid-out-0']: { [IRON_ROD_KEY]: 10_000, [COPPER_INGOT_KEY]: 20_000 },
+      },
+    } satisfies ItemSpeedResult);
+  });
+});
