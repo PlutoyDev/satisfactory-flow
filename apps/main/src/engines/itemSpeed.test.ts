@@ -384,5 +384,260 @@ describe('screw constructor node', () => {
       expectedInput: { [IRON_ROD_KEY]: 5_000 },
       output: { ['right-solid-out-0']: { [SCREW_KEY]: 20_000 } },
     } satisfies ItemSpeedResult);
-  })
+  });
+});
+
+describe('iron ingot splitter node', () => {
+  // 1st Splitter (Split top 50% - right 50%)
+  test('no input', () => {
+    const result = calFactoryItemSpeedForLogisticNode({ node: ironIngotsSplitter0, docsMapped, input: {} });
+    expect(result).toEqual({
+      expectedInput: {},
+      output: {},
+    } satisfies ItemSpeedResult);
+  });
+
+  test('with input only', () => {
+    const result = calFactoryItemSpeedForLogisticNode({
+      node: ironIngotsSplitter0,
+      docsMapped,
+      input: { [IRON_INGOT_KEY]: 30_000 },
+    });
+    expect(result).toEqual({
+      expectedInput: { [IRON_INGOT_KEY]: 30_000 },
+      // "Available outputs" but since no demand is expected, the split cannot be determined
+      output: {
+        ['top-solid-out-0']: { [IRON_INGOT_KEY]: 30_000 },
+        ['right-solid-out-0']: { [IRON_INGOT_KEY]: 30_000 },
+        ['bottom-solid-out-0']: { [IRON_INGOT_KEY]: 30_000 },
+      },
+    } satisfies ItemSpeedResult);
+  });
+
+  test('with output demand only', () => {
+    const result = calFactoryItemSpeedForLogisticNode({
+      node: ironIngotsSplitter0,
+      docsMapped,
+      input: {},
+      expectedOutput: { ['top-solid-out-0']: { [IRON_INGOT_KEY]: 15_000 }, ['right-solid-out-0']: { [IRON_INGOT_KEY]: 15_000 } },
+    });
+    expect(result).toEqual({
+      expectedInput: { [IRON_INGOT_KEY]: 30_000 },
+      output: {}, // No inputs to provide the output
+    } satisfies ItemSpeedResult);
+  });
+
+  test('with input and 1 output that matches the input', () => {
+    const result = calFactoryItemSpeedForLogisticNode({
+      node: ironIngotsSplitter0,
+      docsMapped,
+      input: { [IRON_INGOT_KEY]: 30_000 },
+      expectedOutput: { ['top-solid-out-0']: { [IRON_INGOT_KEY]: 30_000 } },
+    });
+    expect(result).toEqual({
+      expectedInput: { [IRON_INGOT_KEY]: 30_000 },
+      output: { ['top-solid-out-0']: { [IRON_INGOT_KEY]: 30_000 } },
+    } satisfies ItemSpeedResult);
+  });
+
+  test('with input and 1 output that is lower than the input', () => {
+    const result = calFactoryItemSpeedForLogisticNode({
+      node: ironIngotsSplitter0,
+      docsMapped,
+      input: { [IRON_INGOT_KEY]: 30_000 },
+      expectedOutput: { ['top-solid-out-0']: { [IRON_INGOT_KEY]: 20_000 } },
+    });
+    expect(result).toEqual({
+      expectedInput: { [IRON_INGOT_KEY]: 20_000 },
+      output: {
+        ['top-solid-out-0']: { [IRON_INGOT_KEY]: 20_000 }, // "Fullfilled"
+        ['right-solid-out-0']: { [IRON_INGOT_KEY]: 10_000 }, // "Available" but not used
+        ['bottom-solid-out-0']: { [IRON_INGOT_KEY]: 30_000 }, // "Available" but not used
+      },
+    } satisfies ItemSpeedResult);
+  });
+
+  test('with input and 1 output that is higher than the input', () => {
+    const result = calFactoryItemSpeedForLogisticNode({
+      node: ironIngotsSplitter0,
+      docsMapped,
+      input: { [IRON_INGOT_KEY]: 30_000 },
+      expectedOutput: { ['top-solid-out-0']: { [IRON_INGOT_KEY]: 40_000 } },
+    });
+    expect(result).toEqual({
+      expectedInput: { [IRON_INGOT_KEY]: 40_000 },
+      output: { ['top-solid-out-0']: { [IRON_INGOT_KEY]: 40_000 } },
+    } satisfies ItemSpeedResult);
+  });
+
+  test('with input and 2 outputs that sum up to the input', () => {
+    const result = calFactoryItemSpeedForLogisticNode({
+      node: ironIngotsSplitter0,
+      docsMapped,
+      input: { [IRON_INGOT_KEY]: 30_000 },
+      expectedOutput: { ['top-solid-out-0']: { [IRON_INGOT_KEY]: 15_000 }, ['right-solid-out-0']: { [IRON_INGOT_KEY]: 15_000 } },
+    });
+    expect(result).toEqual({
+      expectedInput: { [IRON_INGOT_KEY]: 30_000 },
+      output: {
+        ['top-solid-out-0']: { [IRON_INGOT_KEY]: 15_000 },
+        ['right-solid-out-0']: { [IRON_INGOT_KEY]: 15_000 },
+      },
+    } satisfies ItemSpeedResult);
+  });
+
+  test('with input and 2 outputs that sum up to the input but is different', () => {
+    const result = calFactoryItemSpeedForLogisticNode({
+      node: ironIngotsSplitter0,
+      docsMapped,
+      input: { [IRON_INGOT_KEY]: 30_000 },
+      expectedOutput: { ['top-solid-out-0']: { [IRON_INGOT_KEY]: 20_000 }, ['right-solid-out-0']: { [IRON_INGOT_KEY]: 10_000 } },
+    });
+    expect(result).toEqual({
+      expectedInput: { [IRON_INGOT_KEY]: 30_000 },
+      output: {
+        ['top-solid-out-0']: { [IRON_INGOT_KEY]: 20_000 },
+        ['right-solid-out-0']: { [IRON_INGOT_KEY]: 10_000 },
+      },
+    } satisfies ItemSpeedResult);
+  });
+
+  test('with input and 2 outputs that are more than half of input', () => {
+    const result = calFactoryItemSpeedForLogisticNode({
+      node: ironIngotsSplitter0,
+      docsMapped,
+      input: { [IRON_INGOT_KEY]: 30_000 },
+      expectedOutput: { ['top-solid-out-0']: { [IRON_INGOT_KEY]: 20_000 }, ['right-solid-out-0']: { [IRON_INGOT_KEY]: 20_000 } },
+    });
+    expect(result).toEqual({
+      expectedInput: { [IRON_INGOT_KEY]: 40_000 },
+      output: {
+        ['top-solid-out-0']: { [IRON_INGOT_KEY]: 15_000 },
+        ['right-solid-out-0']: { [IRON_INGOT_KEY]: 15_000 },
+      },
+    } satisfies ItemSpeedResult);
+  });
+
+  test('with input and 2 outputs that are more than half of input (uneven)', () => {
+    const result = calFactoryItemSpeedForLogisticNode({
+      node: ironIngotsSplitter0,
+      docsMapped,
+      input: { [IRON_INGOT_KEY]: 30_000 },
+      expectedOutput: { ['top-solid-out-0']: { [IRON_INGOT_KEY]: 15_000 }, ['right-solid-out-0']: { [IRON_INGOT_KEY]: 20_000 } },
+    });
+    expect(result).toEqual({
+      expectedInput: { [IRON_INGOT_KEY]: 35_000 },
+      output: {
+        ['top-solid-out-0']: { [IRON_INGOT_KEY]: 15_000 },
+        ['right-solid-out-0']: { [IRON_INGOT_KEY]: 15_000 },
+      },
+    } satisfies ItemSpeedResult);
+  });
+
+  test('with input and 2 outputs that are less than half of input', () => {
+    const result = calFactoryItemSpeedForLogisticNode({
+      node: ironIngotsSplitter0,
+      docsMapped,
+      input: { [IRON_INGOT_KEY]: 30_000 },
+      expectedOutput: { ['top-solid-out-0']: { [IRON_INGOT_KEY]: 5_000 }, ['right-solid-out-0']: { [IRON_INGOT_KEY]: 5_000 } },
+    });
+    expect(result).toEqual({
+      expectedInput: { [IRON_INGOT_KEY]: 10_000 },
+      output: {
+        ['top-solid-out-0']: { [IRON_INGOT_KEY]: 5_000 },
+        ['right-solid-out-0']: { [IRON_INGOT_KEY]: 5_000 },
+        ['bottom-solid-out-0']: { [IRON_INGOT_KEY]: 20_000 }, // "Available" but not used
+      },
+    } satisfies ItemSpeedResult);
+  });
+});
+
+describe('iron rod merger node', () => {
+  // 1st Merger (3 inputs - 1 output)
+  // the output is on the right side
+  test('no input', () => {
+    const result = calFactoryItemSpeedForLogisticNode({ node: ironRodMerger0, docsMapped, input: {} });
+    expect(result).toEqual({
+      expectedInput: {},
+      output: {},
+    } satisfies ItemSpeedResult);
+  });
+
+  test('with input only', () => {
+    const result = calFactoryItemSpeedForLogisticNode({
+      node: ironRodMerger0,
+      docsMapped,
+      input: { [IRON_ROD_KEY]: 30_000 },
+    });
+    expect(result).toEqual({
+      expectedInput: { [IRON_ROD_KEY]: 30_000 },
+      output: {
+        ['right-solid-in-0']: { [IRON_ROD_KEY]: 30_000 },
+      },
+    } satisfies ItemSpeedResult);
+  });
+
+  test('with output demand only', () => {
+    const result = calFactoryItemSpeedForLogisticNode({
+      node: ironRodMerger0,
+      docsMapped,
+      input: {},
+      expectedOutput: { ['right-solid-in-0']: { [IRON_ROD_KEY]: 30_000 } },
+    });
+    expect(result).toEqual({
+      expectedInput: { [IRON_ROD_KEY]: 30_000 },
+      output: {},
+    } satisfies ItemSpeedResult);
+  });
+
+  test('with 2 different items input and no output demand', () => {
+    const result = calFactoryItemSpeedForLogisticNode({
+      node: ironRodMerger0,
+      docsMapped,
+      input: { [IRON_ROD_KEY]: 15_000, [IRON_INGOT_KEY]: 15_000 },
+    });
+    expect(result).toEqual({
+      expectedInput: { [IRON_ROD_KEY]: 15_000, [IRON_INGOT_KEY]: 15_000 },
+      output: { ['right-solid-in-0']: { [IRON_ROD_KEY]: 15_000, [IRON_INGOT_KEY]: 15_000 } },
+    } satisfies ItemSpeedResult);
+  });
+
+  test('with 2 different items input and output demand (matched speed)', () => {
+    const result = calFactoryItemSpeedForLogisticNode({
+      node: ironRodMerger0,
+      docsMapped,
+      input: { [IRON_ROD_KEY]: 15_000, [IRON_INGOT_KEY]: 15_000 },
+      expectedOutput: { ['right-solid-in-0']: { [IRON_ROD_KEY]: 15_000, [IRON_INGOT_KEY]: 15_000 } },
+    });
+    expect(result).toEqual({
+      expectedInput: { [IRON_ROD_KEY]: 15_000, [IRON_INGOT_KEY]: 15_000 },
+      output: { ['right-solid-in-0']: { [IRON_ROD_KEY]: 15_000, [IRON_INGOT_KEY]: 15_000 } },
+    } satisfies ItemSpeedResult);
+  });
+
+  test('with 2 different items input and output demand (demanding less)', () => {
+    const result = calFactoryItemSpeedForLogisticNode({
+      node: ironRodMerger0,
+      docsMapped,
+      input: { [IRON_ROD_KEY]: 15_000, [IRON_INGOT_KEY]: 15_000 },
+      expectedOutput: { ['right-solid-in-0']: { [IRON_ROD_KEY]: 10_000, [IRON_INGOT_KEY]: 10_000 } },
+    });
+    expect(result).toEqual({
+      expectedInput: { [IRON_ROD_KEY]: 10_000, [IRON_INGOT_KEY]: 10_000 },
+      output: { ['right-solid-in-0']: { [IRON_ROD_KEY]: 15_000, [IRON_INGOT_KEY]: 15_000 } },
+    } satisfies ItemSpeedResult);
+  });
+
+  test('with 2 different items input and output demand (demanding more)', () => {
+    const result = calFactoryItemSpeedForLogisticNode({
+      node: ironRodMerger0,
+      docsMapped,
+      input: { [IRON_ROD_KEY]: 15_000, [IRON_INGOT_KEY]: 15_000 },
+      expectedOutput: { ['right-solid-in-0']: { [IRON_ROD_KEY]: 20_000, [IRON_INGOT_KEY]: 20_000 } },
+    });
+    expect(result).toEqual({
+      expectedInput: { [IRON_ROD_KEY]: 20_000, [IRON_INGOT_KEY]: 20_000 },
+      output: { ['right-solid-in-0']: { [IRON_ROD_KEY]: 15_000, [IRON_INGOT_KEY]: 15_000 } },
+    } satisfies ItemSpeedResult);
+  });
 });
