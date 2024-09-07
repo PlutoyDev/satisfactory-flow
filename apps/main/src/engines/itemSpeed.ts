@@ -352,6 +352,10 @@ export function calculateFactoryItemSpeed(params: CalculateFactoryItemSpeedParam
   // Make sure the dependencies are calculated first before the dependents
   // In the initial pass, from the roots to the leaves, we calculate the output for a provided input
   // In the second pass, from the leaves back to the roots, we calculate the expected input based on the output used
+  // Footnote:
+  //  Although tree terminology is used, the factory graph is not a tree, it can have cycles and multiple roots and leaves
+  //  To be specific, it is a directed acyclic graph (DAG) with multiple sources and targets but it is easier to explain with tree terminology
+  //  Feel free to rewrite this explanation to be more accurate and concise if needed
   const { docsMapped, startNodeId, nodes, edges, signal } = params;
 
   const nodeErrors: { [nodeId: string]: Error } = {};
