@@ -18,20 +18,20 @@ import { DocsMapped, ExtendedNode } from '../lib/store';
 // it doesn't matter which input the item is fed to the node (unless its fluid)
 // but output will only output to a sepicific handleId
 
-export type InputItemSpeed = { [itemKey: string]: number };
-export type OutputItemSpeed = { [handleId: string]: InputItemSpeed };
+export type ItemSpeed = { [itemKey: string]: number };
+export type HandleItemSpeed = { [handleId: string]: ItemSpeed };
 
 export type ItemSpeedResult = {
-  expectedInput: InputItemSpeed; // Expected input of this node based on the input and expected output
-  output: OutputItemSpeed; // Output of this node base on the input and expected output
+  expectedInput: HandleItemSpeed; // Expected input of this node based on the input and expected output
+  output: HandleItemSpeed; // Output of this node base on the input and expected output
   efficiency?: number; // Efficiency of the node (only for recipe node)
 };
 
 export type FactoryItemSpeedParams = {
   node: ExtendedNode;
   docsMapped: DocsMapped;
-  input: InputItemSpeed; // Supply of the connected nodes
-  expectedOutput?: OutputItemSpeed; // Demand of the connected nodes
+  input: HandleItemSpeed; // Supply of the connected nodes
+  expectedOutput?: HandleItemSpeed; // Demand of the connected nodes
 };
 
 export function calFactoryItemSpeedForItemNode(params: FactoryItemSpeedParams): ItemSpeedResult | null {

@@ -111,43 +111,43 @@ describe('iron ingot item node', () => {
 describe('screw item node', () => {
   test('no input provided', () => {
     const result = calFactoryItemSpeedForItemNode({ node: screwItemNode, docsMapped, input: {} });
-    expect(result).toEqual({ efficiency: 0, expectedInput: { [SCREW_KEY]: 120_000 }, output: {} });
+    expect(result).toEqual({ efficiency: 0, expectedInput: { ['left-solid-in-0']: { [SCREW_KEY]: 120_000 } }, output: {} });
   });
 
   test('with matching input provided', () => {
     const result = calFactoryItemSpeedForItemNode({
       node: screwItemNode,
       docsMapped,
-      input: { [SCREW_KEY]: 120_000 },
+      input: { ['left-solid-in-0']: { [SCREW_KEY]: 120_000 } },
     });
-    expect(result).toEqual({ efficiency: 1, expectedInput: { [SCREW_KEY]: 120_000 }, output: {} });
+    expect(result).toEqual({ efficiency: 1, expectedInput: { ['left-solid-in-0']: { [SCREW_KEY]: 120_000 } }, output: {} });
   });
 
   test('with lower input provided', () => {
     const result = calFactoryItemSpeedForItemNode({
       node: screwItemNode,
       docsMapped,
-      input: { [SCREW_KEY]: 100_000 },
+      input: { ['left-solid-in-0']: { [SCREW_KEY]: 100_000 } },
     });
-    expect(result).toEqual({ efficiency: 100_000 / 120_000, expectedInput: { [SCREW_KEY]: 120_000 }, output: {} });
+    expect(result).toEqual({ efficiency: 100_000 / 120_000, expectedInput: { ['left-solid-in-0']: { [SCREW_KEY]: 120_000 } }, output: {} });
   });
 
   test('with higher input provided', () => {
     const result = calFactoryItemSpeedForItemNode({
       node: screwItemNode,
       docsMapped,
-      input: { [SCREW_KEY]: 150_000 },
+      input: { ['left-solid-in-0']: { [SCREW_KEY]: 150_000 } },
     });
-    expect(result).toEqual({ efficiency: 1, expectedInput: { [SCREW_KEY]: 120_000 }, output: {} });
+    expect(result).toEqual({ efficiency: 1, expectedInput: { ['left-solid-in-0']: { [SCREW_KEY]: 120_000 } }, output: {} });
   });
 
   test('with wrong input provided', () => {
     const result = calFactoryItemSpeedForItemNode({
       node: screwItemNode,
       docsMapped,
-      input: { [IRON_ROD_KEY]: 120_000 },
+      input: { ['left-solid-in-0']: { [IRON_ROD_KEY]: 120_000 } },
     });
-    expect(result).toEqual({ efficiency: 0, expectedInput: { [SCREW_KEY]: 120_000 }, output: {} });
+    expect(result).toEqual({ efficiency: 0, expectedInput: { ['left-solid-in-0']: { [SCREW_KEY]: 120_000 } }, output: {} });
   });
 });
 
@@ -159,7 +159,7 @@ describe('iron rod constructor node', () => {
     const result = calFactoryItemSpeedForRecipeNode({ node: ironRodConstructor0, docsMapped, input: {} });
     expect(result).toEqual({
       efficiency: 0,
-      expectedInput: { [IRON_INGOT_KEY]: 15_000 },
+      expectedInput: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 15_000 } },
       output: { ['right-solid-out-0']: { [IRON_ROD_KEY]: 0 } },
     } satisfies ItemSpeedResult);
   });
@@ -168,11 +168,11 @@ describe('iron rod constructor node', () => {
     const result = calFactoryItemSpeedForRecipeNode({
       node: ironRodConstructor0,
       docsMapped,
-      input: { [IRON_INGOT_KEY]: 15_000 },
+      input: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 15_000 } },
     });
     expect(result).toEqual({
       efficiency: 1,
-      expectedInput: { [IRON_INGOT_KEY]: 15_000 },
+      expectedInput: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 15_000 } },
       output: { ['right-solid-out-0']: { [IRON_ROD_KEY]: 15_000 } },
     } satisfies ItemSpeedResult);
   });
@@ -181,11 +181,11 @@ describe('iron rod constructor node', () => {
     const result = calFactoryItemSpeedForRecipeNode({
       node: ironRodConstructor0,
       docsMapped,
-      input: { [IRON_INGOT_KEY]: 10_000 },
+      input: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 10_000 } },
     });
     expect(result).toEqual({
       efficiency: 10_000 / 15_000,
-      expectedInput: { [IRON_INGOT_KEY]: 15_000 },
+      expectedInput: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 15_000 } },
       output: { ['right-solid-out-0']: { [IRON_ROD_KEY]: 10_000 } },
     } satisfies ItemSpeedResult);
   });
@@ -194,11 +194,11 @@ describe('iron rod constructor node', () => {
     const result = calFactoryItemSpeedForRecipeNode({
       node: ironRodConstructor0,
       docsMapped,
-      input: { [IRON_INGOT_KEY]: 20_000 },
+      input: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 20_000 } },
     });
     expect(result).toEqual({
       efficiency: 1,
-      expectedInput: { [IRON_INGOT_KEY]: 15_000 },
+      expectedInput: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 15_000 } },
       output: { ['right-solid-out-0']: { [IRON_ROD_KEY]: 15_000 } },
     } satisfies ItemSpeedResult);
   });
@@ -207,11 +207,11 @@ describe('iron rod constructor node', () => {
     const result = calFactoryItemSpeedForRecipeNode({
       node: ironRodConstructor0,
       docsMapped,
-      input: { [IRON_ROD_KEY]: 15_000 },
+      input: { ['left-solid-in-0']: { [IRON_ROD_KEY]: 15_000 } },
     });
     expect(result).toEqual({
       efficiency: 0,
-      expectedInput: { [IRON_INGOT_KEY]: 15_000 },
+      expectedInput: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 15_000 } },
       output: { ['right-solid-out-0']: { [IRON_ROD_KEY]: 0 } },
     } satisfies ItemSpeedResult);
   });
@@ -221,12 +221,12 @@ describe('iron rod constructor node', () => {
     const result = calFactoryItemSpeedForRecipeNode({
       node: ironRodConstructor0,
       docsMapped,
-      input: { [IRON_INGOT_KEY]: 15_000 },
+      input: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 15_000 } },
       expectedOutput: { ['right-solid-out-0']: { [IRON_ROD_KEY]: 15_000 } },
     });
     expect(result).toEqual({
       efficiency: 1,
-      expectedInput: { [IRON_INGOT_KEY]: 15_000 },
+      expectedInput: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 15_000 } },
       output: { ['right-solid-out-0']: { [IRON_ROD_KEY]: 15_000 } },
     } satisfies ItemSpeedResult);
   });
@@ -235,12 +235,12 @@ describe('iron rod constructor node', () => {
     const result = calFactoryItemSpeedForRecipeNode({
       node: ironRodConstructor0,
       docsMapped,
-      input: { [IRON_INGOT_KEY]: 15_000 },
+      input: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 15_000 } },
       expectedOutput: {},
     });
     expect(result).toEqual({
       efficiency: 0, // Efficiency gets tanked because the output is not being consumed
-      expectedInput: { [IRON_INGOT_KEY]: 0 }, // Since the output is not being consumed, the input is not being used either and will expect 0
+      expectedInput: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 0 } }, // Since the output is not being consumed, the input is not being used either and will expect 0
       output: { ['right-solid-out-0']: { [IRON_ROD_KEY]: 0 } },
     } satisfies ItemSpeedResult);
   });
@@ -249,12 +249,12 @@ describe('iron rod constructor node', () => {
     const result = calFactoryItemSpeedForRecipeNode({
       node: ironRodConstructor0,
       docsMapped,
-      input: { [IRON_INGOT_KEY]: 15_000 },
+      input: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 15_000 } },
       expectedOutput: { ['right-solid-out-0']: { [IRON_ROD_KEY]: 10_000 } },
     });
     expect(result).toEqual({
       efficiency: 10_000 / 15_000,
-      expectedInput: { [IRON_INGOT_KEY]: 10_000 },
+      expectedInput: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 10_000 } },
       output: { ['right-solid-out-0']: { [IRON_ROD_KEY]: 10_000 } },
     } satisfies ItemSpeedResult);
   });
@@ -263,12 +263,12 @@ describe('iron rod constructor node', () => {
     const result = calFactoryItemSpeedForRecipeNode({
       node: ironRodConstructor0,
       docsMapped,
-      input: { [IRON_INGOT_KEY]: 15_000 },
+      input: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 15_000 } },
       expectedOutput: { ['right-solid-out-0']: { [IRON_ROD_KEY]: 20_000 } },
     });
     expect(result).toEqual({
       efficiency: 1,
-      expectedInput: { [IRON_INGOT_KEY]: 15_000 },
+      expectedInput: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 15_000 } },
       output: { ['right-solid-out-0']: { [IRON_ROD_KEY]: 15_000 } },
     } satisfies ItemSpeedResult);
   });
@@ -277,12 +277,12 @@ describe('iron rod constructor node', () => {
     const result = calFactoryItemSpeedForRecipeNode({
       node: ironRodConstructor0,
       docsMapped,
-      input: { [IRON_INGOT_KEY]: 10_000 },
+      input: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 10_000 } },
       expectedOutput: { ['right-solid-out-0']: { [IRON_ROD_KEY]: 15_000 } },
     });
     expect(result).toEqual({
       efficiency: 10_000 / 15_000,
-      expectedInput: { [IRON_INGOT_KEY]: 15_000 },
+      expectedInput: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 15_000 } },
       output: { ['right-solid-out-0']: { [IRON_ROD_KEY]: 10_000 } },
     } satisfies ItemSpeedResult);
   });
@@ -295,11 +295,11 @@ describe('iron rod constructor node', () => {
     const result = calFactoryItemSpeedForRecipeNode({
       node: overclockedIronRodConstructor0,
       docsMapped,
-      input: { [IRON_INGOT_KEY]: 15_000 },
+      input: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 15_000 } },
     });
     expect(result).toEqual({
       efficiency: 15_000 / 30_000,
-      expectedInput: { [IRON_INGOT_KEY]: 30_000 },
+      expectedInput: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 30_000 } },
       output: { ['right-solid-out-0']: { [IRON_ROD_KEY]: 15_000 } },
     } satisfies ItemSpeedResult);
   });
@@ -308,11 +308,11 @@ describe('iron rod constructor node', () => {
     const result = calFactoryItemSpeedForRecipeNode({
       node: overclockedIronRodConstructor0,
       docsMapped,
-      input: { [IRON_INGOT_KEY]: 30_000 },
+      input: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 30_000 } },
     });
     expect(result).toEqual({
       efficiency: 1,
-      expectedInput: { [IRON_INGOT_KEY]: 30_000 },
+      expectedInput: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 30_000 } },
       output: { ['right-solid-out-0']: { [IRON_ROD_KEY]: 30_000 } },
     } satisfies ItemSpeedResult);
   });
@@ -321,11 +321,11 @@ describe('iron rod constructor node', () => {
     const result = calFactoryItemSpeedForRecipeNode({
       node: overclockedIronRodConstructor0,
       docsMapped,
-      input: { [IRON_INGOT_KEY]: 45_000 },
+      input: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 45_000 } },
     });
     expect(result).toEqual({
       efficiency: 1,
-      expectedInput: { [IRON_INGOT_KEY]: 30_000 },
+      expectedInput: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 30_000 } },
       output: { ['right-solid-out-0']: { [IRON_ROD_KEY]: 30_000 } },
     } satisfies ItemSpeedResult);
   });
@@ -337,12 +337,12 @@ describe('screw constructor node', () => {
     const result = calFactoryItemSpeedForRecipeNode({
       node: scewConstructor0,
       docsMapped,
-      input: { [IRON_ROD_KEY]: 10_000 },
+      input: { ['left-solid-in-0']: { [IRON_ROD_KEY]: 10_000 } },
       expectedOutput: { ['right-solid-out-0']: { [SCREW_KEY]: 40_000 } },
     });
     expect(result).toEqual({
       efficiency: 1,
-      expectedInput: { [IRON_ROD_KEY]: 10_000 },
+      expectedInput: { ['left-solid-in-0']: { [IRON_ROD_KEY]: 10_000 } },
       output: { ['right-solid-out-0']: { [SCREW_KEY]: 40_000 } },
     } satisfies ItemSpeedResult);
   });
@@ -351,12 +351,12 @@ describe('screw constructor node', () => {
     const result = calFactoryItemSpeedForRecipeNode({
       node: scewConstructor0,
       docsMapped,
-      input: { [IRON_ROD_KEY]: 5_000 },
+      input: { ['left-solid-in-0']: { [IRON_ROD_KEY]: 5_000 } },
       expectedOutput: { ['right-solid-out-0']: { [SCREW_KEY]: 40_000 } },
     });
     expect(result).toEqual({
       efficiency: 5_000 / 10_000,
-      expectedInput: { [IRON_ROD_KEY]: 10_000 },
+      expectedInput: { ['left-solid-in-0']: { [IRON_ROD_KEY]: 10_000 } },
       output: { ['right-solid-out-0']: { [SCREW_KEY]: 20_000 } },
     } satisfies ItemSpeedResult);
   });
@@ -365,12 +365,12 @@ describe('screw constructor node', () => {
     const result = calFactoryItemSpeedForRecipeNode({
       node: scewConstructor0,
       docsMapped,
-      input: { [IRON_ROD_KEY]: 10_000 },
+      input: { ['left-solid-in-0']: { [IRON_ROD_KEY]: 10_000 } },
       expectedOutput: { ['right-solid-out-0']: { [SCREW_KEY]: 20_000 } },
     });
     expect(result).toEqual({
       efficiency: 20_000 / 40_000,
-      expectedInput: { [IRON_ROD_KEY]: 5_000 },
+      expectedInput: { ['left-solid-in-0']: { [IRON_ROD_KEY]: 5_000 } },
       output: { ['right-solid-out-0']: { [SCREW_KEY]: 20_000 } },
     } satisfies ItemSpeedResult);
   });
@@ -379,12 +379,12 @@ describe('screw constructor node', () => {
     const result = calFactoryItemSpeedForRecipeNode({
       node: { ...scewConstructor0, data: { ...scewConstructor0.data, clockSpeedThou: 50_00_000 } },
       docsMapped,
-      input: { [IRON_ROD_KEY]: 10_000 },
+      input: { ['left-solid-in-0']: { [IRON_ROD_KEY]: 10_000 } },
       expectedOutput: { ['right-solid-out-0']: { [SCREW_KEY]: 40_000 } },
     });
     expect(result).toEqual({
       efficiency: 1,
-      expectedInput: { [IRON_ROD_KEY]: 5_000 },
+      expectedInput: { ['left-solid-in-0']: { [IRON_ROD_KEY]: 5_000 } },
       output: { ['right-solid-out-0']: { [SCREW_KEY]: 20_000 } },
     } satisfies ItemSpeedResult);
   });
@@ -404,10 +404,10 @@ describe('iron ingot splitter node', () => {
     const result = calFactoryItemSpeedForLogisticNode({
       node: ironIngotsSplitter0,
       docsMapped,
-      input: { [IRON_INGOT_KEY]: 30_000 },
+      input: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 30_000 } },
     });
     expect(result).toEqual({
-      expectedInput: { [IRON_INGOT_KEY]: 30_000 },
+      expectedInput: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 30_000 } },
       // "Available outputs" but since no demand is expected, the split cannot be determined
       output: {
         ['top-solid-out-0']: { [IRON_INGOT_KEY]: 30_000 },
@@ -425,7 +425,7 @@ describe('iron ingot splitter node', () => {
       expectedOutput: { ['top-solid-out-0']: { [IRON_INGOT_KEY]: 15_000 }, ['right-solid-out-0']: { [IRON_INGOT_KEY]: 15_000 } },
     });
     expect(result).toEqual({
-      expectedInput: { [IRON_INGOT_KEY]: 30_000 },
+      expectedInput: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 30_000 } },
       output: {}, // No inputs to provide the output
     } satisfies ItemSpeedResult);
   });
@@ -434,11 +434,11 @@ describe('iron ingot splitter node', () => {
     const result = calFactoryItemSpeedForLogisticNode({
       node: ironIngotsSplitter0,
       docsMapped,
-      input: { [IRON_INGOT_KEY]: 30_000 },
+      input: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 30_000 } },
       expectedOutput: { ['top-solid-out-0']: { [IRON_INGOT_KEY]: 30_000 } },
     });
     expect(result).toEqual({
-      expectedInput: { [IRON_INGOT_KEY]: 30_000 },
+      expectedInput: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 30_000 } },
       output: { ['top-solid-out-0']: { [IRON_INGOT_KEY]: 30_000 } },
     } satisfies ItemSpeedResult);
   });
@@ -447,11 +447,11 @@ describe('iron ingot splitter node', () => {
     const result = calFactoryItemSpeedForLogisticNode({
       node: ironIngotsSplitter0,
       docsMapped,
-      input: { [IRON_INGOT_KEY]: 30_000 },
+      input: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 30_000 } },
       expectedOutput: { ['top-solid-out-0']: { [IRON_INGOT_KEY]: 20_000 } },
     });
     expect(result).toEqual({
-      expectedInput: { [IRON_INGOT_KEY]: 20_000 },
+      expectedInput: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 20_000 } },
       output: {
         ['top-solid-out-0']: { [IRON_INGOT_KEY]: 30_000 }, // "Fullfilled"
         ['right-solid-out-0']: { [IRON_INGOT_KEY]: 10_000 }, // "Available" but not used
@@ -464,11 +464,11 @@ describe('iron ingot splitter node', () => {
     const result = calFactoryItemSpeedForLogisticNode({
       node: ironIngotsSplitter0,
       docsMapped,
-      input: { [IRON_INGOT_KEY]: 30_000 },
+      input: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 30_000 } },
       expectedOutput: { ['top-solid-out-0']: { [IRON_INGOT_KEY]: 40_000 } },
     });
     expect(result).toEqual({
-      expectedInput: { [IRON_INGOT_KEY]: 40_000 },
+      expectedInput: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 40_000 } },
       output: { ['top-solid-out-0']: { [IRON_INGOT_KEY]: 30_000 } },
     } satisfies ItemSpeedResult);
   });
@@ -477,11 +477,11 @@ describe('iron ingot splitter node', () => {
     const result = calFactoryItemSpeedForLogisticNode({
       node: ironIngotsSplitter0,
       docsMapped,
-      input: { [IRON_INGOT_KEY]: 30_000 },
+      input: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 30_000 } },
       expectedOutput: { ['top-solid-out-0']: { [IRON_INGOT_KEY]: 15_000 }, ['right-solid-out-0']: { [IRON_INGOT_KEY]: 15_000 } },
     });
     expect(result).toEqual({
-      expectedInput: { [IRON_INGOT_KEY]: 30_000 },
+      expectedInput: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 30_000 } },
       output: {
         ['top-solid-out-0']: { [IRON_INGOT_KEY]: 15_000 },
         ['right-solid-out-0']: { [IRON_INGOT_KEY]: 15_000 },
@@ -493,11 +493,11 @@ describe('iron ingot splitter node', () => {
     const result = calFactoryItemSpeedForLogisticNode({
       node: ironIngotsSplitter0,
       docsMapped,
-      input: { [IRON_INGOT_KEY]: 30_000 },
+      input: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 30_000 } },
       expectedOutput: { ['top-solid-out-0']: { [IRON_INGOT_KEY]: 20_000 }, ['right-solid-out-0']: { [IRON_INGOT_KEY]: 10_000 } },
     });
     expect(result).toEqual({
-      expectedInput: { [IRON_INGOT_KEY]: 30_000 },
+      expectedInput: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 30_000 } },
       output: {
         ['top-solid-out-0']: { [IRON_INGOT_KEY]: 20_000 },
         ['right-solid-out-0']: { [IRON_INGOT_KEY]: 10_000 },
@@ -509,11 +509,11 @@ describe('iron ingot splitter node', () => {
     const result = calFactoryItemSpeedForLogisticNode({
       node: ironIngotsSplitter0,
       docsMapped,
-      input: { [IRON_INGOT_KEY]: 30_000 },
+      input: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 30_000 } },
       expectedOutput: { ['top-solid-out-0']: { [IRON_INGOT_KEY]: 20_000 }, ['right-solid-out-0']: { [IRON_INGOT_KEY]: 20_000 } },
     });
     expect(result).toEqual({
-      expectedInput: { [IRON_INGOT_KEY]: 40_000 },
+      expectedInput: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 40_000 } },
       output: {
         ['top-solid-out-0']: { [IRON_INGOT_KEY]: 15_000 },
         ['right-solid-out-0']: { [IRON_INGOT_KEY]: 15_000 },
@@ -525,11 +525,11 @@ describe('iron ingot splitter node', () => {
     const result = calFactoryItemSpeedForLogisticNode({
       node: ironIngotsSplitter0,
       docsMapped,
-      input: { [IRON_INGOT_KEY]: 30_000 },
+      input: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 30_000 } },
       expectedOutput: { ['top-solid-out-0']: { [IRON_INGOT_KEY]: 15_000 }, ['right-solid-out-0']: { [IRON_INGOT_KEY]: 20_000 } },
     });
     expect(result).toEqual({
-      expectedInput: { [IRON_INGOT_KEY]: 35_000 },
+      expectedInput: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 35_000 } },
       output: {
         ['top-solid-out-0']: { [IRON_INGOT_KEY]: 15_000 },
         ['right-solid-out-0']: { [IRON_INGOT_KEY]: 15_000 },
@@ -541,11 +541,11 @@ describe('iron ingot splitter node', () => {
     const result = calFactoryItemSpeedForLogisticNode({
       node: ironIngotsSplitter0,
       docsMapped,
-      input: { [IRON_INGOT_KEY]: 30_000 },
+      input: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 30_000 } },
       expectedOutput: { ['top-solid-out-0']: { [IRON_INGOT_KEY]: 5_000 }, ['right-solid-out-0']: { [IRON_INGOT_KEY]: 5_000 } },
     });
     expect(result).toEqual({
-      expectedInput: { [IRON_INGOT_KEY]: 10_000 },
+      expectedInput: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 10_000 } },
       output: {
         ['top-solid-out-0']: { [IRON_INGOT_KEY]: 25_000 },
         ['right-solid-out-0']: { [IRON_INGOT_KEY]: 25_000 },
@@ -570,10 +570,10 @@ describe('iron rod merger node', () => {
     const result = calFactoryItemSpeedForLogisticNode({
       node: ironRodMerger0,
       docsMapped,
-      input: { [IRON_ROD_KEY]: 30_000 },
+      input: { ['left-solid-in-0']: { [IRON_ROD_KEY]: 30_000 } },
     });
     expect(result).toEqual({
-      expectedInput: { [IRON_ROD_KEY]: 30_000 },
+      expectedInput: { ['left-solid-in-0']: { [IRON_ROD_KEY]: 30_000 } },
       output: {
         ['right-solid-out-0']: { [IRON_ROD_KEY]: 30_000 },
       },
@@ -588,7 +588,7 @@ describe('iron rod merger node', () => {
       expectedOutput: { ['right-solid-out-0']: { [IRON_ROD_KEY]: 30_000 } },
     });
     expect(result).toEqual({
-      expectedInput: { [IRON_ROD_KEY]: 30_000 },
+      expectedInput: { ['left-solid-in-0']: { [IRON_ROD_KEY]: 30_000 } },
       output: {},
     } satisfies ItemSpeedResult);
   });
@@ -597,10 +597,10 @@ describe('iron rod merger node', () => {
     const result = calFactoryItemSpeedForLogisticNode({
       node: ironRodMerger0,
       docsMapped,
-      input: { [IRON_ROD_KEY]: 15_000, [IRON_INGOT_KEY]: 15_000 },
+      input: { ['left-solid-in-0']: { [IRON_ROD_KEY]: 15_000, [IRON_INGOT_KEY]: 15_000 } },
     });
     expect(result).toEqual({
-      expectedInput: { [IRON_ROD_KEY]: 15_000, [IRON_INGOT_KEY]: 15_000 },
+      expectedInput: { ['left-solid-in-0']: { [IRON_ROD_KEY]: 15_000, [IRON_INGOT_KEY]: 15_000 } },
       output: { ['right-solid-out-0']: { [IRON_ROD_KEY]: 15_000, [IRON_INGOT_KEY]: 15_000 } },
     } satisfies ItemSpeedResult);
   });
@@ -609,11 +609,11 @@ describe('iron rod merger node', () => {
     const result = calFactoryItemSpeedForLogisticNode({
       node: ironRodMerger0,
       docsMapped,
-      input: { [IRON_ROD_KEY]: 15_000, [IRON_INGOT_KEY]: 15_000 },
+      input: { ['left-solid-in-0']: { [IRON_ROD_KEY]: 15_000, [IRON_INGOT_KEY]: 15_000 } },
       expectedOutput: { ['right-solid-out-0']: { [IRON_ROD_KEY]: 15_000, [IRON_INGOT_KEY]: 15_000 } },
     });
     expect(result).toEqual({
-      expectedInput: { [IRON_ROD_KEY]: 15_000, [IRON_INGOT_KEY]: 15_000 },
+      expectedInput: { ['left-solid-in-0']: { [IRON_ROD_KEY]: 15_000, [IRON_INGOT_KEY]: 15_000 } },
       output: { ['right-solid-out-0']: { [IRON_ROD_KEY]: 15_000, [IRON_INGOT_KEY]: 15_000 } },
     } satisfies ItemSpeedResult);
   });
@@ -622,11 +622,11 @@ describe('iron rod merger node', () => {
     const result = calFactoryItemSpeedForLogisticNode({
       node: ironRodMerger0,
       docsMapped,
-      input: { [IRON_ROD_KEY]: 15_000, [IRON_INGOT_KEY]: 15_000 },
+      input: { ['left-solid-in-0']: { [IRON_ROD_KEY]: 15_000, [IRON_INGOT_KEY]: 15_000 } },
       expectedOutput: { ['right-solid-out-0']: { [IRON_ROD_KEY]: 10_000, [IRON_INGOT_KEY]: 10_000 } },
     });
     expect(result).toEqual({
-      expectedInput: { [IRON_ROD_KEY]: 10_000, [IRON_INGOT_KEY]: 10_000 },
+      expectedInput: { ['left-solid-in-0']: { [IRON_ROD_KEY]: 10_000, [IRON_INGOT_KEY]: 10_000 } },
       output: { ['right-solid-out-0']: { [IRON_ROD_KEY]: 15_000, [IRON_INGOT_KEY]: 15_000 } },
     } satisfies ItemSpeedResult);
   });
@@ -635,11 +635,11 @@ describe('iron rod merger node', () => {
     const result = calFactoryItemSpeedForLogisticNode({
       node: ironRodMerger0,
       docsMapped,
-      input: { [IRON_ROD_KEY]: 15_000, [IRON_INGOT_KEY]: 15_000 },
+      input: { ['left-solid-in-0']: { [IRON_ROD_KEY]: 15_000, [IRON_INGOT_KEY]: 15_000 } },
       expectedOutput: { ['right-solid-out-0']: { [IRON_ROD_KEY]: 20_000, [IRON_INGOT_KEY]: 20_000 } },
     });
     expect(result).toEqual({
-      expectedInput: { [IRON_ROD_KEY]: 20_000, [IRON_INGOT_KEY]: 20_000 },
+      expectedInput: { ['left-solid-in-0']: { [IRON_ROD_KEY]: 20_000, [IRON_INGOT_KEY]: 20_000 } },
       output: { ['right-solid-out-0']: { [IRON_ROD_KEY]: 15_000, [IRON_INGOT_KEY]: 15_000 } },
     } satisfies ItemSpeedResult);
   });
@@ -657,10 +657,10 @@ describe('smart splitter test', () => {
     const result = calFactoryItemSpeedForLogisticNode({
       node: mockSplitterProSpecifiedItem,
       docsMapped,
-      input: { [IRON_INGOT_KEY]: 30_000 },
+      input: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 30_000 } },
     });
     expect(result).toEqual({
-      expectedInput: { [IRON_INGOT_KEY]: 30_000 },
+      expectedInput: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 30_000 } },
       output: {
         ['bottom-solid-out-0']: { [IRON_INGOT_KEY]: 30_000 },
         ['right-solid-out-0']: { [IRON_INGOT_KEY]: 30_000 },
@@ -672,11 +672,11 @@ describe('smart splitter test', () => {
     const result = calFactoryItemSpeedForLogisticNode({
       node: mockSplitterProSpecifiedItem,
       docsMapped,
-      input: { [IRON_INGOT_KEY]: 30_000 },
+      input: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 30_000 } },
       expectedOutput: { ['bottom-solid-out-0']: { [IRON_INGOT_KEY]: 30_000 }, ['right-solid-out-0']: { [IRON_INGOT_KEY]: 30_000 } },
     });
     expect(result).toEqual({
-      expectedInput: { [IRON_INGOT_KEY]: 30_000 },
+      expectedInput: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 30_000 } },
       output: { ['bottom-solid-out-0']: { [IRON_INGOT_KEY]: 30_000 } }, // Nothing is being overflowed
     } satisfies ItemSpeedResult);
   });
@@ -685,11 +685,11 @@ describe('smart splitter test', () => {
     const result = calFactoryItemSpeedForLogisticNode({
       node: mockSplitterProSpecifiedItem,
       docsMapped,
-      input: { [IRON_INGOT_KEY]: 30_000 },
+      input: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 30_000 } },
       expectedOutput: { ['bottom-solid-out-0']: { [IRON_INGOT_KEY]: 10_000 }, ['right-solid-out-0']: { [IRON_INGOT_KEY]: 30_000 } },
     });
     expect(result).toEqual({
-      expectedInput: { [IRON_INGOT_KEY]: 30_000 },
+      expectedInput: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 30_000 } },
       output: { ['bottom-solid-out-0']: { [IRON_INGOT_KEY]: 10_000 }, ['right-solid-out-0']: { [IRON_INGOT_KEY]: 20_000 } },
     } satisfies ItemSpeedResult);
   });
@@ -698,10 +698,10 @@ describe('smart splitter test', () => {
     const result = calFactoryItemSpeedForLogisticNode({
       node: mockSplitterProSpecifiedItem,
       docsMapped,
-      input: { [IRON_ROD_KEY]: 30_000 },
+      input: { ['left-solid-in-0']: { [IRON_ROD_KEY]: 30_000 } },
     });
     expect(result).toEqual({
-      expectedInput: { [IRON_ROD_KEY]: 30_000 },
+      expectedInput: { ['left-solid-in-0']: { [IRON_ROD_KEY]: 30_000 } },
       output: {
         ['right-solid-out-0']: { [IRON_ROD_KEY]: 30_000 },
       },
@@ -712,11 +712,11 @@ describe('smart splitter test', () => {
     const result = calFactoryItemSpeedForLogisticNode({
       node: mockSplitterProSpecifiedItem,
       docsMapped,
-      input: { [IRON_ROD_KEY]: 30_000 },
+      input: { ['left-solid-in-0']: { [IRON_ROD_KEY]: 30_000 } },
       expectedOutput: { ['right-solid-out-0']: { [IRON_ROD_KEY]: 30_000 } },
     });
     expect(result).toEqual({
-      expectedInput: { [IRON_ROD_KEY]: 30_000 },
+      expectedInput: { ['left-solid-in-0']: { [IRON_ROD_KEY]: 30_000 } },
       output: { ['right-solid-out-0']: { [IRON_ROD_KEY]: 30_000 } },
     } satisfies ItemSpeedResult);
   });
@@ -725,14 +725,14 @@ describe('smart splitter test', () => {
     const result = calFactoryItemSpeedForLogisticNode({
       node: mockSplitterProSpecifiedItem,
       docsMapped,
-      input: { [IRON_ROD_KEY]: 10_000, [IRON_INGOT_KEY]: 15_000 },
+      input: { ['left-solid-in-0']: { [IRON_ROD_KEY]: 10_000, [IRON_INGOT_KEY]: 15_000 } },
       expectedOutput: {
         ['right-solid-out-0']: { [IRON_ROD_KEY]: 10_000, [IRON_INGOT_KEY]: 15_000 },
         ['bottom-solid-out-0']: { [IRON_INGOT_KEY]: 10_000 },
       },
     });
     expect(result).toEqual({
-      expectedInput: { [IRON_ROD_KEY]: 10_000, [IRON_INGOT_KEY]: 15_000 },
+      expectedInput: { ['left-solid-in-0']: { [IRON_ROD_KEY]: 10_000, [IRON_INGOT_KEY]: 15_000 } },
       output: {
         ['right-solid-out-0']: { [IRON_ROD_KEY]: 10_000, [IRON_INGOT_KEY]: 5_000 }, // Overflowed
         ['bottom-solid-out-0']: { [IRON_INGOT_KEY]: 10_000 }, // Specified
@@ -751,10 +751,10 @@ describe('smart splitter test', () => {
     const result = calFactoryItemSpeedForLogisticNode({
       node: mockSplitterProAnyUndefined,
       docsMapped,
-      input: { [IRON_ROD_KEY]: 10_000, [IRON_INGOT_KEY]: 15_000, [COPPER_INGOT_KEY]: 20_000 },
+      input: { ['left-solid-in-0']: { [IRON_ROD_KEY]: 10_000, [IRON_INGOT_KEY]: 15_000, [COPPER_INGOT_KEY]: 20_000 } },
     });
     expect(result).toEqual({
-      expectedInput: { [IRON_ROD_KEY]: 10_000, [IRON_INGOT_KEY]: 15_000, [COPPER_INGOT_KEY]: 20_000 },
+      expectedInput: { ['left-solid-in-0']: { [IRON_ROD_KEY]: 10_000, [IRON_INGOT_KEY]: 15_000, [COPPER_INGOT_KEY]: 20_000 } },
       output: {
         ['bottom-solid-out-0']: { [IRON_INGOT_KEY]: 15_000 },
         ['top-solid-out-0']: { [IRON_ROD_KEY]: 10_000, [COPPER_INGOT_KEY]: 20_000 },
@@ -766,7 +766,7 @@ describe('smart splitter test', () => {
     const result = calFactoryItemSpeedForLogisticNode({
       node: mockSplitterProAnyUndefined,
       docsMapped,
-      input: { [IRON_ROD_KEY]: 10_000, [IRON_INGOT_KEY]: 15_000, [COPPER_INGOT_KEY]: 20_000 },
+      input: { ['left-solid-in-0']: { [IRON_ROD_KEY]: 10_000, [IRON_INGOT_KEY]: 15_000, [COPPER_INGOT_KEY]: 20_000 } },
       expectedOutput: { ['top-solid-out-0']: { [IRON_INGOT_KEY]: 15_000 } },
     });
     expect(result).toEqual({
@@ -782,11 +782,11 @@ describe('smart splitter test', () => {
     const result = calFactoryItemSpeedForLogisticNode({
       node: mockSplitterProAnyUndefined,
       docsMapped,
-      input: { [IRON_ROD_KEY]: 10_000, [IRON_INGOT_KEY]: 15_000, [COPPER_INGOT_KEY]: 20_000 },
+      input: { ['left-solid-in-0']: { [IRON_ROD_KEY]: 10_000, [IRON_INGOT_KEY]: 15_000, [COPPER_INGOT_KEY]: 20_000 } },
       expectedOutput: { ['bottom-solid-out-0']: { [IRON_INGOT_KEY]: 15_000 } },
     });
     expect(result).toEqual({
-      expectedInput: { [IRON_INGOT_KEY]: 15_000 },
+      expectedInput: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 15_000 } },
       output: {
         ['bottom-solid-out-0']: { [IRON_INGOT_KEY]: 15_000 },
         ['top-solid-out-0']: { [IRON_ROD_KEY]: 10_000, [COPPER_INGOT_KEY]: 20_000 },
@@ -798,14 +798,14 @@ describe('smart splitter test', () => {
     const result = calFactoryItemSpeedForLogisticNode({
       node: mockSplitterProAnyUndefined,
       docsMapped,
-      input: { [IRON_ROD_KEY]: 10_000, [IRON_INGOT_KEY]: 15_000, [COPPER_INGOT_KEY]: 20_000 },
+      input: { ['left-solid-in-0']: { [IRON_ROD_KEY]: 10_000, [IRON_INGOT_KEY]: 15_000, [COPPER_INGOT_KEY]: 20_000 } },
       expectedOutput: {
         ['bottom-solid-out-0']: { [IRON_INGOT_KEY]: 15_000 },
         ['top-solid-out-0']: { [IRON_ROD_KEY]: 10_000, [COPPER_INGOT_KEY]: 20_000 },
       },
     });
     expect(result).toEqual({
-      expectedInput: { [IRON_INGOT_KEY]: 15_000, [IRON_ROD_KEY]: 10_000, [COPPER_INGOT_KEY]: 20_000 },
+      expectedInput: { ['left-solid-in-0']: { [IRON_INGOT_KEY]: 15_000, [IRON_ROD_KEY]: 10_000, [COPPER_INGOT_KEY]: 20_000 } },
       output: {
         ['bottom-solid-out-0']: { [IRON_INGOT_KEY]: 15_000 },
         ['top-solid-out-0']: { [IRON_ROD_KEY]: 10_000, [COPPER_INGOT_KEY]: 20_000 },
