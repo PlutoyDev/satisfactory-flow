@@ -7,6 +7,10 @@ import {
   ResolvedFactoryItemNodeData,
   ResolvedFactoryRecipeNodeData,
   ResolvedFactoryLogisticNodeData,
+  splitHandleId,
+  FACTORY_INTERFACE_DIR,
+  FactoryInterfaceType,
+  FactoryItemForm,
 } from '../lib/data';
 import { DocsMapped, ExtendedNode } from '../lib/store';
 
@@ -46,7 +50,7 @@ export function calFactoryItemSpeedForItemNode(params: FactoryItemSpeedParams): 
     // If the provided input is less than the speed, it will still expect the speed
     // but the efficiency will be penalized
     inputSpeed = speedThou;
-      res.expectedInput[itemKey] = inputSpeed;
+    res.expectedInput[itemKey] = inputSpeed;
     res.efficiency = Math.min(1, providedItemSpeed / speedThou);
   }
 
@@ -159,6 +163,204 @@ export function calFactoryItemSpeedForRecipeNode(params: FactoryItemSpeedParams)
 }
 
 export function calFactoryItemSpeedForLogisticNode(params: FactoryItemSpeedParams): ItemSpeedResult | null {
+  const { node, input, expectedOutput } = params;
+  const { type: logisticType, pipeJuncInt, smartProRules } = node.data as ResolvedFactoryLogisticNodeData;
+
+  // Connected in and outs
+  const inHandleIds: string[] = [];
+  const outHandleIds: string[] = [];
+  const anyOutHandleIds: string[] = [];
+  const overflowOutHandleIds: string[] = [];
+  const specificItemOutHandleIds: Record<string, string[]> = {};
+  const anyUndefinedOutHandleIds: string[] = [];
+
+  for (const dir of FACTORY_INTERFACE_DIR) {
+    let itemForm: FactoryItemForm;
+    let intType: FactoryInterfaceType;
+    if (logisticType === 'pipeJunc') {
+      itemForm = 'fluid';
+      intType = dir === 'left' ? 'in' : (pipeJuncInt[dir] ?? 'out');
+    } else {
+      itemForm = 'solid';
+      intType = (logisticType === 'merger' ? dir !== 'right' : dir === 'left') ? 'in' : 'out';
+    }
+    const handleId = `${dir}-${itemForm}-${intType}-0`;
+
+    if (intType === 'in') {
+      inHandleIds.push(handleId);
+    } else if (dir !== 'left') {
+      // Left is always in for all logistic nodes, doing this just prevent typescript error
+      outHandleIds.push(handleId);
+      if (logisticType === 'splitterSmart' || logisticType === 'splitterPro') {
+        // Need do split based on the rules here
+        const rules = smartProRules[dir] ?? ['none'];
+        if (rules[0] === 'any') {
+          anyOutHandleIds.push(handleId);
+        } else if (rules[0] === 'overflow') {
+          overflowOutHandleIds.push(handleId);
+        } else if (rules[0] === 'anyUndefined') {
+          anyUndefinedOutHandleIds.push(handleId);
+        } else if (rules[0] !== 'none') {
+          for (const itemKey of rules) {
+            specificItemOutHandleIds[itemKey] ??= [];
+            specificItemOutHandleIds[itemKey].push(handleId);
+          }
+        }
+      } else {
+        // Normal splitter / merger / pipeJunc
+        anyOutHandleIds.push(handleId);
+      }
+    }
+  }
+  const hasSpecificItemOutAndAnyUndefinedOut = anyUndefinedOutHandleIds.length > 0 && Object.keys(specificItemOutHandleIds).length > 0;
+
+  const res: ItemSpeedResult = { expectedInput: {}, output: {} };
+
+  const itemKeys = new Set<string>([...Object.keys(input)]);
+  const expectedOutputSpeedThou: { [itemKey: string]: number } = {};
+  if (expectedOutput) {
+    for (const handleId in expectedOutput) {
+      for (const itemKey in expectedOutput[handleId]) {
+        itemKeys.add(itemKey);
+        expectedOutputSpeedThou[itemKey] = (expectedOutputSpeedThou[itemKey] || 0) + expectedOutput[handleId][itemKey];
+      }
+    }
+  }
+
+  for (const itemKey of itemKeys) {
+    const itemInputSpeedThou = input[itemKey] ?? 0;
+    const itemOutputSpeedThou = expectedOutputSpeedThou[itemKey] ?? 0;
+    const itemOutputHandleIds: string[] = [];
+    if (itemKey in specificItemOutHandleIds) {
+      itemOutputHandleIds.push(...specificItemOutHandleIds[itemKey]);
+    } else if (hasSpecificItemOutAndAnyUndefinedOut) {
+      itemOutputHandleIds.push(...anyUndefinedOutHandleIds);
+    }
+    itemOutputHandleIds.push(...anyOutHandleIds);
+
+    if (!expectedOutput) {
+      for (const handleId of itemOutputHandleIds) {
+        res.output[handleId] ??= {};
+        res.output[handleId][itemKey] = itemInputSpeedThou;
+      }
+      for (const handleId of overflowOutHandleIds) {
+        res.output[handleId] ??= {};
+        res.output[handleId][itemKey] = itemInputSpeedThou;
+      }
+      res.expectedInput[itemKey] = itemInputSpeedThou;
+      continue;
+    }
+
+    // Filter out the output handleIds that are not connected to the expected output
+
+    if (itemInputSpeedThou > 0) {
+      const unmetOutputHandleId: Set<string> = new Set(itemOutputHandleIds);
+      let remainingOutputItemSpeedThou = itemInputSpeedThou;
+      let breakoutLoopCount = 0; // Safety check to prevent infinite loop
+      let isOverflowDone = overflowOutHandleIds.length === 0; // If there is no overflow, we can skip the overflow calculation
+      let hasTooMuchInput = false; // If there is too much input, we will be redistributing the input to the outputs (so that it appears as a issue in the edge)
+      while (remainingOutputItemSpeedThou > 0 && unmetOutputHandleId.size > 0 && ++breakoutLoopCount < 5) {
+        console.log('Looping: ', itemKey, remainingOutputItemSpeedThou, Array.from(unmetOutputHandleId));
+        const dividedOutputItemSpeedThou = remainingOutputItemSpeedThou / unmetOutputHandleId.size;
+        for (const handleId of unmetOutputHandleId) {
+          const outputItemSpeedThou = Math.min(dividedOutputItemSpeedThou, expectedOutput?.[handleId]?.[itemKey] ?? 0);
+          if (outputItemSpeedThou > 0) {
+            res.output[handleId] ??= {};
+            res.output[handleId][itemKey] = outputItemSpeedThou;
+            remainingOutputItemSpeedThou -= outputItemSpeedThou;
+          }
+          unmetOutputHandleId.delete(handleId);
+        }
+
+        if (!hasTooMuchInput && isOverflowDone && unmetOutputHandleId.size === 0 && remainingOutputItemSpeedThou > 0) {
+          // If all outputs are met and there is still remaining output item speed
+          // redistribute the remaining output to the outputs that are already met so that it show up as overproducing
+          for (const handleId of itemOutputHandleIds) {
+            unmetOutputHandleId.add(handleId);
+          }
+          for (const handleId of overflowOutHandleIds) {
+            unmetOutputHandleId.add(handleId);
+          }
+          hasTooMuchInput = true; // It won't go into this block again
+        }
+
+        if (!isOverflowDone && unmetOutputHandleId.size === 0 && remainingOutputItemSpeedThou > 0) {
+          // If there are overflow outputs, all outputs are met and there is still remaining output item speed
+          // distribute the remaining output to the overflow outputs
+          for (const handleId of overflowOutHandleIds) {
+            unmetOutputHandleId.add(handleId);
+          }
+          isOverflowDone = true; // It won't go into this block again
+        }
+      }
+    }
+
+    if (itemOutputSpeedThou > 0) {
+      res.expectedInput[itemKey] = itemOutputSpeedThou;
+    }
+  }
+
+  // if (!expectedOutput) {
+  //   // Don't know what to expect, just give all the node all the input
+  //   for (const itemKey in input) {
+  //     res.expectedInput[itemKey] = input[itemKey];
+  //     if (itemKey in specificItemOutHandleIds) {
+  //       for (const handleId of specificItemOutHandleIds[itemKey]) {
+  //         res.output[handleId] ??= {};
+  //         res.output[handleId][itemKey] = input[itemKey];
+  //       }
+  //     } else if (hasSpecificItemOutAndAnyUndefinedOut) {
+  //       for (const handleId of anyUndefinedOutHandleIds) {
+  //         res.output[handleId] ??= {};
+  //         res.output[handleId][itemKey] = input[itemKey];
+  //       }
+  //     }
+  //     for (const handleId of anyOutHandleIds) {
+  //       res.output[handleId] ??= {};
+  //       res.output[handleId][itemKey] = input[itemKey];
+  //     }
+  //     for (const handleId of overflowOutHandleIds) {
+  //       res.output[handleId] ??= {};
+  //       res.output[handleId][itemKey] = input[itemKey];
+  //     }
+  //   }
+  // } else {
+  //   for (const itemKey of itemKeys) {
+  //     let itemSpeed = 0;
+  //     if (itemKey in input) {
+  //       itemSpeed += input[itemKey];
+  //     }
+  //     for (const handleId of inHandleIds) {
+  //       if (itemKey in expectedOutput[handleId]) {
+  //         itemSpeed += expectedOutput[handleId][itemKey];
+  //       }
+  //     }
+  //     if (itemSpeed > 0) {
+  //       res.expectedInput[itemKey] = itemSpeed;
+  //     }
+  //     if (itemKey in specificItemOutHandleIds) {
+  //       for (const handleId of specificItemOutHandleIds[itemKey]) {
+  //         res.output[handleId] ??= {};
+  //         res.output[handleId][itemKey] = itemSpeed;
+  //       }
+  //     } else if (hasSpecificItemOutAndAnyUndefinedOut) {
+  //       for (const handleId of anyUndefinedOutHandleIds) {
+  //         res.output[handleId] ??= {};
+  //         res.output[handleId][itemKey] = itemSpeed;
+  //       }
+  //     }
+  //     for (const handleId of anyOutHandleIds) {
+  //       res.output[handleId] ??= {};
+  //       res.output[handleId][itemKey] = itemSpeed;
+  //     }
+  //     for (const handleId of overflowOutHandleIds) {
+  //       res.output[handleId] ??= {};
+  //       res.output[handleId][itemKey] = itemSpeed;
+  //     }
+  //   }
+  // }
+
+  return res;
 }
 
 type CalculateFactoryItemSpeedParams = {
