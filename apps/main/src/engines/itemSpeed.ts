@@ -275,7 +275,6 @@ export function calFactoryItemSpeedForLogisticNode(params: FactoryItemSpeedParam
       let breakoutLoopCount = 0; // Safety check to prevent infinite loop
       let isOverflowDone = overflowOutHandleIds.length === 0; // If there is no overflow, we can skip the overflow calculation
       while ((remainingOutputItemSpeedThou > 0 && unmetOutputHandleId.size > 0) || !isOverflowDone) {
-        console.log('Looping: ', itemKey, remainingOutputItemSpeedThou, Array.from(unmetOutputHandleId));
         const dividedOutputItemSpeedThou = Math.floor(remainingOutputItemSpeedThou / unmetOutputHandleId.size);
         for (const handleId of unmetOutputHandleId) {
           res.output[handleId] ??= {};
