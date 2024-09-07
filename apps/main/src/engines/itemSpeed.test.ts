@@ -450,9 +450,9 @@ describe('iron ingot splitter node', () => {
     expect(result).toEqual({
       expectedInput: { [IRON_INGOT_KEY]: 20_000 },
       output: {
-        ['top-solid-out-0']: { [IRON_INGOT_KEY]: 20_000 }, // "Fullfilled"
+        ['top-solid-out-0']: { [IRON_INGOT_KEY]: 30_000 }, // "Fullfilled"
         ['right-solid-out-0']: { [IRON_INGOT_KEY]: 10_000 }, // "Available" but not used
-        ['bottom-solid-out-0']: { [IRON_INGOT_KEY]: 30_000 }, // "Available" but not used
+        ['bottom-solid-out-0']: { [IRON_INGOT_KEY]: 10_000 }, // "Available" but not used
       },
     } satisfies ItemSpeedResult);
   });
@@ -466,7 +466,7 @@ describe('iron ingot splitter node', () => {
     });
     expect(result).toEqual({
       expectedInput: { [IRON_INGOT_KEY]: 40_000 },
-      output: { ['top-solid-out-0']: { [IRON_INGOT_KEY]: 40_000 } },
+      output: { ['top-solid-out-0']: { [IRON_INGOT_KEY]: 30_000 } },
     } satisfies ItemSpeedResult);
   });
 
@@ -544,8 +544,8 @@ describe('iron ingot splitter node', () => {
     expect(result).toEqual({
       expectedInput: { [IRON_INGOT_KEY]: 10_000 },
       output: {
-        ['top-solid-out-0']: { [IRON_INGOT_KEY]: 5_000 },
-        ['right-solid-out-0']: { [IRON_INGOT_KEY]: 5_000 },
+        ['top-solid-out-0']: { [IRON_INGOT_KEY]: 25_000 },
+        ['right-solid-out-0']: { [IRON_INGOT_KEY]: 25_000 },
         ['bottom-solid-out-0']: { [IRON_INGOT_KEY]: 20_000 }, // "Available" but not used
       },
     } satisfies ItemSpeedResult);
