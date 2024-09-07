@@ -323,12 +323,192 @@ export function calFactoryItemSpeedForLogisticNode(params: FactoryItemSpeedParam
   return res;
 }
 
-type CalculateFactoryItemSpeedParams = {
+export type CalculateFactoryItemSpeedParams = {
   docsMapped: DocsMapped;
   startNodeId: string;
   nodes: Map<string, ExtendedNode>;
   edges: Map<string, Edge>;
   signal?: AbortSignal;
+  /**
+   * Callback after the initial pass is done
+   * @returns true to stop the calculation, false / undefined will continue to the second pass
+   */
+  inititalPassResultCallback?: ({
+    nodeItemSpeeds,
+    nodeErrors,
+  }: Pick<CalculateFactoryItemSpeedResult, 'nodeItemSpeeds' | 'nodeErrors'>) => boolean | undefined;
 };
 
-export function calFactoryItemSpeed(params: CalculateFactoryItemSpeedParams) {}
+export type CalculateFactoryItemSpeedResult = {
+  nodeItemSpeeds: Map<string, ItemSpeedResult | null>;
+  nodeErrors: { [nodeId: string]: Error };
+};
+
+export function calculateFactoryItemSpeed(params: CalculateFactoryItemSpeedParams): CalculateFactoryItemSpeedResult {
+  // Trace dependencies until we reach the start nodes (aka root nodes)
+  // Get each node's expected input (if any) and output (if any), the output will be use as the provided input
+  //   for the next node until we reach the end nodes (aka leaf nodes)
+  // After we reach the end nodes, we will need to recalculate the expected input based on the output used (in case of bottlenecks/backlogs)
+  // Make sure the dependencies are calculated first before the dependents
+  // In the initial pass, from the roots to the leaves, we calculate the output for a provided input
+  // In the second pass, from the leaves back to the roots, we calculate the expected input based on the output used
+  const { docsMapped, startNodeId, nodes, edges, signal } = params;
+
+  const nodeErrors: { [nodeId: string]: Error } = {};
+  const nodeItemSpeeds = new Map<string, ItemSpeedResult | null>();
+  const visitedNodes = new Set<string>();
+  const nodeIdQueue = [startNodeId];
+  let isRecalculating = false; // Recalculating backwards from the end nodes
+  const nodeIdCalculationOrder: string[] = []; // The order of the nodes that are calculated, reverse when recalculating
+  while (nodeIdQueue.length > 0) {
+    const nodeId = nodeIdQueue.shift()!;
+    try {
+      if (!isRecalculating) {
+        if (visitedNodes.has(nodeId)) {
+          console.log(`Node ${nodeId} already visited`);
+          throw null; // Not an error,
+        }
+        visitedNodes.add(nodeId);
+      }
+      const node = nodes.get(nodeId);
+      if (!node) {
+        throw new Error(`not found`);
+      }
+
+      const input: InputItemSpeed = {};
+      const expectedOutput: OutputItemSpeed = {};
+      const nodeEdges = node.edges;
+      if (!nodeEdges) {
+        throw new Error('no edges');
+      }
+
+      // Check if all the connected nodes are visited
+      let numUnvisitedInputs = 0;
+      for (const [selfHandleId, edgeId] of nodeEdges) {
+        const { type: interfaceType } = splitHandleId(selfHandleId);
+        const edge = edges.get(edgeId);
+        if (!edge) {
+          throw new Error(`Edge ${edgeId} not found`);
+        }
+        if (interfaceType === 'in') {
+          const sourceNodeId = edge.source;
+          const sourceHandleId = edge.sourceHandle;
+          if (!sourceHandleId) {
+            throw new Error(`Invalid node ${sourceNodeId}: No handleId`);
+          }
+          const sourceNode = nodes.get(sourceNodeId);
+          if (!sourceNode) {
+            throw new Error(`Source node ${sourceNodeId} of edge ${edgeId} not found`);
+          }
+          if (!visitedNodes.has(sourceNodeId)) {
+            // not visited yet
+            nodeIdQueue.unshift(sourceNodeId);
+            numUnvisitedInputs++;
+            continue;
+          }
+          const sourceNodeItemSpeed = nodeItemSpeeds.get(sourceNodeId);
+          if (!sourceNodeItemSpeed) {
+            throw new Error(`Source node ${sourceNodeId} of edge ${edgeId} not calculated yet`);
+          }
+          const sourceNodeOutput = sourceNodeItemSpeed.output[sourceHandleId];
+          if (!sourceNodeOutput) {
+            throw new Error(`Output of source node ${sourceNodeId} for handle ${sourceHandleId} not found`);
+          }
+          for (const itemKey in sourceNodeOutput) {
+            input[itemKey] = (input[itemKey] ?? 0) + sourceNodeOutput[itemKey];
+          }
+        } else {
+          // interfaceType === 'out'
+          const targetNodeId = edge.target;
+          const targetHandleId = edge.targetHandle;
+          if (!targetHandleId) {
+            throw new Error(`Invalid node ${targetNodeId}: No handleId`);
+          }
+          const targetNode = nodes.get(targetNodeId);
+          if (!targetNode) {
+            throw new Error(`Target node ${targetNodeId} of edge ${edgeId} not found`);
+          }
+          if (!visitedNodes.has(targetNodeId)) {
+            // not visited yet but we can't calculate it since its dependent on this node
+            // add it to the end of the unvisited inputs
+            nodeIdQueue.splice(numUnvisitedInputs, 0, targetNodeId);
+          }
+          if (isRecalculating) {
+            // Only when recalculating, we need to check the expected output
+            const targetNodeItemSpeed = nodeItemSpeeds.get(targetNodeId);
+            if (!targetNodeItemSpeed) {
+              throw new Error(`Target node ${targetNodeId} of edge ${edgeId} not calculated yet`);
+            }
+            const targetNodeExpectedInputs = targetNodeItemSpeed.expectedInput;
+            for (const itemKey in targetNodeExpectedInputs) {
+              expectedOutput[targetHandleId] ??= {};
+              expectedOutput[targetHandleId][itemKey] = targetNodeExpectedInputs[itemKey];
+            }
+          }
+        }
+      }
+
+      if (numUnvisitedInputs > 0) {
+        // We can't calculate this node yet, insert the current node to the end of unvisited inputs
+        nodeIdQueue.splice(numUnvisitedInputs, 0, nodeId);
+        visitedNodes.delete(nodeId);
+        continue;
+      }
+
+      // All inputs are visited
+      // Calculate the item speed for this node
+      console.group(`Calculating ${node.type} node ${nodeId}: `);
+      console.log('Data: ', node.data);
+      console.log('Input: ', input);
+
+      if (!isRecalculating) {
+        nodeIdCalculationOrder.push(nodeId);
+      }
+      const nodeItemSpeedCalcParam: FactoryItemSpeedParams = { node, docsMapped, input };
+      if (isRecalculating) {
+        nodeItemSpeedCalcParam.expectedOutput = expectedOutput;
+        console.log('Expected Output: ', expectedOutput);
+      }
+      let itemSpeed: ItemSpeedResult | null;
+      if (node.type === 'item') {
+        itemSpeed = calFactoryItemSpeedForItemNode(nodeItemSpeedCalcParam);
+      } else if (node.type === 'recipe') {
+        itemSpeed = calFactoryItemSpeedForRecipeNode(nodeItemSpeedCalcParam);
+      } else if (node.type === 'logistic') {
+        itemSpeed = calFactoryItemSpeedForLogisticNode(nodeItemSpeedCalcParam);
+      } else {
+        throw new Error(`Invalid node type ${node.data.type}`);
+      }
+      console.log('Result: ', itemSpeed);
+      console.groupEnd();
+
+      nodeItemSpeeds.set(nodeId, itemSpeed);
+      if (!itemSpeed) {
+        throw new Error(`Item speed not calculated`);
+      }
+    } catch (e) {
+      if (typeof e === 'string') {
+        console.error(`Error in node ${nodeId}: ${e}`);
+        nodeErrors[nodeId] = new Error(e);
+      } else if (e instanceof Error) {
+        console.error(`${e.name} in node ${nodeId}: ${e.message}`);
+        nodeErrors[nodeId] = e;
+      }
+    }
+
+    // End of first pass
+    if (!isRecalculating && nodeIdQueue.length === 0) {
+      // Start recalculating
+      console.log('End of initial pass: ', nodeIdCalculationOrder);
+      const stop = params.inititalPassResultCallback?.({ nodeItemSpeeds, nodeErrors });
+      if (stop) {
+        console.log('Stopped after initial pass');
+        break;
+      }
+      nodeIdQueue.push(...nodeIdCalculationOrder.reverse());
+      isRecalculating = true;
+    }
+  }
+
+  return { nodeItemSpeeds, nodeErrors };
+}

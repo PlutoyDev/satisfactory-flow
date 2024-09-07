@@ -7,6 +7,9 @@ import {
   calFactoryItemSpeedForRecipeNode,
   calFactoryItemSpeedForLogisticNode,
   ItemSpeedResult,
+  CalculateFactoryItemSpeedParams,
+  calculateFactoryItemSpeed,
+  CalculateFactoryItemSpeedResult,
 } from './itemSpeed';
 
 // TODO: Move this to lib, but i'm too lazy to do it now :D
@@ -808,5 +811,23 @@ describe('smart splitter test', () => {
         ['top-solid-out-0']: { [IRON_ROD_KEY]: 10_000, [COPPER_INGOT_KEY]: 20_000 },
       },
     } satisfies ItemSpeedResult);
+  });
+});
+
+describe('full factory test', () => {
+  const initialParams: CalculateFactoryItemSpeedParams = {
+    docsMapped,
+    nodes: nodesMap,
+    edges: edgesMap,
+    startNodeId: ironIngotsItemNode.id,
+  };
+
+  test('starting from iron ingots item node', () => {
+    const result: CalculateFactoryItemSpeedResult = calculateFactoryItemSpeed(initialParams);
+    expect(result).toHaveProperty('nodeItemSpeeds');
+
+    for (const nodeId of nodesMap.keys()) {
+      expect.soft(result.nodeItemSpeeds.has(nodeId), `Node ${nodeId} is not calculated`);
+    }
   });
 });
