@@ -168,7 +168,6 @@ export function calFactoryItemSpeedForLogisticNode(params: FactoryItemSpeedParam
 
   // Connected in and outs
   const inHandleIds: string[] = [];
-  const outHandleIds: string[] = [];
   const anyOutHandleIds: string[] = [];
   const overflowOutHandleIds: string[] = [];
   const specificItemOutHandleIds: Record<string, string[]> = {};
@@ -189,8 +188,8 @@ export function calFactoryItemSpeedForLogisticNode(params: FactoryItemSpeedParam
     if (intType === 'in') {
       inHandleIds.push(handleId);
     } else if (dir !== 'left') {
-      // Left is always in for all logistic nodes, doing this just prevent typescript error
-      outHandleIds.push(handleId);
+      // Left is always input for all logistic nodes, doing this just prevent typescript error
+
       if (logisticType === 'splitterSmart' || logisticType === 'splitterPro') {
         // Need do split based on the rules here
         const rules = smartProRules[dir] ?? ['none'];
@@ -210,18 +209,22 @@ export function calFactoryItemSpeedForLogisticNode(params: FactoryItemSpeedParam
         // Normal splitter / merger / pipeJunc
         anyOutHandleIds.push(handleId);
       }
+    } else {
+      throw new Error('Not possible');
     }
   }
   const hasSpecificItemOutAndAnyUndefinedOut = anyUndefinedOutHandleIds.length > 0 && Object.keys(specificItemOutHandleIds).length > 0;
 
   const res: ItemSpeedResult = { expectedInput: {}, output: {} };
 
-  const itemKeys = new Set<string>([...Object.keys(input)]);
+  const itemKeys: string[] = Object.keys(input);
   const expectedOutputSpeedThou: { [itemKey: string]: number } = {};
   if (expectedOutput) {
     for (const handleId in expectedOutput) {
       for (const itemKey in expectedOutput[handleId]) {
-        itemKeys.add(itemKey);
+        if (!itemKeys.includes(itemKey)) {
+          itemKeys.push(itemKey);
+        }
         expectedOutputSpeedThou[itemKey] = (expectedOutputSpeedThou[itemKey] || 0) + expectedOutput[handleId][itemKey];
       }
     }
@@ -254,34 +257,29 @@ export function calFactoryItemSpeedForLogisticNode(params: FactoryItemSpeedParam
     // Filter out the output handleIds that are not connected to the expected output
 
     if (itemInputSpeedThou > 0) {
-      const unmetOutputHandleId: Set<string> = new Set(itemOutputHandleIds);
+      const unmetOutputHandleId: Set<string> = new Set();
+      for (const handleId of itemOutputHandleIds) {
+        if (handleId in expectedOutput) {
+          // Add any output that is "connected"
+          unmetOutputHandleId.add(handleId);
+        }
+      }
       let remainingOutputItemSpeedThou = itemInputSpeedThou;
       let breakoutLoopCount = 0; // Safety check to prevent infinite loop
       let isOverflowDone = overflowOutHandleIds.length === 0; // If there is no overflow, we can skip the overflow calculation
-      let hasTooMuchInput = false; // If there is too much input, we will be redistributing the input to the outputs (so that it appears as a issue in the edge)
       while (remainingOutputItemSpeedThou > 0 && unmetOutputHandleId.size > 0 && ++breakoutLoopCount < 5) {
         console.log('Looping: ', itemKey, remainingOutputItemSpeedThou, Array.from(unmetOutputHandleId));
-        const dividedOutputItemSpeedThou = remainingOutputItemSpeedThou / unmetOutputHandleId.size;
+        const dividedOutputItemSpeedThou = Math.floor(remainingOutputItemSpeedThou / unmetOutputHandleId.size);
         for (const handleId of unmetOutputHandleId) {
-          const outputItemSpeedThou = Math.min(dividedOutputItemSpeedThou, expectedOutput?.[handleId]?.[itemKey] ?? 0);
-          if (outputItemSpeedThou > 0) {
-            res.output[handleId] ??= {};
-            res.output[handleId][itemKey] = outputItemSpeedThou;
-            remainingOutputItemSpeedThou -= outputItemSpeedThou;
+          res.output[handleId] ??= {};
+          const expectedItemOutputSpeedThou = expectedOutput[handleId]?.[itemKey] ?? 0;
+          const existingOutputItemSpeedThou = res.output[handleId][itemKey] ?? 0;
+          const newOutputItemSpeedThou = Math.min(expectedItemOutputSpeedThou, existingOutputItemSpeedThou + dividedOutputItemSpeedThou);
+          res.output[handleId][itemKey] = newOutputItemSpeedThou;
+          remainingOutputItemSpeedThou -= newOutputItemSpeedThou - existingOutputItemSpeedThou;
+          if (newOutputItemSpeedThou == expectedItemOutputSpeedThou) {
+            unmetOutputHandleId.delete(handleId);
           }
-          unmetOutputHandleId.delete(handleId);
-        }
-
-        if (!hasTooMuchInput && isOverflowDone && unmetOutputHandleId.size === 0 && remainingOutputItemSpeedThou > 0) {
-          // If all outputs are met and there is still remaining output item speed
-          // redistribute the remaining output to the outputs that are already met so that it show up as overproducing
-          for (const handleId of itemOutputHandleIds) {
-            unmetOutputHandleId.add(handleId);
-          }
-          for (const handleId of overflowOutHandleIds) {
-            unmetOutputHandleId.add(handleId);
-          }
-          hasTooMuchInput = true; // It won't go into this block again
         }
 
         if (!isOverflowDone && unmetOutputHandleId.size === 0 && remainingOutputItemSpeedThou > 0) {
@@ -291,6 +289,14 @@ export function calFactoryItemSpeedForLogisticNode(params: FactoryItemSpeedParam
             unmetOutputHandleId.add(handleId);
           }
           isOverflowDone = true; // It won't go into this block again
+        }
+      }
+
+      // After trying to distribute the output (and overflow), add the remaining output to all the connected outputs
+      if (remainingOutputItemSpeedThou > 0) {
+        for (const handleId of itemOutputHandleIds) {
+          res.output[handleId] ??= {};
+          res.output[handleId][itemKey] = (res.output[handleId][itemKey] ?? 0) + remainingOutputItemSpeedThou; // Telling the output that it overproducing
         }
       }
     }
