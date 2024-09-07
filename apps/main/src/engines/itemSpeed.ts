@@ -441,8 +441,8 @@ export function calculateFactoryItemSpeed(params: CalculateFactoryItemSpeedParam
             }
             const targetNodeExpectedInputs = targetNodeItemSpeed.expectedInput;
             for (const itemKey in targetNodeExpectedInputs) {
-              expectedOutput[targetHandleId] ??= {};
-              expectedOutput[targetHandleId][itemKey] = targetNodeExpectedInputs[itemKey];
+              expectedOutput[selfHandleId] ??= {};
+              expectedOutput[selfHandleId][itemKey] = targetNodeExpectedInputs[itemKey];
             }
           }
         }
