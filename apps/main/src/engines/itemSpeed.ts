@@ -11,6 +11,7 @@ import {
   FACTORY_INTERFACE_DIR,
   FactoryInterfaceType,
   FactoryItemForm,
+  FACTORY_MACHINE_PROPERTIES,
 } from '../lib/data';
 import { DocsMapped, ExtendedNode } from '../lib/store';
 
@@ -20,6 +21,16 @@ import { DocsMapped, ExtendedNode } from '../lib/store';
 
 export type ItemSpeed = { [itemKey: string]: number };
 export type HandleItemSpeed = { [handleId: string]: ItemSpeed };
+
+function gatherItemSpeed(handleItemSpeed: HandleItemSpeed): ItemSpeed {
+  const res: ItemSpeed = {};
+  for (const handleId in handleItemSpeed) {
+    for (const itemKey in handleItemSpeed[handleId]) {
+      res[itemKey] = (res[itemKey] ?? 0) + handleItemSpeed[handleId][itemKey];
+    }
+  }
+  return res;
+}
 
 export type ItemSpeedResult = {
   expectedInput: HandleItemSpeed; // Expected input of this node based on the input and expected output
@@ -86,7 +97,7 @@ export function calFactoryItemSpeedForRecipeNode(params: FactoryItemSpeedParams)
     return null;
   }
   const recipe = docsMapped.recipes.get(recipeKey)!;
-
+  const gatheredInput = gatherItemSpeed(input);
   // const res: ItemSpeedResult = { expectedInput: {}, output: {}, efficiency: 1 };
   // Recipe ingredients and products list are gives item key and amount
   // The amount how much will be consumed or produced in one manufactoringDuration
@@ -99,8 +110,15 @@ export function calFactoryItemSpeedForRecipeNode(params: FactoryItemSpeedParams)
   const { ingredients, products, manufactoringDuration } = recipe;
   const res: ItemSpeedResult = { expectedInput: {}, output: {} };
   const durationThou = manufactoringDuration / (clockSpeedThou / 100_00); // Duration in thousandths of a second
-  const idealSpeedThous: { outputHandleId?: string; itemKey: string; speedThou: number }[] = [];
+  const idealSpeedThous: { outputHandleId?: string; itemForm: string; itemKey: string; speedThou: number }[] = [];
 
+  if (!(recipe.producedIn in FACTORY_MACHINE_PROPERTIES)) {
+    throw new Error(`Machine ${recipe.producedIn} not found`);
+  }
+
+  const productionMachineProp = FACTORY_MACHINE_PROPERTIES[recipe.producedIn];
+  const numSolidIn = productionMachineProp.solidIn;
+  const numFluidIn = productionMachineProp.fluidIn;
   let efficiencyDueToInputs = 1;
   for (const ingredient of ingredients) {
     const { itemKey, amount } = ingredient;
@@ -110,12 +128,16 @@ export function calFactoryItemSpeedForRecipeNode(params: FactoryItemSpeedParams)
     }
 
     const itemForm = item.form === 'solid' ? 'solid' : 'fluid';
-    const speedThou = ((amount / durationThou) * 60) / (itemForm === 'solid' ? 1 : 1000);
-    efficiencyDueToInputs = Math.min(efficiencyDueToInputs, (input[itemKey] ?? 0) / speedThou);
+    const expectedInputSpeedThou = ((amount / durationThou) * 60) / (itemForm === 'solid' ? 1 : 1000);
+    efficiencyDueToInputs = Math.min(efficiencyDueToInputs, (gatheredInput[itemKey] ?? 0) / expectedInputSpeedThou);
     if (expectedOutput) {
-      idealSpeedThous.push({ itemKey, speedThou });
+      idealSpeedThous.push({ itemKey, itemForm, speedThou: expectedInputSpeedThou });
     } else {
-      res.expectedInput[itemKey] = speedThou;
+      for (let i = 0; i < numSolidIn + numFluidIn; i++) {
+        const handleId = `left-${itemForm}-in-${itemForm === 'solid' ? i : numSolidIn + i}`;
+        res.expectedInput[handleId] ??= {};
+        res.expectedInput[handleId][itemKey] = expectedInputSpeedThou;
+      }
     }
   }
 
@@ -133,7 +155,7 @@ export function calFactoryItemSpeedForRecipeNode(params: FactoryItemSpeedParams)
     const handleId = `right-${itemForm}-out-${outCounts++}`;
     if (expectedOutput) {
       efficiencyDueToOutputs = Math.min(efficiencyDueToOutputs, (expectedOutput[handleId]?.[itemKey] ?? 0) / speedThou);
-      idealSpeedThous.push({ outputHandleId: handleId, itemKey, speedThou });
+      idealSpeedThous.push({ outputHandleId: handleId, itemForm, itemKey, speedThou });
     } else {
       res.output[handleId] = { [itemKey]: speedThou * efficiencyDueToInputs };
     }
@@ -147,11 +169,21 @@ export function calFactoryItemSpeedForRecipeNode(params: FactoryItemSpeedParams)
 
   if (expectedOutput) {
     for (const idealSpeed of idealSpeedThous) {
-      const { itemKey, speedThou, outputHandleId } = idealSpeed;
+      const { itemKey, itemForm, speedThou, outputHandleId } = idealSpeed;
       if (!outputHandleId) {
         // Ingredient
-        if (expectedOutput) {
-          res.expectedInput[itemKey] = speedThou * efficiencyDueToOutputs;
+        const expectedInputSpeedThou = speedThou * efficiencyDueToOutputs; // we expect the input to match the output
+        if (itemForm === 'solid') {
+          const providedInputSpeedThou = gatheredInput[itemKey] ?? 0;
+          const unmetInputSpeedThou = expectedInputSpeedThou - providedInputSpeedThou;
+          const dividedUnmetInputSpeedThou = unmetInputSpeedThou / numSolidIn;
+          for (let i = 0; i < numSolidIn; i++) {
+            const handleId = `left-solid-in-${i}`;
+            res.expectedInput[handleId] ??= {};
+            res.expectedInput[handleId][itemKey] = input[handleId][itemKey] + dividedUnmetInputSpeedThou;
+          }
+        } else {
+          // TODO: Fluid Input handling
         }
       } else {
         // Product
