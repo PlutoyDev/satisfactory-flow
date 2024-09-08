@@ -1,5 +1,8 @@
+import { Node } from '@xyflow/react';
 import { test, expect, describe } from 'vitest';
+import { ResolvedFactoryItemNodeData } from '../lib/data';
 import type { ExtendedNode } from '../lib/store';
+import RefineryAndBlender from '../tests/cases/RefineryAndBlender';
 import SimpleScrew from '../tests/cases/SimpleScrew';
 import { docsMapped } from '../tests/lib';
 import {
@@ -386,6 +389,137 @@ describe('screw constructor node', () => {
       efficiency: 1,
       expectedInput: { ['left-solid-in-0']: { [IRON_ROD_KEY]: 5_000 } },
       output: { ['right-solid-out-0']: { [SCREW_KEY]: 20_000 } },
+    } satisfies ItemSpeedResult);
+  });
+});
+
+describe('fluid test', () => {
+  const nodesMap = new Map<string, ExtendedNode>(RefineryAndBlender.nodes.map((node: ExtendedNode) => [node.id, node]));
+  const polymerResinNode = nodesMap.get('twRKeNfYTxHQPofl')!;
+  const waterNode = nodesMap.get('LpzQ6fLFoR-ItEKt')!;
+  const heavyOilResidueNode = nodesMap.get('i3SN3dHSD2JAym99')!;
+  const pipeJuncNode = nodesMap.get('TvBJWKlYO5XWgSpP')!;
+  const blenderNode = nodesMap.get('9THbyDzQxAykYTC3')!; // Diluted fuel
+  const refineryNode = nodesMap.get('-ha-J2-vISltOm4i')!; // Polyester fabric
+
+  const POLYMER_RESIN_KEY = 'Desc_PolymerResin_C';
+  const WATER_KEY = 'Desc_Water_C';
+  const HEAVY_OIL_RESIDUE_KEY = 'Desc_HeavyOilResidue_C';
+  const FABRIC_KEY = 'Desc_Fabric_C';
+  const FUEL_KEY = 'Desc_LiquidFuel_C';
+
+  if (!polymerResinNode || !waterNode || !heavyOilResidueNode || !pipeJuncNode || !blenderNode || !refineryNode) {
+    throw new Error('Node not found');
+  }
+
+  // const waterNodeItemSpeed = calFactoryItemSpeedForItemNode({ node: waterNode, docsMapped, input: {} });
+  // const heavyOilResidueNodeItemSpeed = calFactoryItemSpeedForItemNode({ node: heavyOilResidueNode, docsMapped, input: {} });
+  // const polymerResinNodeItemSpeed = calFactoryItemSpeedForItemNode({ node: polymerResinNode, docsMapped, input: {} });
+
+  test('missing water for polyester fabric (no output expected)', () => {
+    const result = calFactoryItemSpeedForRecipeNode({
+      node: refineryNode,
+      docsMapped,
+      input: { ['left-solid-in-0']: { [POLYMER_RESIN_KEY]: 30_000 } },
+    });
+    expect(result).toEqual({
+      efficiency: 0,
+      expectedInput: { ['left-solid-in-0']: { [POLYMER_RESIN_KEY]: 30_000 }, ['left-fluid-in-1']: { [WATER_KEY]: 30_000 } },
+      output: { ['right-solid-out-0']: { [FABRIC_KEY]: 0 } },
+    } satisfies ItemSpeedResult);
+  });
+
+  test('missing water and heavy oil residue for diluted fuel (no output expected)', () => {
+    const result = calFactoryItemSpeedForRecipeNode({
+      node: blenderNode,
+      docsMapped,
+      input: {},
+    });
+    expect(result).toEqual({
+      efficiency: 0,
+      expectedInput: {
+        ['left-fluid-in-2']: { [HEAVY_OIL_RESIDUE_KEY]: 50_000, [WATER_KEY]: 100_000 },
+        ['left-fluid-in-3']: { [HEAVY_OIL_RESIDUE_KEY]: 50_000, [WATER_KEY]: 100_000 },
+      },
+      output: { ['right-fluid-out-0']: { [FUEL_KEY]: 0 } },
+    } satisfies ItemSpeedResult);
+  });
+
+  test('missing heavy oil residue for diluted fuel (no output expected)', () => {
+    const result = calFactoryItemSpeedForRecipeNode({
+      node: blenderNode,
+      docsMapped,
+      input: { ['left-fluid-in-2']: { [WATER_KEY]: 100_000 } },
+    });
+    expect(result).toEqual({
+      efficiency: 0,
+      expectedInput: {
+        ['left-fluid-in-2']: { [WATER_KEY]: 100_000 },
+        ['left-fluid-in-3']: { [HEAVY_OIL_RESIDUE_KEY]: 50_000 },
+      },
+      output: { ['right-fluid-out-0']: { [FUEL_KEY]: 0 } },
+    } satisfies ItemSpeedResult);
+  });
+
+  test('output expected for polyester fabric (no missing inputs)', () => {
+    const result = calFactoryItemSpeedForRecipeNode({
+      node: refineryNode,
+      docsMapped,
+      input: { ['left-solid-in-0']: { [POLYMER_RESIN_KEY]: 30_000 }, ['left-fluid-in-1']: { [WATER_KEY]: 30_000 } },
+      expectedOutput: { ['right-solid-out-0']: { [FABRIC_KEY]: 30_000 } },
+    });
+    expect(result).toEqual({
+      efficiency: 1,
+      expectedInput: { ['left-solid-in-0']: { [POLYMER_RESIN_KEY]: 30_000 }, ['left-fluid-in-1']: { [WATER_KEY]: 30_000 } },
+      output: { ['right-solid-out-0']: { [FABRIC_KEY]: 30_000 } },
+    } satisfies ItemSpeedResult);
+  });
+
+  test('output expected for polyester fabric (undersupplied water)', () => {
+    const result = calFactoryItemSpeedForRecipeNode({
+      node: refineryNode,
+      docsMapped,
+      input: { ['left-solid-in-0']: { [POLYMER_RESIN_KEY]: 30_000 }, ['left-fluid-in-1']: { [WATER_KEY]: 20_000 } },
+      expectedOutput: { ['right-solid-out-0']: { [FABRIC_KEY]: 30_000 } },
+    });
+    expect(result).toEqual({
+      efficiency: 20_000 / 30_000,
+      expectedInput: { ['left-solid-in-0']: { [POLYMER_RESIN_KEY]: 30_000 }, ['left-fluid-in-1']: { [WATER_KEY]: 30_000 } },
+      output: { ['right-solid-out-0']: { [FABRIC_KEY]: 20_000 } },
+    } satisfies ItemSpeedResult);
+  });
+
+  test('output expected for diluted fuel (both inputs missing)', () => {
+    const result = calFactoryItemSpeedForRecipeNode({
+      node: blenderNode,
+      docsMapped,
+      input: {},
+      expectedOutput: { ['right-fluid-out-0']: { [FUEL_KEY]: 100_000 } },
+    });
+    expect(result).toEqual({
+      efficiency: 0,
+      expectedInput: {
+        ['left-fluid-in-2']: { [HEAVY_OIL_RESIDUE_KEY]: 50_000, [WATER_KEY]: 100_000 },
+        ['left-fluid-in-3']: { [HEAVY_OIL_RESIDUE_KEY]: 50_000, [WATER_KEY]: 100_000 },
+      },
+      output: { ['right-fluid-out-0']: { [FUEL_KEY]: 0 } },
+    } satisfies ItemSpeedResult);
+  });
+
+  test('output expected for diluted fuel (missing heavy oil residue)', () => {
+    const result = calFactoryItemSpeedForRecipeNode({
+      node: blenderNode,
+      docsMapped,
+      input: { ['left-fluid-in-2']: { [WATER_KEY]: 100_000 } },
+      expectedOutput: { ['right-fluid-out-0']: { [FUEL_KEY]: 100_000 } },
+    });
+    expect(result).toEqual({
+      efficiency: 0,
+      expectedInput: {
+        ['left-fluid-in-2']: { [WATER_KEY]: 100_000 },
+        ['left-fluid-in-3']: { [HEAVY_OIL_RESIDUE_KEY]: 50_000 },
+      },
+      output: { ['right-fluid-out-0']: { [FUEL_KEY]: 0 } },
     } satisfies ItemSpeedResult);
   });
 });
