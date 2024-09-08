@@ -483,8 +483,8 @@ export function calculateFactoryItemSpeed(params: CalculateFactoryItemSpeedParam
         throw new Error(`not found`);
       }
 
-      const input: InputItemSpeed = {};
-      const expectedOutput: OutputItemSpeed = {};
+      const input: HandleItemSpeed = {};
+      const expectedOutput: HandleItemSpeed = {};
       const nodeEdges = node.edges;
       if (!nodeEdges) {
         throw new Error('no edges');
@@ -523,7 +523,8 @@ export function calculateFactoryItemSpeed(params: CalculateFactoryItemSpeedParam
             throw new Error(`Output of source node ${sourceNodeId} for handle ${sourceHandleId} not found`);
           }
           for (const itemKey in sourceNodeOutput) {
-            input[itemKey] = (input[itemKey] ?? 0) + sourceNodeOutput[itemKey];
+            input[selfHandleId] ??= {};
+            input[selfHandleId][itemKey] = sourceNodeOutput[itemKey];
           }
         } else {
           // interfaceType === 'out'
@@ -548,9 +549,9 @@ export function calculateFactoryItemSpeed(params: CalculateFactoryItemSpeedParam
               throw new Error(`Target node ${targetNodeId} of edge ${edgeId} not calculated yet`);
             }
             const targetNodeExpectedInputs = targetNodeItemSpeed.expectedInput;
-            for (const itemKey in targetNodeExpectedInputs) {
+            for (const itemKey in targetNodeExpectedInputs[targetHandleId]) {
               expectedOutput[selfHandleId] ??= {};
-              expectedOutput[selfHandleId][itemKey] = targetNodeExpectedInputs[itemKey];
+              expectedOutput[selfHandleId][itemKey] = targetNodeExpectedInputs[targetHandleId][itemKey];
             }
           }
         }

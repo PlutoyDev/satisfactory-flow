@@ -964,12 +964,34 @@ describe('full factory test', () => {
     startNodeId: ironIngotsItemNode.id,
   };
 
-  test('starting from iron ingots item node', () => {
+  test('starting from iron ingots item node (balanced)', () => {
     const result: CalculateFactoryItemSpeedResult = calculateFactoryItemSpeed(initialParams);
     expect(result).toHaveProperty('nodeItemSpeeds');
 
     for (const nodeId of nodesMap.keys()) {
       expect.soft(result.nodeItemSpeeds.has(nodeId), `Node ${nodeId} is not calculated`);
     }
+  });
+
+  test('starting from iron ingots item node (more scews)', () => {
+    const alteredNodesMap = new Map<string, ExtendedNode>(nodesMap);
+    const alteredScrewItemNode = { ...screwItemNode, data: { ...screwItemNode.data, speedThou: 90_000 } };
+    alteredNodesMap.set(screwItemNode.id, alteredScrewItemNode);
+
+    const alteredParams: CalculateFactoryItemSpeedParams = {
+      ...initialParams,
+      nodes: alteredNodesMap,
+    };
+    const result: CalculateFactoryItemSpeedResult = calculateFactoryItemSpeed(alteredParams);
+    expect(result).toHaveProperty('nodeItemSpeeds');
+  });
+
+  test('starting from screw item node (balanced)', () => {
+    const alteredParams: CalculateFactoryItemSpeedParams = {
+      ...initialParams,
+      startNodeId: screwItemNode.id,
+    };
+    const result: CalculateFactoryItemSpeedResult = calculateFactoryItemSpeed(alteredParams);
+    expect(result).toHaveProperty('nodeItemSpeeds');
   });
 });
