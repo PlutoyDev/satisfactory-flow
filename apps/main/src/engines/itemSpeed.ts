@@ -22,11 +22,15 @@ import { DocsMapped, ExtendedNode } from '../lib/store';
 export type ItemSpeed = { [itemKey: string]: number };
 export type HandleItemSpeed = { [handleId: string]: ItemSpeed };
 
-function gatherItemSpeed(handleItemSpeed: HandleItemSpeed): ItemSpeed {
+function gatherItemSpeed(
+  handleItemSpeed: HandleItemSpeed,
+  forEach?: (handleId: string, itemKey: string, speed: number) => void,
+): ItemSpeed {
   const res: ItemSpeed = {};
   for (const handleId in handleItemSpeed) {
     for (const itemKey in handleItemSpeed[handleId]) {
       res[itemKey] = (res[itemKey] ?? 0) + handleItemSpeed[handleId][itemKey];
+      forEach?.(handleId, itemKey, handleItemSpeed[handleId][itemKey]);
     }
   }
   return res;
@@ -142,8 +146,8 @@ export function calFactoryItemSpeedForRecipeNode(params: FactoryItemSpeedParams)
       if (itemForm === 'solid') {
         for (let i = 0; i < numSolidIn; i++) {
           const handleId = `left-solid-in-${i}`;
-        res.expectedInput[handleId] ??= {};
-        res.expectedInput[handleId][itemKey] = expectedInputSpeedThou;
+          res.expectedInput[handleId] ??= {};
+          res.expectedInput[handleId][itemKey] = expectedInputSpeedThou;
         }
       } else {
         const fluidIn0TakenByThis = fluidIn0Taken && input[fluidInputHandleId0]?.[itemKey] !== undefined;
@@ -293,7 +297,13 @@ export function calFactoryItemSpeedForLogisticNode(params: FactoryItemSpeedParam
 
   const res: ItemSpeedResult = { expectedInput: {}, output: {} };
 
-  const itemKeys: string[] = Object.keys(input);
+  const itemKeys: string[] = []; // Maybe change to Set if needed
+  const gatheredInputItemSpeed = gatherItemSpeed(input, (_, itemKey) => {
+    if (!itemKeys.includes(itemKey)) {
+      itemKeys.push(itemKey);
+    }
+  });
+
   if (expectedOutput) {
     for (const handleId in expectedOutput) {
       for (const itemKey in expectedOutput[handleId]) {
@@ -305,7 +315,7 @@ export function calFactoryItemSpeedForLogisticNode(params: FactoryItemSpeedParam
   }
 
   for (const itemKey of itemKeys) {
-    const itemInputSpeedThou = input[itemKey] ?? 0;
+    const itemInputSpeedThou = gatheredInputItemSpeed[itemKey] ?? 0;
     const itemOutputHandleIds: string[] = [];
     if (itemKey in specificItemOutHandleIds) {
       itemOutputHandleIds.push(...specificItemOutHandleIds[itemKey]);
@@ -323,15 +333,15 @@ export function calFactoryItemSpeedForLogisticNode(params: FactoryItemSpeedParam
         res.output[handleId] ??= {};
         res.output[handleId][itemKey] = itemInputSpeedThou;
       }
-      res.expectedInput[itemKey] = itemInputSpeedThou;
+      for (const handleId of inHandleIds) {
+        if (input[handleId]?.[itemKey] !== undefined) {
+          res.expectedInput[handleId] ??= {};
+          res.expectedInput[handleId][itemKey] = itemInputSpeedThou;
+        }
+      }
       continue;
     }
 
-    // for (const handleId in expectedOutput) {
-    //   if (itemKey in expectedOutput[handleId]) {
-    //     itemOutputSpeedThou += expectedOutput[handleId][itemKey];
-    //   }
-    // }
     let itemOutputSpeedThou = 0;
     const unmetOutputHandleId: Set<string> = new Set();
     for (const handleId of itemOutputHandleIds) {
@@ -392,7 +402,25 @@ export function calFactoryItemSpeedForLogisticNode(params: FactoryItemSpeedParam
     }
 
     if (itemOutputSpeedThou > 0 || amountOverflowed > 0) {
-      res.expectedInput[itemKey] = itemOutputSpeedThou + amountOverflowed;
+      let expectedInputItemSpeedThou = itemOutputSpeedThou + amountOverflowed;
+      if (expectedInputItemSpeedThou > itemInputSpeedThou) {
+        // Set the missing speed to all input handles that this needs MOARRR
+        const missingInput = expectedInputItemSpeedThou - itemInputSpeedThou;
+        for (const handleId of inHandleIds) {
+          res.expectedInput[handleId] ??= {};
+          res.expectedInput[handleId][itemKey] = (input[handleId]?.[itemKey] ?? 0) + missingInput;
+        }
+      } else {
+        // The input is enough (or more than enough).
+        // Get the ratio of actual input to the total actual input, and multiply it to the expected input
+        for (const handleId of inHandleIds) {
+          const providedRatio = (input[handleId]?.[itemKey] ?? 0) / itemInputSpeedThou;
+          const expectedHandleInputSpeedThou = expectedInputItemSpeedThou * providedRatio;
+          if (!expectedHandleInputSpeedThou) continue;
+          res.expectedInput[handleId] ??= {};
+          res.expectedInput[handleId][itemKey] = expectedInputItemSpeedThou * providedRatio;
+        }
+      }
     }
   }
 
