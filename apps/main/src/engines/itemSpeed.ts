@@ -427,6 +427,22 @@ export function calFactoryItemSpeedForLogisticNode(params: FactoryItemSpeedParam
   return res;
 }
 
+export function calFactoryItemSpeedForSinkNode(params: FactoryItemSpeedParams) {
+  const handleId = 'left-solid-in-0';
+  if (!params.input[handleId]) {
+    return { expectedInput: {}, output: {} };
+  }
+  const expectedInput: HandleItemSpeed = { [handleId]: {} };
+  for (const itemKey in params.input[handleId]) {
+    // Mirror the input to the expected input return (there is no output)
+    expectedInput[handleId][itemKey] = params.input[handleId][itemKey];
+  }
+  return {
+    expectedInput,
+    output: {},
+  };
+}
+
 export type CalculateFactoryItemSpeedParams = {
   docsMapped: DocsMapped;
   startNodeId: string;
@@ -586,6 +602,8 @@ export function calculateFactoryItemSpeed(params: CalculateFactoryItemSpeedParam
         itemSpeed = calFactoryItemSpeedForRecipeNode(nodeItemSpeedCalcParam);
       } else if (node.type === 'logistic') {
         itemSpeed = calFactoryItemSpeedForLogisticNode(nodeItemSpeedCalcParam);
+      } else if (node.type === 'sink') {
+        itemSpeed = calFactoryItemSpeedForSinkNode(nodeItemSpeedCalcParam);
       } else {
         throw new Error(`Invalid node type ${node.data.type}`);
       }

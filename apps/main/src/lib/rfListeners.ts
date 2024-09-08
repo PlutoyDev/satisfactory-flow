@@ -3,7 +3,6 @@ import { Edge, Connection, OnSelectionChangeParams, ReactFlowInstance, XYPositio
 import { atom } from 'jotai';
 import { isDeepEqual } from 'remeda';
 import { z } from 'zod';
-import { FactoryNodeType } from '../components/rf/BaseNode';
 import {
   generateId,
   MAIN_EDGE_PROP_SCHEMA,
@@ -13,6 +12,7 @@ import {
   pickMainEdgeProp,
   pickMainNodeProp,
   splitHandleId,
+  FactoryNodeType,
 } from './data';
 import {
   store,

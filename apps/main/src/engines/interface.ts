@@ -176,3 +176,7 @@ export function getFactoryInterfaceForLogisticNode({
 
   return interfaces;
 }
+
+export function getFactoryInterfaceForSinkNode() {
+  return { left: [{ type: 'in', form: 'solid' }] };
+}
