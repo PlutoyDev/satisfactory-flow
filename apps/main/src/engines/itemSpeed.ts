@@ -40,22 +40,23 @@ export function calFactoryItemSpeedForItemNode(params: FactoryItemSpeedParams): 
 
   if (!itemKey) return null;
   const item = docsMapped.items.get(itemKey)!;
+  const itemForm = item.form === 'solid' ? 'solid' : 'fluid';
 
   const res: ItemSpeedResult = { expectedInput: {}, output: {} };
   let outputSpeed: number | undefined;
   let inputSpeed: number | undefined;
 
   if (interfaceKind === 'both' || interfaceKind === 'in') {
-    const providedItemSpeed = input[itemKey] ?? 0;
+    const handleId = `left-${itemForm}-in-0`;
+    const providedItemSpeed = input[handleId]?.[itemKey] ?? 0;
     // If the provided input is less than the speed, it will still expect the speed
     // but the efficiency will be penalized
     inputSpeed = speedThou;
-    res.expectedInput[itemKey] = inputSpeed;
+    res.expectedInput[handleId] = { [itemKey]: inputSpeed };
     res.efficiency = Math.min(1, providedItemSpeed / speedThou);
   }
 
   if (interfaceKind === 'both' || interfaceKind === 'out') {
-    const itemForm = item.form === 'solid' ? 'solid' : 'fluid';
     const handleId = `right-${itemForm}-out-0`;
     if (expectedOutput) {
       // If expectedOutput is provided, this node is expected to provide the expected output but only to the max of the specified speed.
