@@ -39,7 +39,7 @@ function gatherItemSpeed(
 export type ItemSpeedResult = {
   expectedInput: HandleItemSpeed; // Expected input of this node based on the input and expected output
   output: HandleItemSpeed; // Output of this node base on the input and expected output
-  efficiency?: number; // Efficiency of the node (only for recipe node)
+  efficiency?: number; // Efficiency of the node
 };
 
 export type FactoryItemSpeedParams = {
@@ -432,7 +432,6 @@ export type CalculateFactoryItemSpeedParams = {
   startNodeId: string;
   nodes: Map<string, ExtendedNode>;
   edges: Map<string, Edge>;
-  signal?: AbortSignal;
   /**
    * Callback after the initial pass is done
    * @returns true to stop the calculation, false / undefined will continue to the second pass
@@ -444,8 +443,14 @@ export type CalculateFactoryItemSpeedParams = {
 };
 
 export type CalculateFactoryItemSpeedResult = {
+  /** Idividual item speeds for each node */
   nodeItemSpeeds: Map<string, ItemSpeedResult | null>;
+  /** Errors that occurred during the calculation */
   nodeErrors: { [nodeId: string]: Error };
+  /** The order of the nodes that are calculated (from the start to the end) */
+  nodeOrders: string[];
+  /** The effective efficiency of the factory (the minimum efficiency of all the nodes) */
+  effectiveEfficiency: number;
 };
 
 export function calculateFactoryItemSpeed(params: CalculateFactoryItemSpeedParams): CalculateFactoryItemSpeedResult {
@@ -460,20 +465,20 @@ export function calculateFactoryItemSpeed(params: CalculateFactoryItemSpeedParam
   //  Although tree terminology is used, the factory graph is not a tree, it can have cycles and multiple roots and leaves
   //  To be specific, it is a directed acyclic graph (DAG) with multiple sources and targets but it is easier to explain with tree terminology
   //  Feel free to rewrite this explanation to be more accurate and concise if needed
-  const { docsMapped, startNodeId, nodes, edges, signal } = params;
+  const { docsMapped, startNodeId, nodes, edges } = params;
 
   const nodeErrors: { [nodeId: string]: Error } = {};
   const nodeItemSpeeds = new Map<string, ItemSpeedResult | null>();
   const visitedNodes = new Set<string>();
   const nodeIdQueue = [startNodeId];
-  let isRecalculating = false; // Recalculating backwards from the end nodes
   const nodeIdCalculationOrder: string[] = []; // The order of the nodes that are calculated, reverse when recalculating
+  let isRecalculating = false; // Recalculating backwards from the end nodes
+  let effectiveEfficiency = 1;
   while (nodeIdQueue.length > 0) {
     const nodeId = nodeIdQueue.shift()!;
     try {
       if (!isRecalculating) {
         if (visitedNodes.has(nodeId)) {
-          console.log(`Node ${nodeId} already visited`);
           throw null; // Not an error,
         }
         visitedNodes.add(nodeId);
@@ -566,9 +571,6 @@ export function calculateFactoryItemSpeed(params: CalculateFactoryItemSpeedParam
 
       // All inputs are visited
       // Calculate the item speed for this node
-      console.group(`Calculating ${node.type} node ${nodeId}: `);
-      console.log('Data: ', node.data);
-      console.log('Input: ', input);
 
       if (!isRecalculating) {
         nodeIdCalculationOrder.push(nodeId);
@@ -576,7 +578,6 @@ export function calculateFactoryItemSpeed(params: CalculateFactoryItemSpeedParam
       const nodeItemSpeedCalcParam: FactoryItemSpeedParams = { node, docsMapped, input };
       if (isRecalculating) {
         nodeItemSpeedCalcParam.expectedOutput = expectedOutput;
-        console.log('Expected Output: ', expectedOutput);
       }
       let itemSpeed: ItemSpeedResult | null;
       if (node.type === 'item') {
@@ -588,19 +589,18 @@ export function calculateFactoryItemSpeed(params: CalculateFactoryItemSpeedParam
       } else {
         throw new Error(`Invalid node type ${node.data.type}`);
       }
-      console.log('Result: ', itemSpeed);
-      console.groupEnd();
 
       nodeItemSpeeds.set(nodeId, itemSpeed);
+      if (isRecalculating && itemSpeed?.efficiency !== undefined) {
+        effectiveEfficiency = Math.min(effectiveEfficiency, itemSpeed.efficiency);
+      }
       if (!itemSpeed) {
         throw new Error(`Item speed not calculated`);
       }
     } catch (e) {
       if (typeof e === 'string') {
-        console.error(`Error in node ${nodeId}: ${e}`);
         nodeErrors[nodeId] = new Error(e);
       } else if (e instanceof Error) {
-        console.error(`${e.name} in node ${nodeId}: ${e.message}`);
         nodeErrors[nodeId] = e;
       }
     }
@@ -608,7 +608,6 @@ export function calculateFactoryItemSpeed(params: CalculateFactoryItemSpeedParam
     // End of first pass
     if (!isRecalculating && nodeIdQueue.length === 0) {
       // Start recalculating
-      console.log('End of initial pass: ', nodeIdCalculationOrder);
       const stop = params.inititalPassResultCallback?.({ nodeItemSpeeds, nodeErrors });
       if (stop) {
         console.log('Stopped after initial pass');
@@ -619,5 +618,10 @@ export function calculateFactoryItemSpeed(params: CalculateFactoryItemSpeedParam
     }
   }
 
-  return { nodeItemSpeeds, nodeErrors };
+  return {
+    nodeItemSpeeds,
+    nodeErrors,
+    nodeOrders: nodeIdCalculationOrder,
+    effectiveEfficiency,
+  };
 }
