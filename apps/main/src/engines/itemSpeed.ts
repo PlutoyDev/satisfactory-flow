@@ -458,6 +458,19 @@ export type CalculateFactoryItemSpeedParams = {
   }: Pick<CalculateFactoryItemSpeedResult, 'nodeItemSpeeds' | 'nodeErrors'>) => boolean | undefined;
 };
 
+export type ProductionIssue = {
+  edgeId: string;
+  itemKey: string;
+  /** 
+    The speed difference between the expected input and the actual input 
+    
+    +ve: Overproducing, -ve: Underproducing
+  */
+  diffSpeedThou: number;
+  sourceSpeedThou: number;
+  targetSpeedThou: number;
+};
+
 export type CalculateFactoryItemSpeedResult = {
   /** Idividual item speeds for each node */
   nodeItemSpeeds: Map<string, ItemSpeedResult | null>;
@@ -467,6 +480,8 @@ export type CalculateFactoryItemSpeedResult = {
   nodeOrders: string[];
   /** The effective efficiency of the factory (the minimum efficiency of all the nodes) */
   effectiveEfficiency: number;
+  /** Production issues, key is the edgeId */
+  productionIssues: Map<string, ProductionIssue[]>;
 };
 
 export function calculateFactoryItemSpeed(params: CalculateFactoryItemSpeedParams): CalculateFactoryItemSpeedResult {
@@ -483,6 +498,7 @@ export function calculateFactoryItemSpeed(params: CalculateFactoryItemSpeedParam
   //  Feel free to rewrite this explanation to be more accurate and concise if needed
   const { docsMapped, startNodeId, nodes, edges } = params;
 
+  const productionIssues = new Map<string, ProductionIssue[]>();
   const nodeErrors: { [nodeId: string]: Error } = {};
   const nodeItemSpeeds = new Map<string, ItemSpeedResult | null>();
   const visitedNodes = new Set<string>();
@@ -609,11 +625,33 @@ export function calculateFactoryItemSpeed(params: CalculateFactoryItemSpeedParam
       }
 
       nodeItemSpeeds.set(nodeId, itemSpeed);
-      if (isRecalculating && itemSpeed?.efficiency !== undefined) {
-        effectiveEfficiency = Math.min(effectiveEfficiency, itemSpeed.efficiency);
-      }
-      if (!itemSpeed) {
-        throw new Error(`Item speed not calculated`);
+      if (isRecalculating && itemSpeed) {
+        effectiveEfficiency = Math.min(effectiveEfficiency, itemSpeed.efficiency ?? 1);
+        const { expectedInput } = itemSpeed;
+        // Find the production issues by comparing expected output & actual output, input & expected input
+        for (const handleId in input) {
+          for (const itemKey in input[handleId]) {
+            const edgeId = nodeEdges.get(handleId)!;
+            const expectedInputSpeed = expectedInput[handleId]?.[itemKey] ?? 0;
+            const actualInputSpeed = input[handleId][itemKey];
+            const diffSpeedThou = actualInputSpeed - expectedInputSpeed;
+            if (diffSpeedThou === 0) {
+              continue;
+            }
+            const issue: ProductionIssue = {
+              edgeId,
+              itemKey,
+              diffSpeedThou,
+              sourceSpeedThou: actualInputSpeed,
+              targetSpeedThou: expectedInputSpeed,
+            };
+            if (!productionIssues.has(edgeId)) {
+              productionIssues.set(edgeId, [issue]);
+            } else {
+              productionIssues.get(edgeId)!.push(issue);
+            }
+          }
+        }
       }
     } catch (e) {
       if (typeof e === 'string') {
@@ -636,10 +674,14 @@ export function calculateFactoryItemSpeed(params: CalculateFactoryItemSpeedParam
     }
   }
 
+  // Caclulation done
+  console.log(productionIssues);
+
   return {
     nodeItemSpeeds,
     nodeErrors,
     nodeOrders: nodeIdCalculationOrder,
     effectiveEfficiency,
+    productionIssues,
   };
 }

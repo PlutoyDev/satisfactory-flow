@@ -973,7 +973,7 @@ describe('full factory test', () => {
     }
   });
 
-  test('starting from iron ingots item node (more scews)', () => {
+  test('starting from iron ingots item node (less scews demand)', () => {
     const alteredNodesMap = new Map<string, ExtendedNode>(nodesMap);
     const alteredScrewItemNode = { ...screwItemNode, data: { ...screwItemNode.data, speedThou: 90_000 } };
     alteredNodesMap.set(screwItemNode.id, alteredScrewItemNode);
@@ -984,6 +984,22 @@ describe('full factory test', () => {
     };
     const result: CalculateFactoryItemSpeedResult = calculateFactoryItemSpeed(alteredParams);
     expect(result).toHaveProperty('nodeItemSpeeds');
+
+    // The final screw item node has been alter so that it can only accepts up to 90/min
+    // But the 3 constructors can produce up to 40/min each, resulting in 120/min screws produced
+    // Screws will start to back up on the belt leading to the screw item node
+    // Edge (ED7zivZ6aPZkzmYG, 4hhXA7CKZg8IO-xE) are the edges leading to the screw item node
+    expect(result.productionIssues.size).toBeGreaterThan(0);
+    const firstEdgeIssues = result.productionIssues.get('ED7zivZ6aPZkzmYG');
+    expect(firstEdgeIssues).toBeDefined();
+    expect(firstEdgeIssues!.length).toBeGreaterThan(0);
+    expect(firstEdgeIssues![0]).toEqual({
+      edgeId: 'ED7zivZ6aPZkzmYG',
+      itemKey: SCREW_KEY,
+      diffSpeedThou: 30_000,
+      sourceSpeedThou: 120_000,
+      targetSpeedThou: 90_000,
+    });
   });
 
   test('starting from screw item node (balanced)', () => {
