@@ -119,6 +119,12 @@ export function calFactoryItemSpeedForRecipeNode(params: FactoryItemSpeedParams)
   const productionMachineProp = FACTORY_MACHINE_PROPERTIES[recipe.producedIn];
   const numSolidIn = productionMachineProp.solidIn;
   const numFluidIn = productionMachineProp.fluidIn;
+
+  const fluidInputHandleId0 = `left-fluid-in-${numSolidIn}`;
+  const fluidInputHandleId1 = numFluidIn > 1 ? `left-fluid-in-${numSolidIn + 1}` : undefined;
+  let fluidIn0Taken = input[fluidInputHandleId0] !== undefined;
+  let fluidIn1Taken = fluidInputHandleId1 && input[fluidInputHandleId1] !== undefined;
+
   let efficiencyDueToInputs = 1;
   for (const ingredient of ingredients) {
     const { itemKey, amount } = ingredient;
@@ -133,10 +139,31 @@ export function calFactoryItemSpeedForRecipeNode(params: FactoryItemSpeedParams)
     if (expectedOutput) {
       idealSpeedThous.push({ itemKey, itemForm, speedThou: expectedInputSpeedThou });
     } else {
-      for (let i = 0; i < numSolidIn + numFluidIn; i++) {
-        const handleId = `left-${itemForm}-in-${itemForm === 'solid' ? i : numSolidIn + i}`;
+      if (itemForm === 'solid') {
+        for (let i = 0; i < numSolidIn; i++) {
+          const handleId = `left-solid-in-${i}`;
         res.expectedInput[handleId] ??= {};
         res.expectedInput[handleId][itemKey] = expectedInputSpeedThou;
+        }
+      } else {
+        const fluidIn0TakenByThis = fluidIn0Taken && input[fluidInputHandleId0]?.[itemKey] !== undefined;
+        const fluidIn1TakenByThis = fluidIn1Taken && input[fluidInputHandleId1!]?.[itemKey] !== undefined;
+        if (fluidIn0TakenByThis || (fluidIn1Taken && !fluidIn0Taken)) {
+          res.expectedInput[fluidInputHandleId0] ??= {};
+          res.expectedInput[fluidInputHandleId0][itemKey] = expectedInputSpeedThou;
+          fluidIn0Taken = true;
+        } else if (fluidIn1TakenByThis || (fluidIn0Taken && !fluidIn1Taken)) {
+          res.expectedInput[fluidInputHandleId1!] ??= {};
+          res.expectedInput[fluidInputHandleId1!][itemKey] = expectedInputSpeedThou;
+          fluidIn1Taken = true;
+        } else {
+          res.expectedInput[fluidInputHandleId0] ??= {};
+          res.expectedInput[fluidInputHandleId0][itemKey] = expectedInputSpeedThou;
+          if (fluidInputHandleId1) {
+            res.expectedInput[fluidInputHandleId1] ??= {};
+            res.expectedInput[fluidInputHandleId1][itemKey] = expectedInputSpeedThou;
+          }
+        }
       }
     }
   }
@@ -166,7 +193,6 @@ export function calFactoryItemSpeedForRecipeNode(params: FactoryItemSpeedParams)
   // We can now calculate the actual input and output speeds
   const overallEfficiency = expectedOutput ? Math.min(efficiencyDueToInputs, efficiencyDueToOutputs) : efficiencyDueToInputs;
   res.efficiency = overallEfficiency;
-
   if (expectedOutput) {
     for (const idealSpeed of idealSpeedThous) {
       const { itemKey, itemForm, speedThou, outputHandleId } = idealSpeed;
@@ -183,7 +209,24 @@ export function calFactoryItemSpeedForRecipeNode(params: FactoryItemSpeedParams)
             res.expectedInput[handleId][itemKey] = input[handleId][itemKey] + dividedUnmetInputSpeedThou;
           }
         } else {
-          // TODO: Fluid Input handling
+          const fluidIn0TakenByThis = fluidIn0Taken && input[fluidInputHandleId0]?.[itemKey] !== undefined;
+          const fluidIn1TakenByThis = fluidIn1Taken && input[fluidInputHandleId1!]?.[itemKey] !== undefined;
+          if (fluidIn0TakenByThis || (fluidIn1Taken && !fluidIn0Taken)) {
+            res.expectedInput[fluidInputHandleId0] ??= {};
+            res.expectedInput[fluidInputHandleId0][itemKey] = expectedInputSpeedThou;
+            fluidIn0Taken = true;
+          } else if (fluidIn1TakenByThis || (fluidIn0Taken && !fluidIn1Taken)) {
+            res.expectedInput[fluidInputHandleId1!] ??= {};
+            res.expectedInput[fluidInputHandleId1!][itemKey] = expectedInputSpeedThou;
+            fluidIn1Taken = true;
+          } else {
+            res.expectedInput[fluidInputHandleId0] ??= {};
+            res.expectedInput[fluidInputHandleId0][itemKey] = expectedInputSpeedThou;
+            if (fluidInputHandleId1) {
+              res.expectedInput[fluidInputHandleId1] ??= {};
+              res.expectedInput[fluidInputHandleId1][itemKey] = expectedInputSpeedThou;
+            }
+          }
         }
       } else {
         // Product
