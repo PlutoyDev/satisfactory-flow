@@ -13,7 +13,7 @@ interface NumberInputProps {
 }
 
 export default function NumberInput({ name, defaultValue, step, unit, minValue = 0, maxValue = Infinity }: NumberInputProps) {
-  const { setValue: setGlobalValue, currentValue } = useEditorField<number | undefined>(name, true);
+  const { setValue: setGlobalValue, currentValue } = useEditorField<number | undefined>(name, { debounced: true });
   const multiplier = unit === '%' ? 100_000 : 1_000;
   const [localValue, setLocalValue] = useState<number>(currentValue ?? defaultValue * multiplier);
 

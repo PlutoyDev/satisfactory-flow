@@ -128,7 +128,7 @@ export function RecipeNode(props: NodeProps<Node<FactoryRecipeNodeData>>) {
 }
 
 export function RecipeNodeEditor() {
-  const { currentValue: recipeKey, setValue: setRecipeKey } = useEditorField<string | undefined>('recipeKey');
+  const { currentValue: recipeKey, setValue: setRecipeKey } = useEditorField<string | undefined>('recipeKey', { disconnectEdges: true });
   return (
     <>
       <div className='flex w-full items-center justify-between'>

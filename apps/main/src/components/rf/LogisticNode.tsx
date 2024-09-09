@@ -31,7 +31,9 @@ const LogisticMachineName = {
 } as const satisfies Record<LogisticType, string>;
 
 export function LogisticNodeEditor() {
-  const { currentValue: logisticType, setValue: setLogisticType } = useEditorField<LogisticType | undefined>('type');
+  const { currentValue: logisticType, setValue: setLogisticType } = useEditorField<LogisticType | undefined>('type', {
+    disconnectEdges: true,
+  });
   return (
     <>
       <div className='flex w-full items-center justify-between'>

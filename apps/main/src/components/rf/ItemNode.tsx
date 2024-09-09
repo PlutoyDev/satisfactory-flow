@@ -82,9 +82,11 @@ const interfaceText = {
 } as const;
 
 export function ItemNodeEditor() {
-  const { currentValue: interfaceKind = 'both', setValue: setInterfaceKind } =
-    useEditorField<FactoryItemNodeData['interfaceKind']>('interfaceKind');
-  const { currentValue: itemKey, setValue: setItemKey } = useEditorField<string | undefined>('itemKey');
+  const { currentValue: interfaceKind = 'both', setValue: setInterfaceKind } = useEditorField<FactoryItemNodeData['interfaceKind']>(
+    'interfaceKind',
+    { disconnectEdges: true },
+  );
+  const { currentValue: itemKey, setValue: setItemKey } = useEditorField<string | undefined>('itemKey', { disconnectEdges: true });
   return (
     <>
       <div className='flex w-full items-center justify-between'>

@@ -4,8 +4,12 @@ import { FactoryBaseNodeData } from '../../lib/data';
 import { FACTORY_NODE_DEFAULT_COLORS } from '../../lib/data';
 
 export function RotationAndColorFields() {
-  const { currentValue: bgColor, setValue: setBgColor, nodeOrEdge } = useEditorField<FactoryBaseNodeData['bgColor']>('bgColor', true);
-  const { currentValue: rotIdx, setValue: setRotIdx } = useEditorField<FactoryBaseNodeData['rotIdx']>('rotIdx');
+  const {
+    currentValue: bgColor,
+    setValue: setBgColor,
+    nodeOrEdge,
+  } = useEditorField<FactoryBaseNodeData['bgColor']>('bgColor', { debounced: true, recaclulate: false });
+  const { currentValue: rotIdx, setValue: setRotIdx } = useEditorField<FactoryBaseNodeData['rotIdx']>('rotIdx', { recaclulate: false });
 
   if (!nodeOrEdge || !nodeOrEdge.type || !(nodeOrEdge.type in FACTORY_NODE_DEFAULT_COLORS)) {
     return null;

@@ -1,34 +1,39 @@
 import { createContext, useContext, ReactNode } from 'react';
 import { Edge, Node } from '@xyflow/react';
 
+export type CreateSetValueOptions = {
+  /** 
+    If number is provided, will debounce the update by that amount of milliseconds
+
+    If true, will debounce the update by 300 milliseconds
+  */
+  debounced?: number | boolean;
+  /** If true, will disconnect the edge when updating the node */
+  disconnectEdges?: boolean;
+  /** 
+    If true, will recalculate the node and its related nodes
+    @default true
+  */
+  recaclulate?: boolean;
+};
+
 interface EditorFormContextValue {
   getValue: (name?: string) => any;
-  createSetValue: (name: string | undefined, debounceMs?: number) => (updateOrUpdater: any | ((prev: any) => any)) => void;
+  createSetValue: (name: string | undefined, opts?: CreateSetValueOptions) => (updateOrUpdater: any | ((prev: any) => any)) => void;
   selectedType: 'node' | 'edge';
   nodeOrEdge: Node | Edge;
 }
 
 const EditorFormContext = createContext<EditorFormContextValue | null>(null);
 
-export function useEditorField<D>(name: string, debounceMs: boolean | number = 0) {
+export function useEditorField<D>(name: string, opts: CreateSetValueOptions = {}) {
   const ctx = useContext(EditorFormContext);
   if (!ctx) {
     throw new Error('useEditorField must be used inside FactoryNodeEditorWrapper');
   }
+  opts.recaclulate ??= true;
   const currentValue = ctx.getValue(name as string) as D;
-  const debouceMsV = typeof debounceMs === 'number' ? debounceMs : debounceMs ? 100 : 0;
-  const setValue = ctx.createSetValue(name as string, debouceMsV) as (updateOrUpdater: D | ((prev: D) => D)) => void;
-  return { currentValue, setValue, selectedType: ctx.selectedType, nodeOrEdge: ctx.nodeOrEdge };
-}
-
-export function useEditor<D>(debounceMs: boolean | number = 0) {
-  const ctx = useContext(EditorFormContext);
-  if (!ctx) {
-    throw new Error('useEditor must be used inside FactoryNodeEditorWrapper');
-  }
-  const currentValue = ctx.getValue() as D;
-  const debouceMsV = typeof debounceMs === 'number' ? debounceMs : debounceMs ? 100 : 0;
-  const setValue = ctx.createSetValue(undefined, debouceMsV) as (updateOrUpdater: Partial<D> | ((prev: D) => D)) => void;
+  const setValue = ctx.createSetValue(name as string, opts) as (updateOrUpdater: D | ((prev: D) => D)) => void;
   return { currentValue, setValue, selectedType: ctx.selectedType, nodeOrEdge: ctx.nodeOrEdge };
 }
 

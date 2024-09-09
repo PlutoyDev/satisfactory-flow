@@ -1,4 +1,4 @@
-import { Fragment, ReactNode, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ComponentProps, Fragment, ReactNode, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Background, ConnectionMode, Edge, Node, Panel, ReactFlow, useReactFlow } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import debounce from 'debounce';
@@ -31,7 +31,7 @@ import {
 } from 'lucide-react';
 import { customEdges, customNodeEditors, customNodes } from '../components/rf';
 import ConnectionLine from '../components/rf/ConnectionLine';
-import { FactoryEditorContextProvider } from '../context/NodePropertyEditorContext';
+import { CreateSetValueOptions, FactoryEditorContextProvider } from '../context/EditorFormContext';
 import {
   FACTORY_NODE_DEFAULT_COLORS,
   FACTORY_NODE_TYPES,
@@ -60,6 +60,7 @@ import {
   createFlow,
   edgesAtom,
   edgesMapAtom,
+  ExtendedNode,
   historyActionAtom,
   isDebouncePendingAtom,
   isSavedAtom,
@@ -403,7 +404,9 @@ function PropertyEditorPanel({ isReadOnly }: { isReadOnly: boolean }) {
   );
 
   const createSetValue = useCallback(
-    (name?: string, debounceMs: number = 0) => {
+    (name?: string, { debounced, disconnectEdges, recaclulate }: CreateSetValueOptions = {}) => {
+      recaclulate ??= true; // Recalculate speed by default
+      const debounceMs = typeof debounced === 'number' ? debounced : debounced ? 300 : 0;
       const setValue = (updateOrUpdater: any | ((prev: any) => any)) => {
         const prevValue = selNodeOrEdge;
         if (!prevValue) {
@@ -422,6 +425,13 @@ function PropertyEditorPanel({ isReadOnly }: { isReadOnly: boolean }) {
         // const newValue = typeof update === 'function' ? update(name ? prevValue.data[name] : prevValue.data) : { ...prevValue, data: name ? { ...prevValue.data, [name]: update } : { ...prevValue.data, ...update } };
         if (selectedType === 'node') {
           applyNodeChanges([{ type: 'replace', id: selectedIds[0], item: newValue as Node }]);
+
+          if (disconnectEdges) {
+            const nodeEdges = (prevValue as ExtendedNode).edges;
+            if (nodeEdges) {
+              applyEdgeChanges(Array.from(nodeEdges.values()).map(edgeId => ({ type: 'remove', id: edgeId })));
+            }
+          }
         } else if (selectedType === 'edge') {
           applyEdgeChanges([{ type: 'replace', id: selectedIds[0], item: newValue as Edge }]);
         }
