@@ -414,15 +414,15 @@ export async function deboucedAction(force?: true) {
 
 export const nodesAtom = atom(
   get => get(_nodesArrayAtom),
-  (get, set, changes: ExtendedNodeChange[]) => {
+  (get, set, changes: ExtendedNodeChange[], exisitingHistoryEvent: HistoryEvent = [], shallPushHistory: boolean = true) => {
     const selectedFlow = get(_selectedFlowAtom);
     if (selectedFlow?.source !== 'db' && changes[0].type !== 'select' && changes[0].type !== 'dimensions') {
       appendStatusMessage({ message: 'Cannot modify this flow, please duplicate it', type: 'error', key: 'readonly-flow' });
-      return;
+      return { historyEvent: [...exisitingHistoryEvent] };
     }
     // Reimplement of applyNodeChanges to work with Map
     const historyEvents = get(_undoHistoryAtom);
-    const currentHistoryEvent: HistoryEvent = [];
+    const currentHistoryEvent: HistoryEvent = [...exisitingHistoryEvent];
     const nodes = get(_nodesMapAtom);
     let needSetAlignment = false;
     let alignmentValue: { x: number | undefined; y: number | undefined } = { x: undefined, y: undefined };
@@ -513,27 +513,33 @@ export const nodesAtom = atom(
     if (needSetAlignment) {
       set(alignmentAtom, { x: alignmentValue.x, y: alignmentValue.y });
     }
-    if (currentHistoryEvent.length) {
-      set(isSavedAtom, false);
+    if (shallPushHistory && currentHistoryEvent.length) {
       set(_undoHistoryAtom, [...historyEvents, currentHistoryEvent]);
       set(_redoHistoryAtom, []); // Clear redo history
     }
     set(nodesMapAtom, nodes);
-    deboucedAction();
+    if (_debouncedIds.size) {
+      set(isSavedAtom, false);
+      deboucedAction();
+    }
+
+    return {
+      historyEvent: currentHistoryEvent,
+    };
   },
 );
 
 export const edgesAtom = atom(
   get => get(_edgesArrayAtom),
-  (get, set, changes: EdgeChange<Edge>[]) => {
+  (get, set, changes: EdgeChange<Edge>[], exisitingHistoryEvent: HistoryEvent = [], shallPushHistory: boolean = true) => {
     const selectedFlow = get(_selectedFlowAtom);
     if (selectedFlow?.source !== 'db' && changes[0]?.type !== 'select') {
       appendStatusMessage({ message: 'Cannot modify this flow, please duplicate it', type: 'error', key: 'readonly-flow' });
-      return;
+      return { historyEvent: [...exisitingHistoryEvent] };
     }
     // Reimplement of applyEdgeChanges to work with Map
     const historyEvents = get(_undoHistoryAtom);
-    const currentHistoryEvent: HistoryEvent = [];
+    const currentHistoryEvent: HistoryEvent = [...exisitingHistoryEvent];
     const edges = get(edgesMapAtom);
     for (const change of changes) {
       switch (change.type) {
@@ -579,13 +585,19 @@ export const edgesAtom = atom(
         }
       }
     }
-    if (currentHistoryEvent.length) {
-      set(isSavedAtom, false);
+    if (shallPushHistory && currentHistoryEvent.length) {
       set(_undoHistoryAtom, [...historyEvents, currentHistoryEvent]);
       set(_redoHistoryAtom, []); // Clear redo history
     }
     set(edgesMapAtom, edges);
-    deboucedAction();
+    if (_debouncedIds.size) {
+      set(isSavedAtom, false);
+      deboucedAction();
+    }
+
+    return {
+      historyEvent: currentHistoryEvent,
+    };
   },
 );
 

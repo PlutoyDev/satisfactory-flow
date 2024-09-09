@@ -424,12 +424,12 @@ function PropertyEditorPanel({ isReadOnly }: { isReadOnly: boolean }) {
         const newValue = { ...prevValue, data: newData };
         // const newValue = typeof update === 'function' ? update(name ? prevValue.data[name] : prevValue.data) : { ...prevValue, data: name ? { ...prevValue.data, [name]: update } : { ...prevValue.data, ...update } };
         if (selectedType === 'node') {
-          applyNodeChanges([{ type: 'replace', id: selectedIds[0], item: newValue as Node }]);
+          const { historyEvent } = applyNodeChanges([{ type: 'replace', id: selectedIds[0], item: newValue as Node }], undefined, false);
 
           if (disconnectEdges) {
             const nodeEdges = (prevValue as ExtendedNode).edges;
             if (nodeEdges) {
-              applyEdgeChanges(Array.from(nodeEdges.values()).map(edgeId => ({ type: 'remove', id: edgeId })));
+              applyEdgeChanges(Array.from(nodeEdges.values()).map(edgeId => ({ type: 'remove', id: edgeId })), historyEvent);
             }
           }
         } else if (selectedType === 'edge') {
