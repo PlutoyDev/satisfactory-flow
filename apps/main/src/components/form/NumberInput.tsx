@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { Minus, Plus } from 'lucide-react';
+import { useEditorField } from '../../context/EditorFormContext';
 import { clockSpeedThouToPercentString, parseClockSpeedThouFromPercentString, parseSpeedThou, speedThouToString } from '../../lib/data';
-import { useEditorField } from '../rf/BaseNode';
 
 interface NumberInputProps {
   name: string;

@@ -30,9 +30,16 @@ import {
   ZoomOut,
 } from 'lucide-react';
 import { customEdges, customNodeEditors, customNodes } from '../components/rf';
-import { FactoryEditorContextProvider } from '../components/rf/BaseNode';
 import ConnectionLine from '../components/rf/ConnectionLine';
-import { FACTORY_NODE_DEFAULT_COLORS, FACTORY_NODE_TYPES, FactoryNodeType, MainEdgeProp, MainNodeProp, stringifyFlowData } from '../lib/data';
+import { FactoryEditorContextProvider } from '../context/NodePropertyEditorContext';
+import {
+  FACTORY_NODE_DEFAULT_COLORS,
+  FACTORY_NODE_TYPES,
+  FactoryNodeType,
+  MainEdgeProp,
+  MainNodeProp,
+  stringifyFlowData,
+} from '../lib/data';
 import {
   addEdge,
   alignSelectedNodes,

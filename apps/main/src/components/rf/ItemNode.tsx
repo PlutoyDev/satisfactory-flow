@@ -1,12 +1,13 @@
 import { NodeProps, Node } from '@xyflow/react';
 import { useAtom } from 'jotai';
+import { useEditorField } from '../../context/EditorFormContext';
 import { getFactoryInterfaceForItemNode } from '../../engines/interface';
 import { FactoryItemNodeData, resolveItemNodeData, speedThouToString } from '../../lib/data';
 import { docsMappedAtom } from '../../lib/store';
 import ItemOrRecipeComboBox from '../form/ItemOrRecipeComboBox';
 import NumberInput from '../form/NumberInput';
 import { RotationAndColorFields } from '../form/RotationAndColor';
-import { FactoryNodeWrapper, useEditorField } from './BaseNode';
+import { FactoryNodeWrapper } from './BaseNode';
 
 const defaultSize = 96;
 // const MachineSize = {

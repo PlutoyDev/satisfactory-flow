@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useAtom } from 'jotai';
 import { Plus } from 'lucide-react';
 import { isDeepEqual } from 'remeda';
+import { useEditorField } from '../../context/EditorFormContext';
 import {
   FactoryInterfaceDir,
   FactoryLogisticNodeData,
@@ -10,7 +11,6 @@ import {
   LogisticType,
 } from '../../lib/data';
 import { docsMappedAtom } from '../../lib/store';
-import { useEditorField } from '../rf/BaseNode';
 import ItemOrRecipeComboBox, { ADDITIONAL_OUTPUT_RULE } from './ItemOrRecipeComboBox';
 
 type ExcludedLeftDir = Exclude<FactoryInterfaceDir, 'left'>;

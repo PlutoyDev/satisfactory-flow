@@ -1,9 +1,10 @@
 import { NodeProps, Node } from '@xyflow/react';
+import { useEditorField } from '../../context/EditorFormContext';
 import { getFactoryInterfaceForLogisticNode } from '../../engines/interface';
 import { LogisticType, type FactoryLogisticNodeData } from '../../lib/data';
 import { OutputFilterRule } from '../form/OutputFilterRule';
 import { RotationAndColorFields } from '../form/RotationAndColor';
-import { FactoryNodeWrapper, useEditorField } from './BaseNode';
+import { FactoryNodeWrapper } from './BaseNode';
 
 const defaultSize = 96;
 

@@ -2,13 +2,14 @@ import { Fragment, useMemo } from 'react';
 import { Node, NodeProps } from '@xyflow/react';
 import { useAtom } from 'jotai';
 import { ArrowRight } from 'lucide-react';
+import { useEditorField } from '../../context/EditorFormContext';
 import { getFactoryInterfaceForRecipeNode } from '../../engines/interface';
 import { clockSpeedThouToPercentString, FACTORY_MACHINE_PROPERTIES, FactoryRecipeNodeData, resolveRecipeNodeData } from '../../lib/data';
 import { docsMappedAtom } from '../../lib/store';
 import ItemOrRecipeComboBox from '../form/ItemOrRecipeComboBox';
 import NumberInput from '../form/NumberInput';
 import { RotationAndColorFields } from '../form/RotationAndColor';
-import { FactoryNodeWrapper, useEditorField } from './BaseNode';
+import { FactoryNodeWrapper } from './BaseNode';
 
 /* 
 Multiply by 24px/m to get the size in pixels
